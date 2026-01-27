@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="{{ url_for('static', filename='pwa/manifest.json') }}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='pwa/ff-icon-192.png') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fireground Trainer</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 0; background:#0e0f12; color:#f2f2f2; }
+    header { padding: 14px; border-bottom: 1px solid #2a2f3c; position: sticky; top: 0; background: rgba(14,15,18,0.92); }
+    main { max-width: 900px; margin: 14px auto; padding: 0 14px; display: grid; gap: 14px; }
+    .card { background:#161922; border:1px solid #2a2f3c; border-radius: 14px; padding: 14px; }
+    .imgwrap {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #2a2f3c;
+      touch-action: none; /* helps dragging on mobile */
+    }
+    
+    .base-img {
+      width: 100%;
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+
+    }
+
+    .token-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .token {
+      position:absolute;
+      transform: translate(-50%, -50%);   /* easier placement by center */
+      font-size: 32px;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .token-img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      display: block;
+    }
+
+        /* Wrap the token content so we can attach controls */
+    .token-inner {
+      position: relative;
+      display: inline-block;
+      
+    }
+
+    /* Delete button (top-right) */
+    .token-del {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid #2a2f3c;
+      background: #0f121a;
+      color: #f2f2f2;
+      font-weight: 900;
+      font-size: 14px;
+      line-height: 20px;
+      cursor: pointer;
+      z-index: 9999;
+      display: none;              /* ✅ hide by default */
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    /* Rotate handle (bottom-right) */
+    .token-rot {
+      position: absolute;
+      bottom: -12px;
+      right: -12px;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: 1px solid #2a2f3c;
+      background: #161922;
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 14px;
+      cursor: grab;
+      z-index: 9999;
+      display: none;              /* ✅ hide by default */
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Show controls only when token is selected */
+    .token.selected .token-del,
+    .token.selected .token-rot {
+      display: inline-flex;
+      
+    }
+
+    /* Tiny visual cue for selection */
+    .token.selected .token-inner {
+      outline: 2px solid #2f6fed;
+      outline-offset: 4px;
+      border-radius: 10px;
+    }
+
+    .token:active {
+      cursor: grabbing;
+    }
+
+    .toolbtn {
+      padding: 8px 12px;
+      border-radius: 12px;
+      border: 1px solid #2a2f3c;
+      background: #0f121a;
+      color: #f2f2f2;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* .imgwrap { border-radius: 12px; overflow: hidden; border:1px solid #2a2f3c; }
+    img { width: 100%; display:block; } */
+    label { font-weight: 700; display:block; margin: 12px 0 6px; line-height:1.25; }
+    textarea { width:100%; border-radius:12px; border:1px solid #2a2f3c; background:#0f121a; color:#f2f2f2; padding: 10px; font-size: 1rem; }
+    button { margin-top: 14px; padding: 10px 14px; border-radius: 12px; border: 0; font-weight: 800; cursor:pointer; }
+  </style>
+</head>
+
+
+<body>
+  <header>
+    <div style="font-weight:800;">🔥 Fireground Trainer</div>
+    <div style="opacity:0.8;font-size:0.9rem;">Scenario drills • Size-up • Tactics • Pump ops</div>
+  </header>
+
+  <main>
+    <div class="card">
+      <a href="/new" style="
+        display:inline-block;
+        padding:10px 14px;
+        border-radius:12px;
+        background:#2a2f3c;
+        border:1px solid #2a2f3c;
+        color:#f2f2f2;
+        font-weight:800;
+        text-decoration:none;
+      ">🎲 New Scenario</a>
+    </div>
+
+    <section class="card">
+      <h1 style="margin:0 0 8px;">{{ scenario.title }}</h1>
+      <p style="margin:0 0 12px; opacity:0.85; line-height:1.35;">
+        <strong>Dispatch:</strong> {{ scenario.dispatch }}
+      </p>
+      
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 12px;">
+        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/fire.png') }}" data-type="fire">Fire</button>
+        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/smoke.png') }}" data-type="smoke">Smoke</button>
+        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/wind_arrow.png') }}" data-type="wind">Wind</button>
+        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/ladder.png') }}" data-type="ladder">Ladder</button>
+        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/fireman.png') }}" data-type="attack">Attack</button>
+        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/RIT.png') }}" data-type="rit">RIT</button>
+        <button type="button" class="toolbtn" id="clearTokens">Clear</button>
+      </div>
+
+      <div class="imgwrap" id="board">
+        <img class="base-img" src="{{ url_for('static', filename=scenario.image.base) }}" alt="Scenario house" />
+        <div class="token-layer" id="tokenLayer"> </div>
+      </div>
+      <p style="margin:10px 0 0; opacity:0.75; font-size:0.9rem;">
+        (For now this is a single image—later we’ll add the fire overlay and street-view support.)
+      </p>
+    </section>
+
+    <form class="card" method="post" action="/submit">
+      <h2 style="margin:0 0 10px;">Questions</h2>
+
+      {% for q in scenario.questions %}
+        <div>
+          <label for="{{ q.id }}">{{ loop.index }}. {{ q.prompt }}</label>
+          <textarea id="{{ q.id }}" name="{{ q.id }}" rows="5" placeholder="Type your answer…">{{ answers.get(q.id, "") }}</textarea>
+        </div>
+      {% endfor %}
+
+      <button type="submit">Submit</button>
+
+      {% if submitted %}
+        <p style="margin:10px 0 0; color:#9fe6b0;">✅ Submitted. (MVP just echoes answers back.)</p>
+      {% endif %}
+    </form>
+  </main>
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("{{ url_for('static', filename='js/sw.js') }}");
+  }
+</script>
+
+<script>
+  const board = document.getElementById("board");
+  const layer = document.getElementById("tokenLayer");
+  const clearBtn = document.getElementById("clearTokens");
+
+  let selectedToken = null;  // { src, type }
+  let selectedTool = null;
+  let activeEl = null;
+  let draggingEl = null;     // the .token being moved
+  let rotatingEl = null;     // the .token being rotated
+  let placingEl = null;     // token being placed (preview)
+  
+  // Pick a tool (image-based)
+  document.querySelectorAll(".tokenbtn").forEach(btn => {
+    btn.addEventListener("pointerdown", (e) => {
+      // Start "place mode" immediately when you press a tool
+      selectedTool = { src: btn.dataset.src, type: btn.dataset.type };
+      beginPlacing(e);
+    });
+  });
+
+  // Clear tokens
+  clearBtn.addEventListener("click", () => {
+    layer.innerHTML = "";
+    placingEl = null;
+    draggingEl = null;
+    rotatingEl = null;
+  });
+
+  // Helper: convert pointer position to layer-relative percent coords
+  function toPercentCoords(evt) {
+    const rect = board.getBoundingClientRect();
+    const x = ((evt.clientX - rect.left) / rect.width) * 100;
+    const y = ((evt.clientY - rect.top) / rect.height) * 100;
+    return {x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y))}
+  }
+
+  function setActiveToken(tokenEl) {
+    // clear previous
+    layer.querySelectorAll(".token.selected").forEach(t => t.classList.remove("selected"));
+    activeEl = tokenEl || null;
+    if (activeEl) activeEl.classList.add("selected");
+  }
+
+  function applyRotation(tokenEl, degrees) {
+    tokenEl.dataset.rot = String(degrees);
+    tokenEl.querySelector(".token-inner").style.transform = `rotate(${degrees}deg)`;
+  }
+
+  function getCenterClientXY(tokenEl) {
+    const rect = board.getBoundingClientRect();
+    const leftPct = parseFloat(tokenEl.style.left);
+    const topPct = parseFloat(tokenEl.style.top);
+    return {
+      cx: rect.left + (leftPct / 100) * rect.width,
+      cy: rect.top + (topPct / 100) * rect.height
+    };
+  }
+
+  function createToken(x, y, tool) {
+    const token = document.createElement("div");
+    token.className = "token";
+    token.style.left = x + "%";
+    token.style.top = y + "%";
+    token.dataset.rot = "0";
+    token.dataset.type = tool.type;
+
+    const inner = document.createElement("div");
+    inner.className = "token-inner";
+
+    const img = document.createElement("img");
+    img.className = "token-img";
+    img.src = tool.src;
+    img.alt = tool.type;
+
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "token-del";
+    del.textContent = "✕";
+    del.title = "Remove";
+    del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      token.remove();
+    });
+
+    const rot = document.createElement("div");
+    rot.className = "token-rot";
+    rot.textContent = "⟳";
+    rot.title = "Drag to rotate";
+
+    inner.appendChild(img);
+    inner.appendChild(del);
+    inner.appendChild(rot);
+    token.appendChild(inner);
+
+    // Move / rotate handlers
+    token.addEventListener("pointerdown", (e) => {
+      // Delete button handles itself
+      if (e.target.classList.contains("token-del")) return;
+
+      setActiveToken(token); // ✅ this is what toggles the .selected class
+      
+      // Rotate handle starts rotation
+      if (e.target.classList.contains("token-rot")) {
+        rotatingEl = token;
+        token.setPointerCapture(e.pointerId);
+        e.preventDefault();
+        return;
+      }
+
+      // Otherwise: start dragging
+      draggingEl = token;
+      token.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+
+    return token;
+  }
+
+  // ---- Place mode: create a preview token that follows pointer until release ----
+  function beginPlacing(e) {
+    if (!selectedTool) return;
+
+    // Create preview immediately (this fixes "invisible until second click")
+    const { x, y } = toPercentCoords(e);
+    placingEl = createToken(x, y, selectedTool);
+    placingEl.style.opacity = "0.85";      // slight preview feel
+    layer.appendChild(placingEl);
+
+    // Track pointer moves globally while placing
+    window.addEventListener("pointermove", onPlacingMove);
+    window.addEventListener("pointerup", onPlacingUp, { once: true });
+  }
+
+  function onPlacingMove(e) {
+    if (!placingEl) return;
+    const { x, y } = toPercentCoords(e);
+    placingEl.style.left = x + "%";
+    placingEl.style.top = y + "%";
+  }
+
+  function onPlacingUp() {
+    if (!placingEl) return;
+
+    // Finalize placement
+    placingEl.style.opacity = "1";
+    setActiveToken(placingEl);
+    placingEl = null;
+
+    window.removeEventListener("pointermove", onPlacingMove);
+  }
+
+  // ---- Move / rotate updates on the board ----
+  layer.addEventListener("pointermove", (e) => {
+    if (draggingEl) {
+      const { x, y } = toPercentCoords(e);
+      draggingEl.style.left = x + "%";
+      draggingEl.style.top = y + "%";
+      return;
+    }
+
+    if (rotatingEl) {
+      const { cx, cy } = getCenterClientXY(rotatingEl);
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const radians = Math.atan2(dy, dx);
+      let deg = Math.round((radians * 180) / Math.PI);
+
+      // snap rotation for cleaner wind/ladder alignment
+      const snap = 15;
+      deg = Math.round(deg / snap) * snap;
+
+      applyRotation(rotatingEl, deg);
+    }
+  });
+
+  layer.addEventListener("pointerup", () => {
+    draggingEl = null;
+    rotatingEl = null;
+  });
+
+  layer.addEventListener("pointerdown", (e) => {
+    if (!e.target.closest(".token")) setActiveToken(null);
+  });
+
+</script>
+
+</body>
+</html>
