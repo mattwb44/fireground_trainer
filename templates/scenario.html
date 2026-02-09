@@ -11,8 +11,15 @@
   <title>Fireground Trainer</title>
   <style>
     body { font-family: system-ui, Arial; margin: 0; background:#0e0f12; color:#f2f2f2; }
-    header { padding: 14px; border-bottom: 1px solid #2a2f3c; position: sticky; top: 0; background: rgba(14,15,18,0.92); }
-    main { max-width: 900px; margin: 14px auto; padding: 0 14px; display: grid; gap: 14px; }
+    header { 
+      padding: 14px; 
+      border-bottom: 1px solid #2a2f3c; 
+      position: sticky; 
+      top: 0; 
+      background: rgba(14,15,18,0.92);
+      z-index: 20000; 
+    }
+    main { max-width: 1200px; margin: 14px auto; padding: 0 14px; display: grid; gap: 14px; }
     .card { background:#161922; border:1px solid #2a2f3c; border-radius: 14px; padding: 14px; }
     .imgwrap {
       position: relative;
@@ -100,9 +107,29 @@
       justify-content: center;
     }
 
+    .token-size {
+      position: absolute;
+      bottom: -12px;
+      left: -12px;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: 1px solid #2a2f3c;
+      background: #161922;
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 12px;
+      cursor: nwse-resize;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
     /* Show controls only when token is selected */
     .token.selected .token-del,
-    .token.selected .token-rot {
+    .token.selected .token-rot,
+    .token.selected .token-size {
       display: inline-flex;
       
     }
@@ -128,11 +155,95 @@
       cursor: pointer;
     }
 
+    .resize-controls {
+      display: grid;
+      gap: 8px;
+      margin: 0 0 12px;
+    }
+
+    .resize-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.92rem;
+    }
+
+    .resize-row input[type="range"] {
+      width: 100%;
+    }
+
+    #board {
+      margin: 0 auto;
+    }
+
     /* .imgwrap { border-radius: 12px; overflow: hidden; border:1px solid #2a2f3c; }
     img { width: 100%; display:block; } */
     label { font-weight: 700; display:block; margin: 12px 0 6px; line-height:1.25; }
-    textarea { width:100%; border-radius:12px; border:1px solid #2a2f3c; background:#0f121a; color:#f2f2f2; padding: 10px; font-size: 1rem; }
+    textarea { 
+      width:100%; 
+      border-radius:12px; 
+      border:1px solid #2a2f3c; 
+      background:#0f121a; 
+      color:#f2f2f2; 
+      padding: 10px; 
+      font-size: 1rem;
+      resize: vertical; 
+    }
     button { margin-top: 14px; padding: 10px 14px; border-radius: 12px; border: 0; font-weight: 800; cursor:pointer; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 100px;
+      gap: 14px;
+      align-items: start;
+      grid-template-areas: 
+        "new tools"
+        "scenario tools"
+        "questions tools";
+    }
+
+    .new-card {
+      grid-area: new;
+    }
+
+    .scenario-card {
+      grid-area: scenario; min-width: 0; 
+    }
+
+    .tools-panel {
+      grid-area: tools;
+      position: sticky;
+      top: 80px;
+      align-self: start;
+    }
+    
+    .questions-card { 
+      grid-area: questions; min-width: 0; 
+    }
+
+
+    
+
+    @media (max-width: 980px) {
+      .workspace {
+        grid-template-columns: 1fr;
+        grid-template-areas: 
+          "new"
+          "scenario"
+          "tools"
+          "questions";
+
+      
+      }
+      .tools-panel {
+        position: static;
+      }
+    }
+
+
+
+
   </style>
 </head>
 
@@ -143,62 +254,85 @@
     <div style="opacity:0.8;font-size:0.9rem;">Scenario drills • Size-up • Tactics • Pump ops</div>
   </header>
 
-  <main>
-    <div class="card">
-      <a href="/new" style="
-        display:inline-block;
-        padding:10px 14px;
-        border-radius:12px;
-        background:#2a2f3c;
-        border:1px solid #2a2f3c;
-        color:#f2f2f2;
-        font-weight:800;
-        text-decoration:none;
-      ">🎲 New Scenario</a>
-    </div>
-
-    <section class="card">
-      <h1 style="margin:0 0 8px;">{{ scenario.title }}</h1>
-      <p style="margin:0 0 12px; opacity:0.85; line-height:1.35;">
-        <strong>Dispatch:</strong> {{ scenario.dispatch }}
-      </p>
-      
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 12px;">
-        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/fire.png') }}" data-type="fire">Fire</button>
-        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/smoke.png') }}" data-type="smoke">Smoke</button>
-        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/wind_arrow.png') }}" data-type="wind">Wind</button>
-        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/ladder.png') }}" data-type="ladder">Ladder</button>
-        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/fireman.png') }}" data-type="attack">Attack</button>
-        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/RIT.png') }}" data-type="rit">RIT</button>
-        <button type="button" class="toolbtn" id="clearTokens">Clear</button>
+  <main class="workspace">
+      <div class="card new-card">
+        <a href="/new" style="
+          display:inline-block;
+          padding:10px 14px;
+          border-radius:12px;
+          background:#2a2f3c;
+          border:1px solid #2a2f3c;
+          color:#f2f2f2;
+          font-weight:800;
+          text-decoration:none;
+        ">🎲 New Scenario</a>
       </div>
 
-      <div class="imgwrap" id="board">
-        <img class="base-img" src="{{ url_for('static', filename=scenario.image.base) }}" alt="Scenario house" />
-        <div class="token-layer" id="tokenLayer"> </div>
-      </div>
-      <p style="margin:10px 0 0; opacity:0.75; font-size:0.9rem;">
-        (For now this is a single image—later we’ll add the fire overlay and street-view support.)
-      </p>
-    </section>
+      <section class="card scenario-card">
+        <h1 style="margin:0 0 8px;">{{ scenario.title }}</h1>
+        <p style="margin:0 0 12px; opacity:0.85; line-height:1.35;">
+          <strong>Dispatch:</strong> {{ scenario.dispatch }}
+        </p>
+        
+        
 
-    <form class="card" method="post" action="/submit">
-      <h2 style="margin:0 0 10px;">Questions</h2>
+        
 
-      {% for q in scenario.questions %}
-        <div>
-          <label for="{{ q.id }}">{{ loop.index }}. {{ q.prompt }}</label>
-          <textarea id="{{ q.id }}" name="{{ q.id }}" rows="5" placeholder="Type your answer…">{{ answers.get(q.id, "") }}</textarea>
+        <div class="imgwrap" id="board">
+          <img class="base-img" src="{{ url_for('static', filename=scenario.image.base) }}" alt="Scenario house" />
+          <div class="token-layer" id="tokenLayer"> </div>
         </div>
-      {% endfor %}
+        <p style="margin:10px 0 0; opacity:0.75; font-size:0.9rem;">
+          (For now this is a single image—later we’ll add the fire overlay and street-view support.)
+        </p>
+      </section>
+      <aside class="card tools-panel">
+      <h2 style="margin: 0 0 10px;">Tools</h2>
 
-      <button type="submit">Submit</button>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin: 0 0 12px;">
+        <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/fire.png') }}" data-type="fire">Fire</button>
+          <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/smoke.png') }}" data-type="smoke">Smoke</button>
+          <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/wind_arrow.png') }}" data-type="wind">Wind</button>
+          <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/ladder.png') }}" data-type="ladder">Ladder</button>
+          <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/fireman.png') }}" data-type="attack">Attack</button>
+          <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/RIT.png') }}" data-type="rit">RIT</button>
+          <button type="button" class="toolbtn" id="clearTokens">Clear</button>
+      </div>
 
-      {% if submitted %}
-        <p style="margin:10px 0 0; color:#9fe6b0;">✅ Submitted. (MVP just echoes answers back.)</p>
-      {% endif %}
-    </form>
+      <div class="resize-controls">
+          <div class="resize-row">
+            <span>Scene size</span>
+            <input id="sceneScale" type="range" min="60" max="100" value="100" />
+          </div>
+          <div class="resize-row">
+            <span>Answer box size</span>
+            <input id="answerScale" type="range" min="80" max="150" value="100" />
+          </div>
+          <div class="resize-row">
+            <span>Token size (selected/new)</span>
+            <input id="tokenScale" type="range" min="50" max="220" value="100" />
+          </div>
+        </div>
+    </aside>
+      <form class="card questions-card" method="post" action="/submit">
+        <h2 style="margin:0 0 10px;">Questions</h2>
+
+        {% for q in scenario.questions %}
+          <div>
+            <label for="{{ q.id }}">{{ loop.index }}. {{ q.prompt }}</label>
+            <textarea id="{{ q.id }}" name="{{ q.id }}" rows="5" placeholder="Type your answer…">{{ answers.get(q.id, "") }}</textarea>
+          </div>
+        {% endfor %}
+
+        <button type="submit">Submit</button>
+
+        {% if submitted %}
+          <p style="margin:10px 0 0; color:#9fe6b0;">✅ Submitted. (MVP just echoes answers back.)</p>
+        {% endif %}
+      </form>
   </main>
+
+
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("{{ url_for('static', filename='js/sw.js') }}");
@@ -209,13 +343,18 @@
   const board = document.getElementById("board");
   const layer = document.getElementById("tokenLayer");
   const clearBtn = document.getElementById("clearTokens");
+  const sceneScaleInput = document.getElementById("sceneScale");
+  const answerScaleInput = document.getElementById("answerScale");
+  const tokenScaleInput = document.getElementById("tokenScale");
+  const answerTextareas = Array.from(document.querySelectorAll("textarea"));
 
-  let selectedToken = null;  // { src, type }
   let selectedTool = null;
   let activeEl = null;
   let draggingEl = null;     // the .token being moved
   let rotatingEl = null;     // the .token being rotated
   let placingEl = null;     // token being placed (preview)
+  let sizingState = null;    // token currently being resized
+  let defaultTokenPx = 52;
   
   // Pick a tool (image-based)
   document.querySelectorAll(".tokenbtn").forEach(btn => {
@@ -229,9 +368,11 @@
   // Clear tokens
   clearBtn.addEventListener("click", () => {
     layer.innerHTML = "";
+    activeEl = null;
     placingEl = null;
     draggingEl = null;
     rotatingEl = null;
+    sizingState = null;
   });
 
   // Helper: convert pointer position to layer-relative percent coords
@@ -246,12 +387,36 @@
     // clear previous
     layer.querySelectorAll(".token.selected").forEach(t => t.classList.remove("selected"));
     activeEl = tokenEl || null;
-    if (activeEl) activeEl.classList.add("selected");
+    if (activeEl) {
+      activeEl.classList.add("selected");
+      const tokenSize = parseFloat(activeEl.dataset.size || String(defaultTokenPx));
+      tokenScaleInput.value = String(Math.round((tokenSize / 52) * 100));
+    }
   }
 
   function applyRotation(tokenEl, degrees) {
     tokenEl.dataset.rot = String(degrees);
-    tokenEl.querySelector(".token-inner").style.transform = `rotate(${degrees}deg)`;
+    applyTokenTransform(tokenEl);
+  }
+
+  function applyScale(tokenEl, scale) {
+    const clamped = Math.max(0.5, Math.min(3, scale));
+    tokenEl.dataset.scale = String(clamped);
+    applyTokenTransform(tokenEl);
+  }
+
+  function applyTokenSize(tokenEl, sizePx) {
+    const clamped = Math.max(24, Math.min(220, sizePx));
+    tokenEl.dataset.size = String(clamped);
+    const img = tokenEl.querySelector(".token-img");
+    img.style.width = clamped + "px";
+    img.style.height = clamped + "px";
+  }
+
+  function applyTokenTransform(tokenEl) {
+    const degrees = parseFloat(tokenEl.dataset.rot || "0");
+    const scale = parseFloat(tokenEl.dataset.scale || "1");
+    tokenEl.querySelector(".token-inner").style.transform = `rotate(${degrees}deg) scale(${scale})`;
   }
 
   function getCenterClientXY(tokenEl) {
@@ -270,6 +435,8 @@
     token.style.left = x + "%";
     token.style.top = y + "%";
     token.dataset.rot = "0";
+    token.dataset.scale = "1";
+    token.dataset.size = String(defaultTokenPx);
     token.dataset.type = tool.type;
 
     const inner = document.createElement("div");
@@ -287,18 +454,28 @@
     del.title = "Remove";
     del.addEventListener("click", (e) => {
       e.stopPropagation();
+      if (activeEl === token) activeEl = null;
       token.remove();
     });
 
     const rot = document.createElement("div");
     rot.className = "token-rot";
-    rot.textContent = "⟳";
+    rot.textContent = "R";
     rot.title = "Drag to rotate";
+
+    const size = document.createElement("div");
+    size.className = "token-size";
+    size.textContent = "<>";
+    size.title = "Drag to resize";
 
     inner.appendChild(img);
     inner.appendChild(del);
     inner.appendChild(rot);
+    inner.appendChild(size);
     token.appendChild(inner);
+
+    applyTokenSize(token, defaultTokenPx);
+    applyTokenTransform(token);
 
     // Move / rotate handlers
     token.addEventListener("pointerdown", (e) => {
@@ -310,6 +487,20 @@
       // Rotate handle starts rotation
       if (e.target.classList.contains("token-rot")) {
         rotatingEl = token;
+        token.setPointerCapture(e.pointerId);
+        e.preventDefault();
+        return;
+      }
+
+      // Resize handle starts token-size drag
+      if (e.target.classList.contains("token-size")) {
+        const { cx, cy } = getCenterClientXY(token);
+        const startDist = Math.hypot(e.clientX - cx, e.clientY - cy) || 1;
+        sizingState = {
+          token,
+          startDist,
+          startScale: parseFloat(token.dataset.scale || "1"),
+        };
         token.setPointerCapture(e.pointerId);
         e.preventDefault();
         return;
@@ -359,6 +550,15 @@
 
   // ---- Move / rotate updates on the board ----
   layer.addEventListener("pointermove", (e) => {
+    if (sizingState) {
+      const { token, startDist, startScale } = sizingState;
+      const { cx, cy } = getCenterClientXY(token);
+      const curDist = Math.hypot(e.clientX - cx, e.clientY - cy);
+      const ratio = curDist / startDist;
+      applyScale(token, startScale * ratio);
+      return;
+    }
+
     if (draggingEl) {
       const { x, y } = toPercentCoords(e);
       draggingEl.style.left = x + "%";
@@ -384,11 +584,39 @@
   layer.addEventListener("pointerup", () => {
     draggingEl = null;
     rotatingEl = null;
+    sizingState = null;
   });
 
   layer.addEventListener("pointerdown", (e) => {
     if (!e.target.closest(".token")) setActiveToken(null);
   });
+
+  function setSceneScale(value) {
+    board.style.width = value + "%";
+  }
+
+  function setAnswerScale(value) {
+    const fontPx = Math.round((16 * value) / 100);
+    const minHeight = Math.round((130 * value) / 100);
+    answerTextareas.forEach((textarea) => {
+      textarea.style.fontSize = fontPx + "px";
+      textarea.style.minHeight = minHeight + "px";
+    });
+  }
+
+  function setTokenScale(value) {
+    defaultTokenPx = Math.round((52 * value) / 100);
+    const tokens = activeEl ? [activeEl] : Array.from(layer.querySelectorAll(".token"));
+    tokens.forEach((token) => applyTokenSize(token, defaultTokenPx));
+  }
+
+  sceneScaleInput.addEventListener("input", (e) => setSceneScale(Number(e.target.value)));
+  answerScaleInput.addEventListener("input", (e) => setAnswerScale(Number(e.target.value)));
+  tokenScaleInput.addEventListener("input", (e) => setTokenScale(Number(e.target.value)));
+
+  setSceneScale(Number(sceneScaleInput.value));
+  setAnswerScale(Number(answerScaleInput.value));
+  setTokenScale(Number(tokenScaleInput.value));
 
 </script>
 
