@@ -119,5 +119,10 @@ def submit():
     return render_template("scenario.html", scenario=scenario, answers=answers, submitted=True)
 
 
+@app.get("/offline")
+def offline():
+    return render_template("offline.html")
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

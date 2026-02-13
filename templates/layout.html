@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="{{ url_for('static', filename='pwa/manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='pwa/ff-icon-192.png') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <title>{% block title %}Fireground Trainer{% endblock %}</title>
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  {% block body %}{% endblock %}
+
+  {% block page_scripts %}{% endblock %}
+  <script
+    src="{{ url_for('static', filename='js/main.js') }}"
+    data-sw-url="{{ url_for('static', filename='js/sw.js') }}"
+    data-offline-url="{{ url_for('offline') }}"
+    data-manifest-url="{{ url_for('static', filename='pwa/manifest.json') }}"
+    data-icon192-url="{{ url_for('static', filename='pwa/ff-icon-192.png') }}"
+    data-icon512-url="{{ url_for('static', filename='pwa/ff-icon-512.png') }}"
+  ></script>
+</body>
+</html>
