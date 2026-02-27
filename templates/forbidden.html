@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block title %}Access Denied{% endblock %}
+
+{% block body %}
+<main style="max-width: 760px; margin: 40px auto; padding: 0 16px; font-family: system-ui, Arial;">
+  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:18px;">
+    <h1 style="margin-top:0;">Access denied</h1>
+    <p>Your current role does not allow this action.</p>
+    <p><a href="{{ url_for('index') }}">Return to scenario</a></p>
+  </section>
+</main>
+{% endblock %}
