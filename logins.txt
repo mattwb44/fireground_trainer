@@ -1,0 +1,6 @@
+Staff login:
+instructor@demo.local
+chief@demo.local
+admin@demo.local
+
+password: EasyPass123
