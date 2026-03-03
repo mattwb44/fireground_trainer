@@ -1,0 +1,122 @@
+{% extends "layout.html" %}
+
+{% block title %}User Management | Fireground Trainer{% endblock %}
+
+{% block body %}
+<main style="max-width: 1100px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
+  <section style="margin-bottom: 16px;">
+    <h1 style="margin: 0 0 6px;">User Management</h1>
+    <p style="margin: 0; color: #444;">Admin-only screen for account status, roles, and password resets.</p>
+    <p style="margin: 8px 0 0;"><a href="{{ url_for('index') }}">Back to scenario</a></p>
+  </section>
+
+  {% if error %}
+    <section style="margin-bottom: 14px; border:1px solid #d93025; border-radius:10px; padding:10px; background:#fdecea; color:#7f1d1d;">
+      {{ error }}
+    </section>
+  {% endif %}
+  {% if success %}
+    <section style="margin-bottom: 14px; border:1px solid #137333; border-radius:10px; padding:10px; background:#e6f4ea; color:#0f5132;">
+      {{ success }}
+    </section>
+  {% endif %}
+
+  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; margin-bottom: 16px;">
+    <h2 style="margin-top:0;">Create User</h2>
+    <form method="post" action="{{ url_for('admin_create_user') }}" style="display:grid; gap:10px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label>
+        <div style="font-weight:700; margin-bottom:4px;">Email</div>
+        <input name="email" type="email" required style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+      </label>
+
+      <label>
+        <div style="font-weight:700; margin-bottom:4px;">Full Name</div>
+        <input name="full_name" type="text" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+      </label>
+
+      <label>
+        <div style="font-weight:700; margin-bottom:4px;">Initial Password</div>
+        <input name="password" type="password" required minlength="8" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+      </label>
+
+      <div>
+        <div style="font-weight:700; margin-bottom:4px;">Roles</div>
+        {% for role in roles %}
+          <label style="display:inline-flex; align-items:center; gap:6px; margin-right:12px;">
+            <input type="checkbox" name="roles" value="{{ role.name }}">
+            {{ role.name | replace('_', ' ') | title }}
+          </label>
+        {% endfor %}
+      </div>
+
+      <label style="display:inline-flex; align-items:center; gap:6px;">
+        <input type="checkbox" name="is_active" checked>
+        Active account
+      </label>
+
+      <div>
+        <button type="submit" style="padding:8px 12px; border:0; border-radius:8px; background:#1e3a8a; color:#fff; font-weight:700;">Create User</button>
+      </div>
+    </form>
+  </section>
+
+  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+    <h2 style="margin-top:0;">Existing Users</h2>
+
+    {% for user in users %}
+      {% set current_roles = user.role_links | map(attribute='role.name') | list %}
+      <article style="border:1px solid #e0e3ea; border-radius:10px; padding:12px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:800;">{{ user.full_name or "(No name)" }}</div>
+            <div style="color:#444;">{{ user.email }}</div>
+            <div style="font-size:0.9rem; color:#555;">
+              Last login:
+              {% if user.last_login_at %}
+                {{ user.last_login_at.strftime("%Y-%m-%d %H:%M:%S") }} UTC
+              {% else %}
+                never
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <form method="post" action="{{ url_for('admin_update_user', user_id=user.id) }}" style="margin-top:10px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <label style="display:block; font-weight:700; margin-bottom:4px;">Full Name</label>
+          <input name="full_name" value="{{ user.full_name or '' }}" style="width:100%; max-width:420px; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+
+          <div style="margin-top:10px;">
+            <div style="font-weight:700; margin-bottom:4px;">Roles</div>
+            {% for role in roles %}
+              <label style="display:inline-flex; align-items:center; gap:6px; margin-right:12px;">
+                <input type="checkbox" name="roles" value="{{ role.name }}" {% if role.name in current_roles %}checked{% endif %}>
+                {{ role.name | replace('_', ' ') | title }}
+              </label>
+            {% endfor %}
+          </div>
+
+          <label style="display:inline-flex; align-items:center; gap:6px; margin-top:10px;">
+            <input type="checkbox" name="is_active" {% if user.is_active %}checked{% endif %}>
+            Active account
+          </label>
+
+          <div style="margin-top:10px;">
+            <button type="submit" style="padding:8px 12px; border:0; border-radius:8px; background:#374151; color:#fff; font-weight:700;">Save User</button>
+          </div>
+        </form>
+
+        <form method="post" action="{{ url_for('admin_reset_user_password', user_id=user.id) }}" style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label style="font-weight:700;">Reset Password:</label>
+          <input type="password" name="new_password" minlength="8" required placeholder="New password" style="padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+          <button type="submit" style="padding:8px 12px; border:0; border-radius:8px; background:#6b21a8; color:#fff; font-weight:700;">Update Password</button>
+        </form>
+      </article>
+    {% endfor %}
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %}Session Ready | Fireground Trainer{% endblock %}
+
+{% block body %}
+<main style="max-width: 960px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
+  <section style="margin-bottom: 14px;">
+    <h1 style="margin:0 0 6px;">Session Created</h1>
+    <p style="margin:0; color:#444;">Share this join code or QR with participants.</p>
+    <p style="margin:8px 0 0;">
+      <a href="{{ url_for('index') }}">Back to Board</a> |
+      <a href="{{ url_for('scenario_library') }}">Library</a>
+    </p>
+  </section>
+
+  <section style="display:grid; gap:14px; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));">
+    <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+      <h2 style="margin-top:0;">Session Info</h2>
+      <p style="margin:6px 0;"><strong>ID:</strong> {{ training_session.id }}</p>
+      <p style="margin:6px 0;"><strong>Join Code:</strong> <span style="font-size:1.3rem; font-weight:800; letter-spacing:0.08em;">{{ training_session.join_code }}</span></p>
+      {% if training_session.title %}
+        <p style="margin:6px 0;"><strong>Title:</strong> {{ training_session.title }}</p>
+      {% endif %}
+      <p style="margin:6px 0;"><strong>Status:</strong> {{ training_session.status | title }}</p>
+      <p style="margin:6px 0;"><strong>Join URL:</strong><br><a href="{{ join_url }}">{{ join_url }}</a></p>
+    </article>
+
+    <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+      <h2 style="margin-top:0;">Participant QR</h2>
+      <p style="margin:6px 0 12px; color:#444;">Scan to open join link.</p>
+      <img src="{{ qr_image_url }}" alt="Session join QR code" style="max-width:240px; width:100%; border:1px solid #e5e7eb; border-radius:10px;">
+      <p style="margin:10px 0 0; font-size:0.85rem; color:#555;">If QR does not load, share the join code or URL above.</p>
+    </article>
+  </section>
+</main>
+{% endblock %}

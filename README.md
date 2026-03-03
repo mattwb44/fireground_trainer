@@ -9,6 +9,15 @@ The goal of this project is to create an interactive, visual way to think throug
 ## Current Features (MVP)
 
 - Scenario-based training with dispatch information
+- RBAC foundation with roles: participant, instructor, training chief, admin
+- Staff authentication with password login
+- One-time magic-link login flow (dev-mode link display)
+- CSRF protection on state-changing forms
+- Admin user-management screen (create users, assign roles, reset passwords)
+- Scenario Library tabs: Official, Practice, Mine, Submitted
+- Scenario creation UI with per-question type selection for MVP question modes
+- Auto-feedback on submit for checklist/short-answer question types (creator answer key-point matching)
+- Session creation flow with unique join code and QR share page
 - Residential structure images used as a training board
 - Draggable, image-based tokens for:
   - Fire
@@ -39,6 +48,16 @@ The goal of this project is to create an interactive, visual way to think throug
 - **Architecture:** Server-rendered templates with client-side interaction
 - **Platform:** Desktop and mobile browser compatible
 - **Version Control:** Git / GitHub
+
+---
+
+## Local Auth Bootstrap
+
+On first app start, demo staff users are seeded with the password from `DEMO_BOOTSTRAP_PASSWORD` (default: `EasyPass123`):
+
+- `instructor@demo.local`
+- `chief@demo.local`
+- `admin@demo.local`
 
 ---
 

@@ -31,7 +31,10 @@ class User(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), nullable=False, unique=True, index=True)
     full_name = db.Column(db.String(120), nullable=True)
+    password_hash = db.Column(db.String(255), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    is_email_verified = db.Column(db.Boolean, nullable=False, default=False)
+    last_login_at = db.Column(db.DateTime, nullable=True)
 
     role_links = db.relationship(
         "UserRole", back_populates="user", cascade="all, delete-orphan"
@@ -47,6 +50,9 @@ class User(TimestampMixin, db.Model):
         foreign_keys="TrainingSession.created_by_user_id",
     )
     participant_profiles = db.relationship("Participant", back_populates="user")
+    magic_tokens = db.relationship(
+        "MagicLoginToken", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Role(TimestampMixin, db.Model):
@@ -72,10 +78,21 @@ class Scenario(TimestampMixin, db.Model):
     created_by_user_id = db.Column(
         db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    approved_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    status = db.Column(db.String(20), nullable=False, default="draft", index=True)
+    submitted_at = db.Column(db.DateTime, nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    archived_at = db.Column(db.DateTime, nullable=True)
+    is_official = db.Column(db.Boolean, nullable=False, default=False, index=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     created_by = db.relationship(
         "User", back_populates="created_scenarios", foreign_keys=[created_by_user_id]
+    )
+    approved_by = db.relationship(
+        "User", foreign_keys=[approved_by_user_id]
     )
     questions = db.relationship(
         "Question", back_populates="scenario", cascade="all, delete-orphan"
@@ -100,6 +117,8 @@ class Question(TimestampMixin, db.Model):
     )
     question_key = db.Column(db.String(50), nullable=False)
     prompt = db.Column(db.Text, nullable=False)
+    question_type = db.Column(db.String(40), nullable=False, default="discussion_only")
+    instructor_answer = db.Column(db.Text, nullable=True)
     sort_order = db.Column(db.Integer, nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
@@ -216,3 +235,22 @@ class SubmissionAnswer(TimestampMixin, db.Model):
 
     submission = db.relationship("Submission", back_populates="answers")
     question = db.relationship("Question", back_populates="submission_answers")
+
+
+class MagicLoginToken(db.Model):
+    __tablename__ = "magic_login_tokens"
+    __table_args__ = (
+        db.Index("ix_magic_login_tokens_user_expires", "user_id", "expires_at"),
+        db.Index("ix_magic_login_tokens_token_hash", "token_hash"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash = db.Column(db.String(64), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship("User", back_populates="magic_tokens")

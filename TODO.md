@@ -13,8 +13,8 @@
 10. Add scenario creation UI with question type selection
 11. Question types for MVP:
     - Auto-scored checklist
-    - Key-point open-ended (auto)
-    - Discussion-only open-ended
+    - Short Answer (Participant's Answers Matched and Scored to Creator's Answer)
+    - Discussion-only open-ended (non-graded)
 12. Add session creation with QR/join code
 13. Participant join flow with shift selection + anonymous/name choice
 14. Answer submission and storage

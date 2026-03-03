@@ -269,22 +269,27 @@
     )
   </div>
 
-  <form class="switcher" method="post" action="{{ url_for('switch_user') }}">
-    <input type="hidden" name="next" value="{{ request.path }}">
-    <label for="user_key" style="margin: 0;">Demo user:</label>
-    <select id="user_key" name="user_key">
-      {% for user_key, user_meta in demo_users.items() %}
-        <option value="{{ user_key }}" {% if current_user.user_id == user_key %}selected{% endif %}>
-          {{ user_meta.display_name }}
-        </option>
-      {% endfor %}
-    </select>
-    <button type="submit">Switch</button>
-
+  <div class="switcher">
+    {% if current_user.user_id == 'guest' %}
+      <a href="{{ url_for('login_page', next=request.path) }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Instructor Login</a>
+      <a href="{{ url_for('request_magic_link_page') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Magic Link</a>
+    {% else %}
+      <form method="post" action="{{ url_for('logout') }}" style="margin:0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Sign Out</button>
+      </form>
+    {% endif %}
     {% if current_user.has_permission(permission_keys.view_reports) %}
       <a href="{{ url_for('reports') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Reports</a>
     {% endif %}
-  </form>
+    <a href="{{ url_for('scenario_library') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Library</a>
+    {% if current_user.has_permission(permission_keys.create_scenarios) %}
+      <a href="{{ url_for('new_scenario_page') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Create</a>
+    {% endif %}
+    {% if current_user.has_permission(permission_keys.manage_users) %}
+      <a href="{{ url_for('admin_users') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Users</a>
+    {% endif %}
+  </div>
 </header>
 
 <main class="workspace">
@@ -308,16 +313,61 @@
     </p>
 
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom: 12px;">
-      <span class="status-pill {% if scenario.approval_status == 'approved' %}approved{% endif %}">
-        {{ scenario.approval_status | replace('_', ' ') | title }}
+      <span class="status-pill {% if scenario.workflow_status == 'approved' %}approved{% endif %}">
+        {{ scenario.workflow_status | replace('_', ' ') | title }}
       </span>
+      {% if scenario.is_official %}
+        <span class="status-pill approved">Official</span>
+      {% endif %}
       {% if scenario.approved_by %}
         <span style="opacity:0.8; font-size: 0.9rem;">Approved by {{ scenario.approved_by }}</span>
       {% endif %}
-      {% if current_user.has_permission(permission_keys.approve_scenarios) and scenario.approval_status != 'approved' %}
+      {% if current_user.has_permission(permission_keys.create_scenarios) and scenario.workflow_status == 'draft' %}
+        <form method="post" action="{{ url_for('submit_scenario_for_review') }}" style="margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+          <button type="submit" style="margin-top:0; background:#4b5563; color:#f2f2f2;">Submit For Review</button>
+        </form>
+      {% endif %}
+      {% if current_user.has_permission(permission_keys.approve_scenarios) and scenario.workflow_status == 'submitted' %}
         <form method="post" action="{{ url_for('approve_scenario') }}" style="margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
           <button type="submit" style="margin-top:0; background:#2f8f4e; color:#f2f2f2;">Approve Scenario</button>
         </form>
+      {% endif %}
+      {% if current_user.has_permission(permission_keys.approve_scenarios) and scenario.workflow_status != 'archived' %}
+        <form method="post" action="{{ url_for('archive_scenario') }}" style="margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+          <button type="submit" style="margin-top:0; background:#7f1d1d; color:#f2f2f2;">Archive</button>
+        </form>
+      {% endif %}
+      {% if current_user.has_permission(permission_keys.approve_scenarios) and scenario.workflow_status == 'approved' and not scenario.is_official %}
+        <form method="post" action="{{ url_for('set_scenario_official_status') }}" style="margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+          <input type="hidden" name="official_action" value="make">
+          <input type="hidden" name="next" value="{{ url_for('index') }}">
+          <button type="submit" style="margin-top:0; background:#0f766e; color:#f2f2f2;">Make Official</button>
+        </form>
+      {% endif %}
+      {% if current_user.has_permission(permission_keys.approve_scenarios) and scenario.is_official %}
+        <form method="post" action="{{ url_for('set_scenario_official_status') }}" style="margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+          <input type="hidden" name="official_action" value="remove">
+          <input type="hidden" name="next" value="{{ url_for('index') }}">
+          <button type="submit" style="margin-top:0; background:#475569; color:#f2f2f2;">Remove Official</button>
+        </form>
+      {% endif %}
+      {% if current_user.has_permission(permission_keys.create_sessions) and scenario.workflow_status == 'approved' %}
+        <a
+          href="{{ url_for('new_training_session_page', scenario_id=scenario.id) }}"
+          style="display:inline-block; padding:10px 12px; border-radius:10px; text-decoration:none; background:#1f2937; color:#f2f2f2; font-weight:700;"
+        >
+          Create Session
+        </a>
       {% endif %}
     </div>
 
@@ -345,13 +395,29 @@
 
   </aside>
 
-  <form class="card questions-card" method="post" action="/submit">
+  <form class="card questions-card" method="post" action="{{ url_for('submit') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2 style="margin:0 0 10px;">Questions</h2>
 
     {% for q in scenario.questions %}
       <div>
         <label for="{{ q.id }}">{{ loop.index }}. {{ q.prompt }}</label>
-        <textarea id="{{ q.id }}" name="{{ q.id }}" rows="5" placeholder="Type your answer...">{{ answers.get(q.id, "") }}</textarea>
+        <div style="margin:-2px 0 6px; font-size:0.83rem; opacity:0.8;">Type: {{ q.question_type_label }}</div>
+        <textarea id="{{ q.id }}" name="q_{{ q.id }}" rows="5" placeholder="Type your answer...">{{ answers.get(q.id|string, "") }}</textarea>
+        {% if submitted %}
+          {% set feedback = question_feedback.get(q.id|string) %}
+          {% if feedback %}
+            <div style="margin-top:6px; padding:8px 10px; border:1px solid #2a2f3c; border-radius:8px; background:#111520; font-size:0.9rem;">
+              <div style="font-weight:700;">{{ feedback.summary }}</div>
+              {% if feedback.matched_items %}
+                <div style="margin-top:4px; color:#9fe6b0;">Matched: {{ feedback.matched_items|join(', ') }}</div>
+              {% endif %}
+              {% if feedback.missing_items %}
+                <div style="margin-top:2px; color:#fbbf24;">Missing: {{ feedback.missing_items|join(', ') }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endif %}
         {% if submitted and current_user.has_permission(permission_keys.reveal_instructor_answers) %}
           <details>
             <summary>Reveal instructor answer</summary>

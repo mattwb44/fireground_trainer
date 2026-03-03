@@ -1,0 +1,176 @@
+{% extends "layout.html" %}
+
+{% block title %}Create Scenario | Fireground Trainer{% endblock %}
+
+{% block body %}
+<main style="max-width: 980px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
+  <section style="margin-bottom: 14px;">
+    <h1 style="margin: 0 0 6px;">Create Scenario</h1>
+    <p style="margin: 0; color:#444;">Build a draft scenario and choose a type for each question.</p>
+    <p style="margin: 8px 0 0;">
+      <a href="{{ url_for('scenario_library') }}">Back to library</a>
+    </p>
+  </section>
+
+  {% if error %}
+    <section style="margin-bottom: 14px; border:1px solid #d93025; border-radius:10px; padding:10px; background:#fdecea; color:#7f1d1d;">
+      {{ error }}
+    </section>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('create_scenario') }}" style="display:grid; gap:12px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <section style="border:1px solid #d6d9e0; border-radius:12px; padding:12px; display:grid; gap:10px;">
+      <label>
+        <div style="font-weight:700; margin-bottom:4px;">Title</div>
+        <input name="title" required value="{{ form_data.title }}" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+      </label>
+
+      <label>
+        <div style="font-weight:700; margin-bottom:4px;">Dispatch Text</div>
+        <textarea name="dispatch" required rows="4" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">{{ form_data.dispatch }}</textarea>
+      </label>
+
+      <div style="display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+        <label>
+          <div style="font-weight:700; margin-bottom:4px;">Base Image Path</div>
+          <input name="base_image_path" required value="{{ form_data.base_image_path }}" placeholder="images/house1.jpg" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+        </label>
+        <label>
+          <div style="font-weight:700; margin-bottom:4px;">Overlay Image Path (optional)</div>
+          <input name="overlay_image_path" value="{{ form_data.overlay_image_path }}" placeholder="images/overlay.png" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+        </label>
+      </div>
+
+      {% if current_user.has_permission(permission_keys.approve_scenarios) %}
+        <label style="display:inline-flex; align-items:center; gap:6px;">
+          <input type="checkbox" name="is_official" {% if form_data.is_official %}checked{% endif %}>
+          Mark as official scenario (still starts in Draft)
+        </label>
+      {% endif %}
+    </section>
+
+    <section style="border:1px solid #d6d9e0; border-radius:12px; padding:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+        <h2 style="margin:0;">Questions</h2>
+        <button type="button" id="addQuestionRow" style="padding:8px 12px; border:0; border-radius:8px; background:#1f2937; color:#fff; font-weight:700;">Add Question</button>
+      </div>
+      <p style="margin:6px 0 12px; color:#555;">Supported types: Auto-scored checklist, Short Answer (Participant's Answers Matched and Scored to Creator's Answer), Discussion-only open-ended (non-graded).</p>
+      <p style="margin:0 0 12px; color:#555; font-size:0.9rem;">For auto-scored types, put key points in "Instructor Answer / Key Guidance" as short phrases separated by commas or new lines.</p>
+
+      <div id="questionRows" style="display:grid; gap:12px;">
+        {% for row in question_rows %}
+          <article class="question-row" style="border:1px solid #e0e3ea; border-radius:10px; padding:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+              <strong>Question {{ loop.index }}</strong>
+              <button type="button" class="remove-question" style="padding:6px 10px; border:0; border-radius:8px; background:#7f1d1d; color:#fff;">Remove</button>
+            </div>
+
+            <label style="display:block; margin-top:8px;">
+              <div style="font-weight:700; margin-bottom:4px;">Prompt</div>
+              <textarea name="question_prompt" rows="3" required style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">{{ row.prompt }}</textarea>
+            </label>
+
+            <label style="display:block; margin-top:8px;">
+              <div style="font-weight:700; margin-bottom:4px;">Question Type</div>
+              <select name="question_type" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+                {% for type_key, type_label in question_type_labels.items() %}
+                  <option value="{{ type_key }}" {% if row.question_type == type_key %}selected{% endif %}>{{ type_label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+
+            <label style="display:block; margin-top:8px;">
+              <div style="font-weight:700; margin-bottom:4px;">Instructor Answer / Key Guidance (optional)</div>
+              <textarea name="instructor_answer" rows="2" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">{{ row.instructor_answer }}</textarea>
+            </label>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <div>
+      <button type="submit" style="padding:10px 14px; border:0; border-radius:8px; background:#1e3a8a; color:#fff; font-weight:700;">Create Draft Scenario</button>
+    </div>
+  </form>
+</main>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  (() => {
+    const rows = document.getElementById("questionRows");
+    const addBtn = document.getElementById("addQuestionRow");
+    if (!rows || !addBtn) return;
+
+    const questionTypeOptions = {{ question_type_labels|tojson }};
+
+    function buildOptionsHtml() {
+      return Object.entries(questionTypeOptions)
+        .map(([key, label]) => `<option value="${key}">${label}</option>`)
+        .join("");
+    }
+
+    function renumberRows() {
+      rows.querySelectorAll(".question-row").forEach((row, idx) => {
+        const title = row.querySelector("strong");
+        if (title) {
+          title.textContent = `Question ${idx + 1}`;
+        }
+      });
+      const removeButtons = rows.querySelectorAll(".remove-question");
+      removeButtons.forEach((btn) => {
+        btn.disabled = removeButtons.length <= 1;
+        btn.style.opacity = btn.disabled ? "0.55" : "1";
+        btn.style.cursor = btn.disabled ? "not-allowed" : "pointer";
+      });
+    }
+
+    function addRow() {
+      const row = document.createElement("article");
+      row.className = "question-row";
+      row.style.border = "1px solid #e0e3ea";
+      row.style.borderRadius = "10px";
+      row.style.padding = "10px";
+      row.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+          <strong>Question</strong>
+          <button type="button" class="remove-question" style="padding:6px 10px; border:0; border-radius:8px; background:#7f1d1d; color:#fff;">Remove</button>
+        </div>
+
+        <label style="display:block; margin-top:8px;">
+          <div style="font-weight:700; margin-bottom:4px;">Prompt</div>
+          <textarea name="question_prompt" rows="3" required style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;"></textarea>
+        </label>
+
+        <label style="display:block; margin-top:8px;">
+          <div style="font-weight:700; margin-bottom:4px;">Question Type</div>
+          <select name="question_type" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+            ${buildOptionsHtml()}
+          </select>
+        </label>
+
+        <label style="display:block; margin-top:8px;">
+          <div style="font-weight:700; margin-bottom:4px;">Instructor Answer / Key Guidance (optional)</div>
+          <textarea name="instructor_answer" rows="2" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;"></textarea>
+        </label>
+      `;
+      rows.appendChild(row);
+      renumberRows();
+    }
+
+    rows.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      if (!target.classList.contains("remove-question")) return;
+      if (rows.querySelectorAll(".question-row").length <= 1) return;
+      target.closest(".question-row")?.remove();
+      renumberRows();
+    });
+
+    addBtn.addEventListener("click", addRow);
+    renumberRows();
+  })();
+</script>
+{% endblock %}

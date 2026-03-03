@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+
+{% block title %}Magic Link | Fireground Trainer{% endblock %}
+
+{% block body %}
+<main style="max-width: 560px; margin: 40px auto; padding: 0 16px; font-family: system-ui, Arial;">
+  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:18px;">
+    <h1 style="margin-top:0;">Request Magic Link</h1>
+    <p style="margin-top:0; color:#444;">Enter your staff email to receive a one-time sign-in link.</p>
+
+    {% if error %}
+      <p style="color:#b3261e; font-weight:700;">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('request_magic_link_submit') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label for="email" style="display:block; margin:10px 0 4px; font-weight:700;">Email</label>
+      <input id="email" name="email" type="email" required style="width:100%; padding:10px; border-radius:8px; border:1px solid #b9bfca;">
+
+      <button type="submit" style="margin-top:14px; padding:10px 14px; border-radius:8px; border:0; background:#1e3a8a; color:#fff; font-weight:700;">Send Link</button>
+    </form>
+
+    <p style="margin:12px 0 0;">
+      <a href="{{ url_for('login_page') }}">Back to password login</a>
+    </p>
+  </section>
+</main>
+{% endblock %}
