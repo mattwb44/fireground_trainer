@@ -53,6 +53,9 @@ class User(TimestampMixin, db.Model):
     magic_tokens = db.relationship(
         "MagicLoginToken", back_populates="user", cascade="all, delete-orphan"
     )
+    scenario_likes = db.relationship(
+        "ScenarioLike", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Role(TimestampMixin, db.Model):
@@ -87,6 +90,7 @@ class Scenario(TimestampMixin, db.Model):
     archived_at = db.Column(db.DateTime, nullable=True)
     is_official = db.Column(db.Boolean, nullable=False, default=False, index=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    like_count = db.Column(db.Integer, nullable=False, default=0, index=True)
 
     created_by = db.relationship(
         "User", back_populates="created_scenarios", foreign_keys=[created_by_user_id]
@@ -101,6 +105,30 @@ class Scenario(TimestampMixin, db.Model):
         "TrainingSession", back_populates="scenario", cascade="all, delete-orphan"
     )
     submissions = db.relationship("Submission", back_populates="scenario")
+    likes = db.relationship(
+        "ScenarioLike", back_populates="scenario", cascade="all, delete-orphan"
+    )
+
+
+class ScenarioLike(TimestampMixin, db.Model):
+    __tablename__ = "scenario_likes"
+    __table_args__ = (
+        db.UniqueConstraint("scenario_id", "user_id", name="uq_scenario_likes_scenario_user"),
+        db.Index("ix_scenario_likes_scenario_liked", "scenario_id", "is_liked"),
+        db.Index("ix_scenario_likes_user_updated", "user_id", "updated_at"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    scenario_id = db.Column(
+        db.Integer, db.ForeignKey("scenarios.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    is_liked = db.Column(db.Boolean, nullable=False, default=True)
+
+    scenario = db.relationship("Scenario", back_populates="likes")
+    user = db.relationship("User", back_populates="scenario_likes")
 
 
 class Question(TimestampMixin, db.Model):
@@ -145,6 +173,11 @@ class TrainingSession(TimestampMixin, db.Model):
     starts_at = db.Column(db.DateTime, nullable=True)
     ends_at = db.Column(db.DateTime, nullable=True)
     archived_at = db.Column(db.DateTime, nullable=True)
+    revealed_submission_id = db.Column(
+        db.Integer, db.ForeignKey("submissions.id", ondelete="SET NULL"), nullable=True
+    )
+    reveal_mode = db.Column(db.String(20), nullable=True)
+    revealed_at = db.Column(db.DateTime, nullable=True)
 
     scenario = db.relationship("Scenario", back_populates="training_sessions")
     created_by = db.relationship(
@@ -154,7 +187,16 @@ class TrainingSession(TimestampMixin, db.Model):
         "Participant", back_populates="training_session", cascade="all, delete-orphan"
     )
     submissions = db.relationship(
-        "Submission", back_populates="training_session", cascade="all, delete-orphan"
+        "Submission",
+        back_populates="training_session",
+        cascade="all, delete-orphan",
+        foreign_keys="Submission.training_session_id",
+    )
+    revealed_submission = db.relationship("Submission", foreign_keys=[revealed_submission_id], post_update=True)
+    revealed_question_answers = db.relationship(
+        "SessionQuestionReveal",
+        back_populates="training_session",
+        cascade="all, delete-orphan",
     )
 
 
@@ -208,12 +250,24 @@ class Submission(db.Model):
     status = db.Column(db.String(20), nullable=False, default="submitted")
     notes = db.Column(db.Text, nullable=True)
     submitted_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    approved_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
 
     participant = db.relationship("Participant", back_populates="submissions")
-    training_session = db.relationship("TrainingSession", back_populates="submissions")
+    training_session = db.relationship(
+        "TrainingSession",
+        back_populates="submissions",
+        foreign_keys=[training_session_id],
+    )
     scenario = db.relationship("Scenario", back_populates="submissions")
+    approved_by = db.relationship("User", foreign_keys=[approved_by_user_id])
     answers = db.relationship(
         "SubmissionAnswer", back_populates="submission", cascade="all, delete-orphan"
+    )
+    audit_logs = db.relationship(
+        "SubmissionAuditLog", back_populates="submission", cascade="all, delete-orphan"
     )
 
 
@@ -235,6 +289,69 @@ class SubmissionAnswer(TimestampMixin, db.Model):
 
     submission = db.relationship("Submission", back_populates="answers")
     question = db.relationship("Question", back_populates="submission_answers")
+    session_reveals = db.relationship("SessionQuestionReveal", back_populates="submission_answer")
+
+
+class SessionQuestionReveal(TimestampMixin, db.Model):
+    __tablename__ = "session_question_reveals"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "training_session_id",
+            "question_id",
+            name="uq_session_question_reveals_session_question",
+        ),
+        db.Index(
+            "ix_session_question_reveals_session_question",
+            "training_session_id",
+            "question_id",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    training_session_id = db.Column(
+        db.Integer,
+        db.ForeignKey("training_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    question_id = db.Column(
+        db.Integer, db.ForeignKey("questions.id", ondelete="RESTRICT"), nullable=False
+    )
+    submission_answer_id = db.Column(
+        db.Integer,
+        db.ForeignKey("submission_answers.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+
+    training_session = db.relationship(
+        "TrainingSession",
+        back_populates="revealed_question_answers",
+    )
+    question = db.relationship("Question")
+    submission_answer = db.relationship(
+        "SubmissionAnswer",
+        back_populates="session_reveals",
+    )
+
+
+class SubmissionAuditLog(db.Model):
+    __tablename__ = "submission_audit_logs"
+    __table_args__ = (
+        db.Index("ix_submission_audit_logs_submission_created", "submission_id", "created_at"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    submission_id = db.Column(
+        db.Integer, db.ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False
+    )
+    actor_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    action = db.Column(db.String(40), nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    submission = db.relationship("Submission", back_populates="audit_logs")
+    actor = db.relationship("User", foreign_keys=[actor_user_id])
 
 
 class MagicLoginToken(db.Model):

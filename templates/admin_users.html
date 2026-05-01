@@ -1,13 +1,13 @@
 {% extends "layout.html" %}
 
-{% block title %}User Management | Fireground Trainer{% endblock %}
+{% block title %}User Management | {{ site_name }}{% endblock %}
 
 {% block body %}
 <main style="max-width: 1100px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
   <section style="margin-bottom: 16px;">
     <h1 style="margin: 0 0 6px;">User Management</h1>
     <p style="margin: 0; color: #444;">Admin-only screen for account status, roles, and password resets.</p>
-    <p style="margin: 8px 0 0;"><a href="{{ url_for('index') }}">Back to scenario</a></p>
+    <p style="margin: 8px 0 0;"><a href="{{ url_for('board') }}">Back to board</a></p>
   </section>
 
   {% if error %}

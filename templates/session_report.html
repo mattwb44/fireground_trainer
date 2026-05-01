@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+
+{% block title %}Session Report | Fireground Trainer{% endblock %}
+
+{% block body %}
+<main style="max-width: 1100px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
+  <section style="margin-bottom: 16px;">
+    <h1 style="margin:0 0 6px;">{{ report.title }}</h1>
+    <p style="margin:0; color:#475569;">Scenario: {{ report.scenario_title }}</p>
+    <p style="margin:8px 0 0; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+      <a href="{{ url_for('reports') }}">Back to Reports</a>
+      {% if current_user.has_permission(permission_keys.export_reports) %}
+        <a
+          href="{{ url_for('export_session_report_csv', session_id=report.session_id) }}"
+          style="display:inline-block; padding:9px 12px; border-radius:10px; background:#dcfce7; color:#166534; text-decoration:none; font-weight:700;"
+        >
+          Export CSV
+        </a>
+      {% endif %}
+    </p>
+  </section>
+
+  <section style="display:grid; gap:14px; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); margin-bottom:14px;">
+    <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; background:#fff;">
+      <div style="font-size:0.82rem; color:#64748b; text-transform:uppercase;">Participants</div>
+      <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ report.participant_count }}</div>
+    </article>
+    <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; background:#fff;">
+      <div style="font-size:0.82rem; color:#64748b; text-transform:uppercase;">Approved</div>
+      <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ report.approved_submission_count }}</div>
+    </article>
+    <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; background:#fff;">
+      <div style="font-size:0.82rem; color:#64748b; text-transform:uppercase;">Pending Review</div>
+      <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ report.pending_review_count }}</div>
+    </article>
+    <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; background:#fff;">
+      <div style="font-size:0.82rem; color:#64748b; text-transform:uppercase;">Flagged</div>
+      <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ report.flagged_count }}</div>
+    </article>
+    <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; background:#fff;">
+      <div style="font-size:0.82rem; color:#64748b; text-transform:uppercase;">Excluded</div>
+      <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ report.excluded_count }}</div>
+    </article>
+  </section>
+
+  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; background:#fff; margin-bottom:14px;">
+    <h2 style="margin:0 0 10px;">Shift Summary</h2>
+    {% if report.shift_rows %}
+      <div style="display:grid; gap:10px;">
+        {% for row in report.shift_rows %}
+          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; border:1px solid #edf0f5; border-radius:10px; padding:12px;">
+            <div>
+              <div style="font-weight:700;">{{ row.shift_label }}</div>
+              <div style="font-size:0.9rem; color:#475569; margin-top:4px;">Participants: {{ row.participant_count }}</div>
+            </div>
+            <div style="font-size:0.92rem; color:#334155; text-align:right;">
+              Approved submissions: {{ row.approved_submission_count }}<br>
+              {% if row.latest_submission_at_label %}
+                Latest approved: {{ row.latest_submission_at_label }}
+              {% else %}
+                No approved submissions yet
+              {% endif %}
+              {% if current_user.has_permission(permission_keys.export_reports) %}
+                <div style="margin-top:8px;">
+                  <a
+                    href="{{ url_for('export_session_report_csv', session_id=report.session_id, shift=row.shift_label) }}"
+                    style="display:inline-block; padding:8px 10px; border-radius:8px; background:#eff6ff; color:#1d4ed8; text-decoration:none; font-weight:700;"
+                  >
+                    Export {{ row.shift_label }} CSV
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="margin:0; color:#64748b;">No shift data available.</p>
+    {% endif %}
+  </section>
+
+  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; background:#fff; margin-bottom:14px;">
+    <h2 style="margin:0 0 10px;">Approved Submission List</h2>
+    {% if report.approved_submission_rows %}
+      <div style="display:grid; gap:10px;">
+        {% for row in report.approved_submission_rows %}
+          <div style="border:1px solid #edf0f5; border-radius:10px; padding:12px;">
+            <div style="font-weight:700;">{{ row.participant_label }}</div>
+            <div style="margin-top:4px; font-size:0.9rem; color:#475569;">
+              Shift {{ row.shift_label }} | Attempt #{{ row.attempt_number }} | Submitted {{ row.submitted_at_label }}
+            </div>
+            <div style="margin-top:4px; font-size:0.9rem; color:#334155;">
+              Approved by {{ row.approved_by_label or "Unknown" }} at {{ row.approved_at_label or "Unknown" }}
+            </div>
+            <div style="margin-top:4px; font-size:0.9rem; color:#166534;">
+              Status: Approved For Reporting
+            </div>
+            {% if row.review_notes %}
+              <div style="margin-top:8px; white-space:pre-wrap; line-height:1.45; color:#334155;">{{ row.review_notes }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="margin:0; color:#64748b;">No approved submissions for this session yet.</p>
+    {% endif %}
+  </section>
+
+  <section style="display:grid; gap:14px;">
+    {% for question in report.question_rows %}
+      <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; background:#fff;">
+        <div style="font-size:0.85rem; color:#64748b;">{{ loop.index }}. {{ question.question_type_label }}</div>
+        <h2 style="margin:6px 0 10px; font-size:1.05rem;">{{ question.prompt }}</h2>
+        {% if question.answer_rows %}
+          <div style="display:grid; gap:10px;">
+            {% for answer in question.answer_rows %}
+              <div style="border:1px solid #edf0f5; border-radius:10px; padding:12px; background:#fafbfc;">
+                <div style="font-weight:700;">{{ answer.participant_label }}</div>
+                <div style="margin-top:4px; font-size:0.9rem; color:#475569;">
+                  Shift {{ answer.shift_label }} | Attempt #{{ answer.attempt_number }} | {{ answer.submitted_at_label }}
+                </div>
+                <div style="margin-top:8px; white-space:pre-wrap; line-height:1.45; color:#334155;">{{ answer.answer_text or "No answer submitted." }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p style="margin:0; color:#64748b;">No approved answers for this question yet.</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </section>
+</main>
+{% endblock %}

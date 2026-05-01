@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+
+{% block title %}Reports | Fireground Trainer{% endblock %}
+
+{% block body %}
+<main style="max-width: 1080px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
+  <section style="margin-bottom: 16px;">
+    <h1 style="margin:0 0 6px;">Reports</h1>
+    <p style="margin:0; color:#475569;">Per-session reports currently include approved, non-excluded submissions only.</p>
+  </section>
+
+  <section style="display:grid; gap:14px;">
+    {% if report_sessions %}
+      {% for row in report_sessions %}
+        <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; background:#fff;">
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+            <div>
+              <h2 style="margin:0 0 6px; font-size:1.1rem;">{{ row.title }}</h2>
+              <div style="font-size:0.92rem; color:#475569;">Scenario: {{ row.scenario_title }}</div>
+              <div style="font-size:0.9rem; color:#64748b; margin-top:4px;">
+                Join Code {{ row.join_code }} | Created {{ row.created_at_label }} | Status {{ row.status | title }}
+              </div>
+            </div>
+            <a
+              href="{{ url_for('session_report', session_id=row.session_id) }}"
+              style="display:inline-block; padding:10px 12px; border-radius:10px; background:#eff6ff; color:#1d4ed8; text-decoration:none; font-weight:700;"
+            >
+              Open Report
+            </a>
+          </div>
+          <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; font-size:0.92rem; color:#334155;">
+            <div><strong>Participants:</strong> {{ row.participant_count }}</div>
+            <div><strong>Approved Submissions:</strong> {{ row.approved_submission_count }}</div>
+          </div>
+        </article>
+      {% endfor %}
+    {% else %}
+      <section style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; background:#fff;">
+        <p style="margin:0; color:#64748b;">No training sessions are available to report on yet.</p>
+      </section>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

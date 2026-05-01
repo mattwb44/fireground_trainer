@@ -1,0 +1,252 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ site_name }}{% endblock %}
+
+{% block head_extra %}
+<style>
+  .home-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 34px 18px 56px;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    gap: 22px;
+    align-items: stretch;
+  }
+
+  .hero-panel,
+  .hero-side,
+  .category-card {
+    border: 1px solid rgba(24, 33, 47, 0.12);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.84);
+    box-shadow: 0 18px 40px rgba(24, 33, 47, 0.08);
+  }
+
+  .hero-panel {
+    padding: 36px;
+    background:
+      linear-gradient(135deg, rgba(182, 65, 35, 0.94), rgba(209, 102, 45, 0.92)),
+      linear-gradient(160deg, rgba(255, 255, 255, 0.18), transparent);
+    color: #fff8f0;
+  }
+
+  .hero-kicker {
+    display: inline-flex;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .hero-panel h1 {
+    margin: 16px 0 12px;
+    font-size: clamp(2.6rem, 5vw, 4.4rem);
+    line-height: 0.96;
+  }
+
+  .hero-panel p {
+    max-width: 48rem;
+    font-size: 1.05rem;
+    line-height: 1.65;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 22px;
+  }
+
+  .hero-button,
+  .hero-button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 13px 18px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 800;
+  }
+
+  .hero-button {
+    background: #fff8f0;
+    color: #8a3018;
+  }
+
+  .hero-button-secondary {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff8f0;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+  }
+
+  .hero-side {
+    padding: 28px;
+    display: grid;
+    gap: 14px;
+    background:
+      radial-gradient(circle at top right, rgba(19, 60, 85, 0.16), transparent 40%),
+      rgba(255, 255, 255, 0.78);
+  }
+
+  .hero-side h2 {
+    margin: 0;
+    font-size: 1.18rem;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: baseline;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(24, 33, 47, 0.08);
+  }
+
+  .stat-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .stat-value {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #133c55;
+  }
+
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: end;
+    margin: 34px 0 16px;
+  }
+
+  .section-head h2 {
+    margin: 0 0 6px;
+    font-size: 2rem;
+  }
+
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .category-card {
+    padding: 24px;
+    display: grid;
+    gap: 14px;
+  }
+
+  .category-card h3 {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+
+  .category-chip {
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(19, 60, 85, 0.09);
+    color: #133c55;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .category-link {
+    width: fit-content;
+    padding: 11px 15px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 800;
+    color: #fff7f0;
+    background: linear-gradient(135deg, #133c55, #245f81);
+  }
+
+  .category-link.muted {
+    background: linear-gradient(135deg, #59697d, #748496);
+  }
+
+  @media (max-width: 920px) {
+    .hero,
+    .category-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<main class="home-shell">
+  <section class="hero">
+    <article class="hero-panel">
+      <span class="hero-kicker">Scenario Routing</span>
+      <h1>Train by category. Run the board when the room is ready.</h1>
+      <p>
+        {{ site_name }} is the front door for fireground drills now, with category pages ready
+        for MVA and EMS next. Pick the lane you want, browse the available scenarios, and
+        move into the board only when you are ready to facilitate.
+      </p>
+      <div class="hero-actions">
+        <a class="hero-button" href="{{ url_for('fireground_training') }}">Browse Fireground Training</a>
+        <a class="hero-button-secondary" href="{{ url_for('board') }}">Open Board</a>
+      </div>
+    </article>
+
+    <aside class="hero-side">
+      <div>
+        <h2>Built For The Next Phase</h2>
+        <p style="margin:8px 0 0; color:#5d6b7d; line-height:1.55;">
+          The homepage now routes into category pages so we can expand without turning the board into the whole product.
+        </p>
+      </div>
+      <div class="stat-row">
+        <span>Fireground scenarios live now</span>
+        <strong class="stat-value">{{ category_cards[0].count_label.split(' ')[0] }}</strong>
+      </div>
+      <div class="stat-row">
+        <span>Additional categories staged</span>
+        <strong class="stat-value">2</strong>
+      </div>
+      <div class="stat-row">
+        <span>Current focus</span>
+        <strong style="color:#b64123;">Professional browsing flow</strong>
+      </div>
+    </aside>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <h2>Training Categories</h2>
+        <p style="margin:0; color:#5d6b7d;">Each category has its own page, while the top navigation stays consistent.</p>
+      </div>
+    </div>
+
+    <div class="category-grid">
+      {% for category in category_cards %}
+        <article class="category-card">
+          <span class="category-chip">{{ category.count_label }}</span>
+          <h3>{{ category.label }}</h3>
+          <p style="margin:0; color:#5d6b7d; line-height:1.6;">{{ category.description }}</p>
+          <a
+            class="category-link{% if not category.is_available %} muted{% endif %}"
+            href="{{ category.href }}"
+          >
+            {% if category.is_available %}Open Category{% else %}View Placeholder{% endif %}
+          </a>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}

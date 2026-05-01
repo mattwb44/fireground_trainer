@@ -1,15 +1,15 @@
 {% extends "layout.html" %}
 
-{% block title %}Fireground Trainer{% endblock %}
+{% block title %}Board | {{ site_name }}{% endblock %}
 
 {% block head_extra %}
 <style>
   body { font-family: system-ui, Arial; margin: 0; background:#0e0f12; color:#f2f2f2; }
-  header {
+  .board-header {
     padding: 14px;
     border-bottom: 1px solid #2a2f3c;
     position: sticky;
-    top: 0;
+    top: 78px;
     background: rgba(14,15,18,0.92);
     z-index: 20000;
   }
@@ -166,7 +166,8 @@
     grid-template-areas:
       "new tools"
       "scenario tools"
-      "questions tools";
+      "questions tools"
+      "review tools";
   }
 
   .new-card {
@@ -186,6 +187,10 @@
 
   .questions-card {
     grid-area: questions; min-width: 0;
+  }
+
+  .review-card {
+    grid-area: review; min-width: 0;
   }
 
   .status-pill {
@@ -239,6 +244,26 @@
     color: #d8dde8;
   }
 
+  .vote-card {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin: 0 0 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #2a2f3c;
+    background: #111520;
+  }
+
+  .vote-note {
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+    color: #c2cad8;
+    line-height: 1.4;
+  }
+
   @media (max-width: 980px) {
     .workspace {
       grid-template-columns: 1fr;
@@ -246,7 +271,8 @@
         "new"
         "scenario"
         "tools"
-        "questions";
+        "questions"
+        "review";
     }
     .tools-panel {
       position: static;
@@ -256,8 +282,8 @@
 {% endblock %}
 
 {% block body %}
-<header>
-  <div style="font-weight:800;">Fireground Trainer</div>
+<section class="board-header">
+  <div style="font-weight:800;">{{ site_name }} Board</div>
   <div style="opacity:0.8;font-size:0.9rem;">Scenario drills | Size-up | Tactics | Pump ops</div>
 
   <div style="margin-top: 6px; font-size: 0.9rem;">
@@ -268,6 +294,20 @@
     {% endfor %}
     )
   </div>
+  {% if active_training_session and active_participant %}
+    <div style="margin-top: 4px; font-size: 0.86rem; opacity: 0.85;">
+      Joined Session <strong>{{ active_training_session.join_code }}</strong> |
+      Shift: <strong>{{ active_participant.shift_label or "Unspecified" }}</strong> |
+      Identity:
+      <strong>
+        {% if active_participant.is_anonymous %}
+          Anonymous
+        {% else %}
+          {{ active_participant.display_name }}
+        {% endif %}
+      </strong>
+    </div>
+  {% endif %}
 
   <div class="switcher">
     {% if current_user.user_id == 'guest' %}
@@ -290,20 +330,40 @@
       <a href="{{ url_for('admin_users') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Users</a>
     {% endif %}
   </div>
-</header>
+</section>
 
 <main class="workspace">
   <div class="card new-card">
-    <a href="/new" style="
-      display:inline-block;
-      padding:10px 14px;
-      border-radius:12px;
-      background:#2a2f3c;
-      border:1px solid #2a2f3c;
-      color:#f2f2f2;
-      font-weight:800;
-      text-decoration:none;
-    ">New Scenario</a>
+    {% if host_workspace %}
+      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+        <div>
+          <div style="font-size:0.82rem; opacity:0.75; text-transform:uppercase; letter-spacing:0.08em;">Primary Host Workspace</div>
+          <div style="margin-top:6px; font-size:1.1rem; font-weight:800;">{{ host_workspace.title }}</div>
+          <div style="margin-top:4px; opacity:0.85;">Join code {{ host_workspace.join_code }} | {{ host_workspace.scenario_title }}</div>
+        </div>
+        <a href="{{ url_for('training_session_detail', session_id=host_workspace.session_id) }}" style="
+          display:inline-block;
+          padding:10px 14px;
+          border-radius:12px;
+          background:#2a2f3c;
+          border:1px solid #2a2f3c;
+          color:#f2f2f2;
+          font-weight:800;
+          text-decoration:none;
+        ">Session Detail</a>
+      </div>
+    {% else %}
+      <a href="/new" style="
+        display:inline-block;
+        padding:10px 14px;
+        border-radius:12px;
+        background:#2a2f3c;
+        border:1px solid #2a2f3c;
+        color:#f2f2f2;
+        font-weight:800;
+        text-decoration:none;
+      ">New Scenario</a>
+    {% endif %}
   </div>
 
   <section class="card scenario-card">
@@ -311,6 +371,30 @@
     <p style="margin:0 0 12px; opacity:0.85; line-height:1.35;">
       <strong>Dispatch:</strong> {{ scenario.dispatch }}
     </p>
+
+    <div class="vote-card">
+      <div>
+        <div style="font-weight:800;">{{ scenario_vote.like_count }} like{{ '' if scenario_vote.like_count == 1 else 's' }}</div>
+        <p class="vote-note">{{ scenario_vote.eligibility_note }}</p>
+      </div>
+      <div class="switcher" style="margin-top:0;">
+        {% if current_user.user_id == 'guest' %}
+          <a href="{{ url_for('login_page', next=request.path) }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Sign In To Like</a>
+        {% elif scenario_vote.can_like %}
+          <form method="post" action="{{ url_for('vote_for_scenario') }}" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+            <input type="hidden" name="vote_action" value="{{ 'clear' if scenario_vote.has_liked else 'like' }}">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" style="margin-top:0; background:{{ '#4b5563' if scenario_vote.has_liked else '#b64123' }}; color:#f2f2f2;">
+              {{ 'Remove Like' if scenario_vote.has_liked else 'Like Scenario' }}
+            </button>
+          </form>
+        {% else %}
+          <button type="button" disabled style="margin-top:0; background:#374151; color:#d1d5db;">Like Locked</button>
+        {% endif %}
+      </div>
+    </div>
 
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom: 12px;">
       <span class="status-pill {% if scenario.workflow_status == 'approved' %}approved{% endif %}">
@@ -348,7 +432,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
           <input type="hidden" name="official_action" value="make">
-          <input type="hidden" name="next" value="{{ url_for('index') }}">
+          <input type="hidden" name="next" value="{{ url_for('board') }}">
           <button type="submit" style="margin-top:0; background:#0f766e; color:#f2f2f2;">Make Official</button>
         </form>
       {% endif %}
@@ -357,7 +441,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
           <input type="hidden" name="official_action" value="remove">
-          <input type="hidden" name="next" value="{{ url_for('index') }}">
+          <input type="hidden" name="next" value="{{ url_for('board') }}">
           <button type="submit" style="margin-top:0; background:#475569; color:#f2f2f2;">Remove Official</button>
         </form>
       {% endif %}
@@ -397,7 +481,28 @@
 
   <form class="card questions-card" method="post" action="{{ url_for('submit') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <h2 style="margin:0 0 10px;">Questions</h2>
+    <h2 style="margin:0 0 10px;">{{ "Facilitation Questions" if host_workspace else "Questions" }}</h2>
+
+    {% if active_training_session %}
+      <div
+        id="revealedSubmissionPanel"
+        data-refresh-url="{{ url_for('training_session_revealed_answer_partial', session_id=active_training_session.id) }}"
+        style="margin:0 0 12px;"
+      >
+        {% include "revealed_submission_partial.html" %}
+      </div>
+    {% endif %}
+
+    {% if submission_error %}
+      <div style="margin:0 0 12px; padding:10px 12px; border:1px solid #7f1d1d; border-radius:10px; background:#2a1414; color:#fecaca;">
+        {{ submission_error }}
+      </div>
+    {% endif %}
+    {% if submission_message %}
+      <div style="margin:0 0 12px; padding:10px 12px; border:1px solid #2f8f4e; border-radius:10px; background:#122117; color:#bbf7d0;">
+        {{ submission_message }}
+      </div>
+    {% endif %}
 
     {% for q in scenario.questions %}
       <div>
@@ -434,12 +539,60 @@
     {% endif %}
 
     {% if submitted %}
-      <p style="margin:10px 0 0; color:#9fe6b0;">Submitted. Use Reveal instructor answer under each question to compare.</p>
+      <p style="margin:10px 0 0; color:#9fe6b0;">
+        Submitted.
+        {% if saved_submission %}
+          Attempt #{{ saved_submission.attempt_number }} saved.
+        {% endif %}
+        Use Reveal instructor answer under each question to compare.
+      </p>
     {% endif %}
   </form>
+
+  {% if host_workspace %}
+    <section
+      class="card review-card"
+      id="hostWorkspacePanel"
+      data-refresh-url="{{ url_for('training_session_workspace_partial', session_id=host_workspace.session_id) }}"
+    >
+      {% with workspace = host_workspace %}
+        {% include "session_board_workspace_partial.html" %}
+      {% endwith %}
+    </section>
+  {% endif %}
 </main>
 {% endblock %}
 
 {% block page_scripts %}
 <script src="{{ url_for('static', filename='js/board.js') }}"></script>
+<script>
+  (() => {
+    function installAutoRefresh(panel) {
+      if (!panel) return;
+      let isRefreshing = false;
+
+      async function refreshPanel() {
+        if (isRefreshing) return;
+        isRefreshing = true;
+        try {
+          const response = await fetch(panel.dataset.refreshUrl, {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            cache: "no-store",
+          });
+          if (!response.ok) {
+            return;
+          }
+          panel.innerHTML = await response.text();
+        } finally {
+          isRefreshing = false;
+        }
+      }
+
+      window.setInterval(refreshPanel, 10000);
+    }
+
+    installAutoRefresh(document.getElementById("revealedSubmissionPanel"));
+    installAutoRefresh(document.getElementById("hostWorkspacePanel"));
+  })();
+</script>
 {% endblock %}

@@ -1,0 +1,148 @@
+<section style="display:grid; gap:14px;">
+  <article style="border:1px solid #2a2f3c; border-radius:14px; padding:14px; background:#111520;">
+    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:0.82rem; color:#94a3b8; letter-spacing:0.08em; text-transform:uppercase;">Active Host Session</div>
+        <h2 style="margin:6px 0 6px;">{{ workspace.title }}</h2>
+        <div style="color:#cbd5e1;">{{ workspace.scenario_title }}</div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a href="{{ url_for('training_session_detail', session_id=workspace.session_id) }}" style="display:inline-block; padding:9px 12px; border-radius:10px; text-decoration:none; background:#eff6ff; color:#1d4ed8; font-weight:700;">Session Detail</a>
+        <form method="post" action="{{ url_for('clear_all_revealed_answers_for_session', session_id=workspace.session_id) }}" style="margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ url_for('board', session_id=workspace.session_id) }}">
+          <button type="submit" style="margin-top:0; background:#475569; color:#fff;">Clear All Reveals</button>
+        </form>
+      </div>
+    </div>
+
+    <div style="display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); margin-top:14px;">
+      <div style="border:1px solid #334155; border-radius:12px; padding:12px; background:#0f172a;">
+        <div style="font-size:0.82rem; color:#94a3b8; text-transform:uppercase;">Join Code</div>
+        <div style="margin-top:6px; font-size:1.6rem; font-weight:800; letter-spacing:0.14em;">{{ workspace.join_code }}</div>
+      </div>
+      <div style="border:1px solid #334155; border-radius:12px; padding:12px; background:#0f172a;">
+        <div style="font-size:0.82rem; color:#94a3b8; text-transform:uppercase;">Participants Joined</div>
+        <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ workspace.dashboard.participant_count }}</div>
+      </div>
+      <div style="border:1px solid #334155; border-radius:12px; padding:12px; background:#0f172a;">
+        <div style="font-size:0.82rem; color:#94a3b8; text-transform:uppercase;">Latest Submissions</div>
+        <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ workspace.dashboard.submitted_participant_count }}</div>
+      </div>
+      <div style="border:1px solid #334155; border-radius:12px; padding:12px; background:#0f172a;">
+        <div style="font-size:0.82rem; color:#94a3b8; text-transform:uppercase;">Approved</div>
+        <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ workspace.dashboard.approved_submission_count }}</div>
+      </div>
+    </div>
+
+    <div style="display:grid; gap:14px; grid-template-columns:minmax(0, 1fr) 240px; margin-top:14px; align-items:start;">
+      <div>
+        <div style="font-weight:700; color:#e2e8f0;">Participant Join Link</div>
+        <div style="margin-top:6px; word-break:break-word;">
+          <a href="{{ workspace.join_url }}" style="color:#93c5fd;">{{ workspace.join_url }}</a>
+        </div>
+        {% if workspace.join_url_warning %}
+          <div style="margin-top:10px; padding:10px 12px; border:1px solid #b45309; border-radius:10px; background:#2b1a07; color:#fcd34d;">
+            {{ workspace.join_url_warning }}
+          </div>
+        {% endif %}
+        <div style="margin-top:10px; font-size:0.88rem; color:#94a3b8;">
+          Review below is grouped by question and uses each participant's latest submission for a cleaner facilitation pass.
+        </div>
+      </div>
+      <div style="justify-self:center;">
+        <img src="{{ workspace.qr_image_url }}" alt="Session join QR code" style="max-width:220px; width:100%; border:1px solid #334155; border-radius:14px; background:#fff;">
+      </div>
+    </div>
+  </article>
+
+  <article style="border:1px solid #2a2f3c; border-radius:14px; padding:14px; background:#111520;">
+    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0;">Question Review</h2>
+        <p style="margin:6px 0 0; color:#94a3b8;">Answers are grouped by question so you can review and reveal one answer at a time.</p>
+      </div>
+      <div style="font-size:0.86rem; color:#94a3b8;">Last updated {{ workspace.dashboard.last_updated_label }}</div>
+    </div>
+
+    <div style="display:grid; gap:14px; margin-top:14px;">
+      {% for question in workspace.question_rows %}
+        <section style="border:1px solid #334155; border-radius:12px; padding:12px; background:#0f172a;">
+          <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+            <div>
+              <div style="font-size:0.82rem; color:#94a3b8;">{{ loop.index }}. {{ question.question_type_label }}</div>
+              <div style="margin-top:6px; font-weight:700; color:#f8fafc;">{{ question.prompt }}</div>
+            </div>
+            <div style="font-size:0.82rem; color:#94a3b8;">
+              {{ question.answer_rows|length }} latest answer{{ '' if question.answer_rows|length == 1 else 's' }}
+              {% if question.revealed_answer_count %}
+                <div style="margin-top:6px; color:#86efac;">1 answer currently revealed</div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if question.answer_rows %}
+            <div style="display:grid; gap:10px; margin-top:12px;">
+              {% for answer in question.answer_rows %}
+                <article style="border:1px solid {{ '#166534' if answer.is_revealed else '#223043' }}; border-radius:10px; padding:12px; background:{{ '#102117' if answer.is_revealed else '#111827' }};">
+                  <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+                    <div>
+                      <div style="font-weight:700; color:#f8fafc;">{{ answer.participant_label }}</div>
+                      <div style="margin-top:4px; font-size:0.9rem; color:#cbd5e1;">Shift {{ answer.shift_label }} | Attempt #{{ answer.attempt_number }}</div>
+                    </div>
+                    <div style="font-size:0.84rem; color:#94a3b8; text-align:right;">
+                      {{ answer.submitted_at_label }}<br>
+                      <span style="color:{{ '#86efac' if answer.status == 'approved' else ('#fca5a5' if answer.is_excluded else '#fcd34d') }};">{{ answer.status_label }}</span>
+                    </div>
+                  </div>
+
+                  <div style="margin-top:10px; white-space:pre-wrap; line-height:1.45; color:#e2e8f0;">{{ answer.answer_text or "No answer submitted." }}</div>
+
+                  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px;">
+                    {% if not answer.is_excluded %}
+                      <form method="post" action="{{ url_for('reveal_question_answer_for_session', session_id=workspace.session_id, question_id=question.question_id) }}" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="submission_answer_id" value="{{ answer.submission_answer_id }}">
+                        <input type="hidden" name="next" value="{{ url_for('board', session_id=workspace.session_id) }}">
+                        <button type="submit" style="margin-top:0; background:{{ '#475569' if answer.is_revealed else '#0f766e' }}; color:#fff;">{{ 'Replace Reveal' if answer.is_revealed else 'Reveal This Answer' }}</button>
+                      </form>
+                    {% endif %}
+                    {% if answer.is_revealed %}
+                      <form method="post" action="{{ url_for('clear_revealed_question_answer_for_session', session_id=workspace.session_id, question_id=question.question_id) }}" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="next" value="{{ url_for('board', session_id=workspace.session_id) }}">
+                        <button type="submit" style="margin-top:0; background:#475569; color:#fff;">Clear Question Reveal</button>
+                      </form>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('review_submission_for_session', session_id=workspace.session_id, submission_id=answer.submission_id) }}" style="margin:0;">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="review_notes" value="">
+                      <input type="hidden" name="next" value="{{ url_for('board', session_id=workspace.session_id) }}">
+                      {% if answer.status != 'approved' %}
+                        <button type="submit" name="review_action" value="approve" style="margin-top:0; background:#166534; color:#fff;">Approve</button>
+                      {% endif %}
+                      {% if answer.status != 'flagged' %}
+                        <button type="submit" name="review_action" value="flag" style="margin-top:0; background:#b45309; color:#fff;">Flag</button>
+                      {% endif %}
+                      {% if not answer.is_excluded %}
+                        <button type="submit" name="review_action" value="exclude" style="margin-top:0; background:#991b1b; color:#fff;">Exclude</button>
+                      {% else %}
+                        <button type="submit" name="review_action" value="reinstate" style="margin-top:0; background:#1d4ed8; color:#fff;">Reinstate</button>
+                      {% endif %}
+                      {% if answer.status in ['approved', 'flagged'] %}
+                        <button type="submit" name="review_action" value="reopen" style="margin-top:0; background:#92400e; color:#fff;">Return To Review</button>
+                      {% endif %}
+                    </form>
+                    <a href="{{ url_for('training_session_submission_detail', session_id=workspace.session_id, submission_id=answer.submission_id) }}" style="display:inline-block; padding:9px 12px; border-radius:10px; text-decoration:none; background:#e2e8f0; color:#0f172a; font-weight:700;">Notes & Audit</a>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p style="margin:12px 0 0; color:#94a3b8;">No answers submitted for this question yet.</p>
+          {% endif %}
+        </section>
+      {% endfor %}
+    </div>
+  </article>
+</section>

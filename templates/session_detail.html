@@ -1,14 +1,15 @@
 {% extends "layout.html" %}
 
-{% block title %}Session Ready | Fireground Trainer{% endblock %}
+{% block title %}Session Ready | {{ site_name }}{% endblock %}
 
 {% block body %}
 <main style="max-width: 960px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
   <section style="margin-bottom: 14px;">
     <h1 style="margin:0 0 6px;">Session Created</h1>
-    <p style="margin:0; color:#444;">Share this join code or QR with participants.</p>
+    <p style="margin:0; color:#444;">The board is now the primary host workspace. Share this join code or QR with participants, then use the board for live facilitation and grouped answer review.</p>
     <p style="margin:8px 0 0;">
-      <a href="{{ url_for('index') }}">Back to Board</a> |
+      <a href="{{ url_for('board', session_id=training_session.id) }}">Open Facilitation Board</a> |
+      <a href="{{ url_for('board') }}">Back to Board</a> |
       <a href="{{ url_for('scenario_library') }}">Library</a>
     </p>
   </section>
@@ -21,8 +22,14 @@
       {% if training_session.title %}
         <p style="margin:6px 0;"><strong>Title:</strong> {{ training_session.title }}</p>
       {% endif %}
+      <p style="margin:6px 0;"><strong>Scenario:</strong> {{ training_session.scenario.title }}</p>
       <p style="margin:6px 0;"><strong>Status:</strong> {{ training_session.status | title }}</p>
       <p style="margin:6px 0;"><strong>Join URL:</strong><br><a href="{{ join_url }}">{{ join_url }}</a></p>
+      {% if join_url_warning %}
+        <p style="margin:10px 0 0; padding:10px 12px; border:1px solid #f59e0b; border-radius:10px; background:#fffbeb; color:#92400e;">
+          {{ join_url_warning }}
+        </p>
+      {% endif %}
     </article>
 
     <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
@@ -32,5 +39,63 @@
       <p style="margin:10px 0 0; font-size:0.85rem; color:#555;">If QR does not load, share the join code or URL above.</p>
     </article>
   </section>
+
+  <section style="margin-top:14px; border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0;">Live Session Dashboard</h2>
+        <p style="margin:6px 0 0; color:#555;">Auto-refreshes every 10 seconds while this page is open.</p>
+      </div>
+      <button
+        type="button"
+        id="refreshSubmissions"
+        style="padding:9px 12px; border:1px solid #c7ced9; border-radius:8px; background:#fff; font-weight:700; cursor:pointer;"
+      >
+        Refresh Now
+      </button>
+    </div>
+
+    <div
+      id="sessionSubmissionDashboard"
+      data-refresh-url="{{ url_for('training_session_submissions_partial', session_id=training_session.id) }}"
+      style="margin-top:14px;"
+    >
+      {% include "session_submissions_partial.html" %}
+    </div>
+  </section>
 </main>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  (() => {
+    const dashboard = document.getElementById("sessionSubmissionDashboard");
+    const refreshButton = document.getElementById("refreshSubmissions");
+    if (!dashboard) return;
+
+    let isRefreshing = false;
+
+    async function refreshDashboard() {
+      if (isRefreshing) return;
+      isRefreshing = true;
+      if (refreshButton) refreshButton.disabled = true;
+      try {
+        const response = await fetch(dashboard.dataset.refreshUrl, {
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          return;
+        }
+        dashboard.innerHTML = await response.text();
+      } finally {
+        isRefreshing = false;
+        if (refreshButton) refreshButton.disabled = false;
+      }
+    }
+
+    refreshButton?.addEventListener("click", refreshDashboard);
+    window.setInterval(refreshDashboard, 10000);
+  })();
+</script>
 {% endblock %}

@@ -7,10 +7,317 @@
   <link rel="manifest" href="{{ url_for('static', filename='pwa/manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='pwa/ff-icon-192.png') }}">
   <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
-  <title>{% block title %}Fireground Trainer{% endblock %}</title>
+  <title>{% block title %}{{ site_name }}{% endblock %}</title>
+  <style>
+    :root {
+      --site-ink: #18212f;
+      --site-muted: #5d6b7d;
+      --site-line: rgba(24, 33, 47, 0.12);
+      --site-bg: #f6f1e7;
+      --site-surface: rgba(255, 255, 255, 0.86);
+      --site-brand: #b64123;
+      --site-brand-dark: #872d16;
+      --site-accent: #133c55;
+      --site-accent-soft: #dceaf2;
+      --site-shadow: 0 20px 45px rgba(24, 33, 47, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--site-ink);
+      background:
+        radial-gradient(circle at top left, rgba(182, 65, 35, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(19, 60, 85, 0.18), transparent 32%),
+        linear-gradient(180deg, #f9f4ea 0%, var(--site-bg) 100%);
+      font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    a {
+      color: var(--site-accent);
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 25000;
+      backdrop-filter: blur(14px);
+      background: rgba(246, 241, 231, 0.82);
+      border-bottom: 1px solid var(--site-line);
+    }
+
+    .site-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 18px;
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: #fff7ee;
+      background: linear-gradient(135deg, var(--site-brand) 0%, #d16e2f 100%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-name {
+      font-size: 1.02rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .brand-subtitle {
+      font-size: 0.82rem;
+      color: var(--site-muted);
+    }
+
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .site-nav-link,
+    .site-dropdown-summary,
+    .site-button,
+    .site-button-secondary {
+      border-radius: 999px;
+      padding: 10px 14px;
+      text-decoration: none;
+      font-weight: 800;
+      border: 1px solid var(--site-line);
+    }
+
+    .site-nav-link,
+    .site-dropdown-summary {
+      color: var(--site-ink);
+      background: rgba(255, 255, 255, 0.68);
+    }
+
+    .site-nav-link.is-active {
+      background: var(--site-accent-soft);
+      border-color: rgba(19, 60, 85, 0.24);
+    }
+
+    .site-dropdown {
+      position: relative;
+    }
+
+    .site-dropdown summary {
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .site-dropdown summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .site-dropdown-panel {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      min-width: 260px;
+      padding: 10px;
+      border-radius: 18px;
+      border: 1px solid var(--site-line);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: var(--site-shadow);
+    }
+
+    .site-dropdown-panel a {
+      display: block;
+      padding: 12px 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: var(--site-ink);
+    }
+
+    .site-dropdown-panel a:hover {
+      background: #f2f6f8;
+    }
+
+    .site-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+
+    .site-user-chip {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid var(--site-line);
+      color: var(--site-muted);
+      font-weight: 700;
+      font-size: 0.94rem;
+    }
+
+    .site-button {
+      background: linear-gradient(135deg, var(--site-brand) 0%, #d0662d 100%);
+      color: #fffaf4;
+      border-color: transparent;
+      cursor: pointer;
+    }
+
+    .site-button-secondary {
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--site-ink);
+    }
+
+    .site-actions form {
+      margin: 0;
+    }
+
+    .flash-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 18px 0;
+    }
+
+    .flash-message {
+      margin: 0 0 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--site-line);
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 10px 24px rgba(24, 33, 47, 0.06);
+      font-weight: 700;
+    }
+
+    .flash-message.success {
+      border-color: rgba(15, 118, 110, 0.28);
+      background: rgba(236, 253, 245, 0.95);
+      color: #0f5132;
+    }
+
+    .flash-message.warning {
+      border-color: rgba(180, 83, 9, 0.28);
+      background: rgba(255, 251, 235, 0.95);
+      color: #92400e;
+    }
+
+    @media (max-width: 820px) {
+      .site-shell {
+        align-items: flex-start;
+      }
+
+      .site-dropdown-panel {
+        position: static;
+        margin-top: 8px;
+      }
+    }
+  </style>
   {% block head_extra %}{% endblock %}
 </head>
 <body>
+  <header class="site-header">
+    <div class="site-shell">
+      <a class="brand-lockup" href="{{ url_for('home') }}">
+        <span class="brand-mark">BF</span>
+        <span class="brand-text">
+          <span class="brand-name">{{ site_name }}</span>
+          <span class="brand-subtitle">Company drills, facilitation, and review</span>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Primary">
+        <details class="site-dropdown">
+          <summary class="site-dropdown-summary">Training Scenarios</summary>
+          <div class="site-dropdown-panel">
+            {% for category in training_categories %}
+              <a href="{{ category.href }}">{{ category.label }}</a>
+            {% endfor %}
+          </div>
+        </details>
+
+        {% if current_user.has_permission(permission_keys.view_scenarios) %}
+          <a
+            class="site-nav-link{% if request.endpoint == 'board' %} is-active{% endif %}"
+            href="{{ url_for('board') }}"
+          >
+            Board
+          </a>
+        {% endif %}
+        {% if current_user.has_permission(permission_keys.view_scenarios) %}
+          <a
+            class="site-nav-link{% if request.endpoint == 'scenario_library' %} is-active{% endif %}"
+            href="{{ url_for('scenario_library') }}"
+          >
+            Library
+          </a>
+        {% endif %}
+        {% if current_user.has_permission(permission_keys.view_reports) %}
+          <a
+            class="site-nav-link{% if request.endpoint in ['reports', 'session_report'] %} is-active{% endif %}"
+            href="{{ url_for('reports') }}"
+          >
+            Reports
+          </a>
+        {% endif %}
+        {% if current_user.has_permission(permission_keys.manage_users) %}
+          <a
+            class="site-nav-link{% if request.endpoint == 'admin_users' %} is-active{% endif %}"
+            href="{{ url_for('admin_users') }}"
+          >
+            Users
+          </a>
+        {% endif %}
+      </nav>
+
+      <div class="site-actions">
+        {% if current_user.user_id == 'guest' %}
+          <a class="site-button-secondary" href="{{ url_for('login_page', next=url_for('board')) }}">Login</a>
+          <a class="site-button" href="{{ url_for('create_account_page') }}">Create Account</a>
+        {% else %}
+          <span class="site-user-chip">{{ current_user.display_name }}</span>
+          <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="site-button-secondary">Logout</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <section class="flash-shell" aria-live="polite">
+        {% for category, message in messages %}
+          <p class="flash-message {{ category }}">{{ message }}</p>
+        {% endfor %}
+      </section>
+    {% endif %}
+  {% endwith %}
   {% block body %}{% endblock %}
 
   {% block page_scripts %}{% endblock %}

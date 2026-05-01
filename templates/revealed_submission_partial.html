@@ -1,0 +1,33 @@
+{% if revealed_submission and revealed_submission.has_revealed_answers %}
+  <section style="border:1px solid #2f8f4e; border-radius:12px; padding:14px; background:#0f1d14;">
+    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0 0 6px; color:#bbf7d0;">Live Revealed Answers</h2>
+        <p style="margin:0; color:#d1fae5;">Each question can reveal a different participant answer as the host facilitates.</p>
+      </div>
+    </div>
+
+    <div style="display:grid; gap:12px; margin-top:14px;">
+      {% for row in revealed_submission.question_rows %}
+        <article style="border:1px solid #355847; border-radius:10px; padding:12px; background:#13231a;">
+          <div style="font-size:0.82rem; color:#9ca3af;">{{ loop.index }}. {{ row.question_type_label }}</div>
+          <div style="margin-top:6px; font-weight:700; color:#f8fafc;">{{ row.prompt }}</div>
+          {% if row.is_revealed %}
+            <div style="margin-top:8px; font-size:0.9rem; color:#bbf7d0;">
+              {{ row.participant_label }} | Shift {{ row.shift_label }} | Attempt #{{ row.attempt_number }}
+            </div>
+            <div style="margin-top:4px; font-size:0.84rem; color:#cbd5e1;">Revealed {{ row.revealed_at_label }}</div>
+            <div style="margin-top:8px; white-space:pre-wrap; line-height:1.45; color:#e2e8f0;">{{ row.answer_text or "No answer submitted." }}</div>
+          {% else %}
+            <div style="margin-top:8px; color:#94a3b8;">The host has not revealed an answer for this question yet.</div>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% elif active_training_session %}
+  <section style="border:1px solid #2a2f3c; border-radius:12px; padding:14px; background:#111520;">
+    <h2 style="margin:0 0 6px;">Live Revealed Answers</h2>
+    <p style="margin:0; color:#94a3b8;">No answers have been revealed for this session yet.</p>
+  </section>
+{% endif %}
