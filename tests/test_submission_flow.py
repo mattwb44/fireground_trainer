@@ -928,7 +928,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
         response = self.client.post("/submit", data=payload)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Join an active session before submitting answers.", response.data)
+        self.assertIn(b"Practicing solo", response.data)
         with app.app_context():
             self.assertEqual(Submission.query.count(), 0)
             self.assertEqual(SubmissionAnswer.query.count(), 0)

@@ -296,7 +296,11 @@ def submit():
     saved_submission = None
     submission_message = None
 
-    if submission_error is None and participant is not None and training_session is not None:
+    if participant is None or training_session is None:
+        # Solo practice — show feedback but don't save anything.
+        submission_error = None
+        submission_message = "Practicing solo — answers not saved. Join a live session to submit for real."
+    elif submission_error is None:
         saved_submission, submission_error = persist_submission(
             scenario_row=scenario_row,
             scenario=scenario,

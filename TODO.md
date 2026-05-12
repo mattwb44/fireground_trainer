@@ -158,6 +158,16 @@ Priority order. Each item is a prerequisite for the ones below it.
 
 **Production target:** 150 concurrent users — achievable with PostgreSQL + Gunicorn (8–12 workers on a 4-core box) + Nginx static file serving.
 
+## Deployment Plan
+
+**Current approach:** Laptop-based local network. Run `python app.py` on personal laptop at the station, share QR code, crew connects over WiFi. No server needed.
+
+**Trigger to move to cloud:** When enough scenarios are loaded to make it worth showing to others regularly.
+
+**Chosen cloud host when ready:** Railway (~$5–15/month). Includes managed PostgreSQL. Auto-deploys from GitHub on push.
+
+**Raspberry Pi option (parked):** Have a Pi 5 (8GB RAM, 128GB storage) currently running Pi-hole at home. Could bring to station as a permanent local server or run as a hotspot. City IT may restrict ethernet access to the city network. Revisit this if Railway cost becomes a concern or if offline-only operation is preferred.
+
 ## Future Ideas
 
 - Add contributor badges such as Top Rated Submitter, Certified Instructor, Certified Firefighter
