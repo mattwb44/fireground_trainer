@@ -10,16 +10,26 @@
   <title>{% block title %}{{ site_name }}{% endblock %}</title>
   <style>
     :root {
-      --site-ink: #18212f;
-      --site-muted: #5d6b7d;
-      --site-line: rgba(24, 33, 47, 0.12);
-      --site-bg: #f6f1e7;
-      --site-surface: rgba(255, 255, 255, 0.86);
-      --site-brand: #b64123;
-      --site-brand-dark: #872d16;
-      --site-accent: #133c55;
-      --site-accent-soft: #dceaf2;
-      --site-shadow: 0 20px 45px rgba(24, 33, 47, 0.1);
+      --site-ink: #22171a;
+      --site-muted: #6c5a60;
+      --site-line: rgba(57, 24, 31, 0.14);
+      --site-bg: #f2ece8;
+      --site-surface: rgba(255, 255, 255, 0.88);
+      --site-brand: #b01c2e;
+      --site-brand-dark: #7f1321;
+      --site-accent: #6f111d;
+      --site-accent-soft: #f5d9de;
+      --site-blue: #214e85;
+      --site-blue-dark: #173b67;
+      --site-blue-soft: #dce8f7;
+      --site-fire-soft: #f6dde1;
+      --site-success: #1f6a3b;
+      --site-success-soft: #e4f3e8;
+      --site-warning: #8a4b0f;
+      --site-warning-soft: #f8ead5;
+      --site-panel: rgba(255, 255, 255, 0.88);
+      --site-panel-strong: rgba(255, 255, 255, 0.94);
+      --site-shadow: 0 20px 45px rgba(57, 24, 31, 0.12);
     }
 
     * {
@@ -30,9 +40,9 @@
       margin: 0;
       color: var(--site-ink);
       background:
-        radial-gradient(circle at top left, rgba(182, 65, 35, 0.18), transparent 28%),
-        radial-gradient(circle at top right, rgba(19, 60, 85, 0.18), transparent 32%),
-        linear-gradient(180deg, #f9f4ea 0%, var(--site-bg) 100%);
+        radial-gradient(circle at top left, rgba(176, 28, 46, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(111, 17, 29, 0.14), transparent 32%),
+        linear-gradient(180deg, #faf4f2 0%, var(--site-bg) 100%);
       font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
     }
 
@@ -41,11 +51,10 @@
     }
 
     .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 25000;
-      backdrop-filter: blur(14px);
-      background: rgba(246, 241, 231, 0.82);
+      position: relative;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+      background: rgba(250, 244, 242, 0.92);
       border-bottom: 1px solid var(--site-line);
     }
 
@@ -76,8 +85,8 @@
       align-items: center;
       justify-content: center;
       font-weight: 900;
-      color: #fff7ee;
-      background: linear-gradient(135deg, var(--site-brand) 0%, #d16e2f 100%);
+      color: #fff8f7;
+      background: linear-gradient(135deg, var(--site-brand) 0%, #d83c4d 100%);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
     }
 
@@ -162,7 +171,7 @@
     }
 
     .site-dropdown-panel a:hover {
-      background: #f2f6f8;
+      background: var(--site-fire-soft);
     }
 
     .site-actions {
@@ -184,8 +193,8 @@
     }
 
     .site-button {
-      background: linear-gradient(135deg, var(--site-brand) 0%, #d0662d 100%);
-      color: #fffaf4;
+      background: linear-gradient(135deg, var(--site-brand) 0%, #d33a4b 100%);
+      color: #fff8f7;
       border-color: transparent;
       cursor: pointer;
     }
@@ -216,15 +225,166 @@
     }
 
     .flash-message.success {
-      border-color: rgba(15, 118, 110, 0.28);
-      background: rgba(236, 253, 245, 0.95);
-      color: #0f5132;
+      border-color: rgba(31, 106, 59, 0.24);
+      background: var(--site-success-soft);
+      color: var(--site-success);
     }
 
     .flash-message.warning {
-      border-color: rgba(180, 83, 9, 0.28);
-      background: rgba(255, 251, 235, 0.95);
-      color: #92400e;
+      border-color: rgba(138, 75, 15, 0.24);
+      background: var(--site-warning-soft);
+      color: var(--site-warning);
+    }
+
+    .page-shell {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 16px;
+      font-family: system-ui, Arial, sans-serif;
+    }
+
+    .page-shell.page-shell-narrow {
+      max-width: 760px;
+    }
+
+    .page-shell.page-shell-compact {
+      max-width: 680px;
+      margin-top: 40px;
+    }
+
+    .theme-panel,
+    .theme-panel-strong,
+    .theme-stat-card {
+      border: 1px solid var(--site-line);
+      border-radius: 16px;
+      box-shadow: var(--site-shadow);
+    }
+
+    .theme-panel {
+      background: var(--site-panel);
+      padding: 16px;
+    }
+
+    .theme-panel-strong {
+      background: var(--site-panel-strong);
+      padding: 18px;
+    }
+
+    .theme-panel-dark {
+      border: 1px solid rgba(255, 226, 231, 0.1);
+      border-radius: 16px;
+      padding: 16px;
+      color: #fdf7f7;
+      background: linear-gradient(180deg, rgba(40, 15, 21, 0.96), rgba(21, 9, 12, 0.96));
+      box-shadow: 0 22px 44px rgba(25, 8, 12, 0.28);
+    }
+
+    .theme-stat-card {
+      padding: 14px;
+      background: var(--site-panel-strong);
+    }
+
+    .theme-kicker {
+      color: var(--site-muted);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .theme-muted {
+      color: var(--site-muted);
+    }
+
+    .theme-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: var(--site-fire-soft);
+      color: var(--site-accent);
+      font-weight: 800;
+    }
+
+    .theme-input,
+    .theme-textarea,
+    .theme-select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(57, 24, 31, 0.18);
+      background: rgba(255, 252, 251, 0.96);
+      color: var(--site-ink);
+    }
+
+    .theme-button-blue,
+    .theme-button-red,
+    .theme-button-muted,
+    .theme-button-soft {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 999px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .theme-button-blue {
+      background: linear-gradient(135deg, var(--site-blue), var(--site-blue-dark));
+      color: #f8fbff;
+    }
+
+    .theme-button-red {
+      background: linear-gradient(135deg, var(--site-brand), var(--site-brand-dark));
+      color: #fff8f7;
+    }
+
+    .theme-button-muted {
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--site-ink);
+      border: 1px solid var(--site-line);
+    }
+
+    .theme-button-soft {
+      background: var(--site-fire-soft);
+      color: var(--site-accent);
+    }
+
+    .theme-alert-error,
+    .theme-alert-success,
+    .theme-alert-warning,
+    .theme-alert-info {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--site-line);
+      font-weight: 700;
+    }
+
+    .theme-alert-error {
+      border-color: rgba(176, 28, 46, 0.24);
+      background: var(--site-fire-soft);
+      color: var(--site-accent);
+    }
+
+    .theme-alert-success {
+      border-color: rgba(31, 106, 59, 0.24);
+      background: var(--site-success-soft);
+      color: var(--site-success);
+    }
+
+    .theme-alert-warning {
+      border-color: rgba(138, 75, 15, 0.24);
+      background: var(--site-warning-soft);
+      color: var(--site-warning);
+    }
+
+    .theme-alert-info {
+      border-color: rgba(33, 78, 133, 0.22);
+      background: var(--site-blue-soft);
+      color: var(--site-blue-dark);
     }
 
     @media (max-width: 820px) {
@@ -243,7 +403,7 @@
 <body>
   <header class="site-header">
     <div class="site-shell">
-      <a class="brand-lockup" href="{{ url_for('home') }}">
+      <a class="brand-lockup" href="{{ url_for('main.home') }}">
         <span class="brand-mark">BF</span>
         <span class="brand-text">
           <span class="brand-name">{{ site_name }}</span>
@@ -264,7 +424,7 @@
         {% if current_user.has_permission(permission_keys.view_scenarios) %}
           <a
             class="site-nav-link{% if request.endpoint == 'board' %} is-active{% endif %}"
-            href="{{ url_for('board') }}"
+            href="{{ url_for('main.board') }}"
           >
             Board
           </a>
@@ -272,7 +432,7 @@
         {% if current_user.has_permission(permission_keys.view_scenarios) %}
           <a
             class="site-nav-link{% if request.endpoint == 'scenario_library' %} is-active{% endif %}"
-            href="{{ url_for('scenario_library') }}"
+            href="{{ url_for('scenarios.scenario_library') }}"
           >
             Library
           </a>
@@ -280,7 +440,7 @@
         {% if current_user.has_permission(permission_keys.view_reports) %}
           <a
             class="site-nav-link{% if request.endpoint in ['reports', 'session_report'] %} is-active{% endif %}"
-            href="{{ url_for('reports') }}"
+            href="{{ url_for('reports.reports') }}"
           >
             Reports
           </a>
@@ -288,7 +448,7 @@
         {% if current_user.has_permission(permission_keys.manage_users) %}
           <a
             class="site-nav-link{% if request.endpoint == 'admin_users' %} is-active{% endif %}"
-            href="{{ url_for('admin_users') }}"
+            href="{{ url_for('admin.admin_users') }}"
           >
             Users
           </a>
@@ -297,11 +457,11 @@
 
       <div class="site-actions">
         {% if current_user.user_id == 'guest' %}
-          <a class="site-button-secondary" href="{{ url_for('login_page', next=url_for('board')) }}">Login</a>
-          <a class="site-button" href="{{ url_for('create_account_page') }}">Create Account</a>
+          <a class="site-button-secondary" href="{{ url_for('auth.login_page', next=url_for('main.board')) }}">Sign In</a>
+          <a class="site-button" href="{{ url_for('auth.create_account_page') }}">Create Account</a>
         {% else %}
           <span class="site-user-chip">{{ current_user.display_name }}</span>
-          <form method="post" action="{{ url_for('logout') }}">
+          <form method="post" action="{{ url_for('auth.logout') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="site-button-secondary">Logout</button>
           </form>
@@ -324,7 +484,7 @@
   <script
     src="{{ url_for('static', filename='js/main.js') }}"
     data-sw-url="{{ url_for('static', filename='js/sw.js') }}"
-    data-offline-url="{{ url_for('offline') }}"
+    data-offline-url="{{ url_for('main.offline') }}"
     data-manifest-url="{{ url_for('static', filename='pwa/manifest.json') }}"
     data-icon192-url="{{ url_for('static', filename='pwa/ff-icon-192.png') }}"
     data-icon512-url="{{ url_for('static', filename='pwa/ff-icon-512.png') }}"

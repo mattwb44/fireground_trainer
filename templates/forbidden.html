@@ -3,11 +3,11 @@
 {% block title %}Access Denied{% endblock %}
 
 {% block body %}
-<main style="max-width: 760px; margin: 40px auto; padding: 0 16px; font-family: system-ui, Arial;">
-  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:18px;">
+<main class="page-shell page-shell-compact" style="max-width:760px;">
+  <section class="theme-panel-strong">
     <h1 style="margin-top:0;">Access denied</h1>
-    <p>Your current role does not allow this action.</p>
-    <p><a href="{{ url_for('board') }}">Return to board</a></p>
+    <p style="color:var(--site-muted);">Your current role does not allow this action.</p>
+    <p><a href="{{ url_for('main.board') }}">Return to board</a></p>
   </section>
 </main>
 {% endblock %}

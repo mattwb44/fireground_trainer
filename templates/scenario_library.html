@@ -5,11 +5,13 @@
 {% block head_extra %}
 <style>
   .library-wrap {
-    border: 1px solid #d6d9e0;
-    border-radius: 12px;
+    border: 1px solid var(--site-line);
+    border-radius: 16px;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+    background: var(--site-panel);
+    box-shadow: var(--site-shadow);
   }
 
   .library-table {
@@ -36,29 +38,34 @@
 {% endblock %}
 
 {% block body %}
-<main style="max-width: 1100px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
+<main class="page-shell">
   <section style="margin-bottom: 14px;">
     <h1 style="margin: 0 0 6px;">Scenario Library</h1>
-    <p style="margin: 0; color:#444;">Internal library for selecting, reviewing, and managing scenarios.</p>
+    <p style="margin: 0; color:var(--site-muted);">Internal library for selecting, reviewing, and managing scenarios.</p>
     <p style="margin: 8px 0 0;">
-      <a href="{{ url_for('board') }}">Back to board</a>
+      <a href="{{ url_for('main.board') }}">Back to board</a>
       {% if can_create_scenarios %}
-        | <a href="{{ url_for('new_scenario_page') }}">Create scenario</a>
+        | <a href="{{ url_for('scenarios.new_scenario_page') }}">Create scenario</a>
       {% endif %}
     </p>
+  </section>
+
+  <section style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+    <span style="display:inline-flex; padding:7px 12px; border-radius:999px; background:var(--site-fire-soft); color:var(--site-accent); font-weight:800;">{{ selected_tab_count }} in {{ selected_tab_label }}</span>
+    <span style="display:inline-flex; padding:7px 12px; border-radius:999px; background:var(--site-blue-soft); color:var(--site-blue-dark); font-weight:800;">Popularity uses likes from completed signed-in submissions</span>
   </section>
 
   <section style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 14px;">
     {% for tab in tabs %}
       <a
-        href="{{ url_for('scenario_library', tab=tab.key) }}"
+        href="{{ url_for('scenarios.scenario_library', tab=tab.key) }}"
         style="
           padding:8px 12px;
           border-radius: 999px;
           text-decoration:none;
-          border:1px solid #ccd1dc;
-          color:#111827;
-          {% if selected_tab == tab.key %}background:#1f2937; color:#f9fafb; border-color:#1f2937;{% endif %}
+          border:1px solid var(--site-line);
+          color:var(--site-ink);
+          {% if selected_tab == tab.key %}background:var(--site-accent); color:#fff8f7; border-color:var(--site-accent);{% else %}background:rgba(255,255,255,0.64);{% endif %}
         "
       >
         {{ tab.label }}
@@ -69,80 +76,83 @@
   <section class="library-wrap">
     <table class="library-table">
       <thead>
-        <tr style="background:#f5f7fb; text-align:left;">
-          <th style="padding:10px; border-bottom:1px solid #dde2eb;">Title</th>
-          <th style="padding:10px; border-bottom:1px solid #dde2eb;">Status</th>
-          <th style="padding:10px; border-bottom:1px solid #dde2eb;">Questions</th>
-          <th style="padding:10px; border-bottom:1px solid #dde2eb;">Likes</th>
-          <th class="col-updated" style="padding:10px; border-bottom:1px solid #dde2eb;">Updated</th>
-          <th style="padding:10px; border-bottom:1px solid #dde2eb;">Action</th>
+        <tr style="background:rgba(111, 17, 29, 0.08); text-align:left;">
+          <th style="padding:10px; border-bottom:1px solid var(--site-line);">Title</th>
+          <th style="padding:10px; border-bottom:1px solid var(--site-line);">Status</th>
+          <th style="padding:10px; border-bottom:1px solid var(--site-line);">Questions</th>
+          <th style="padding:10px; border-bottom:1px solid var(--site-line);">Likes</th>
+          <th class="col-updated" style="padding:10px; border-bottom:1px solid var(--site-line);">Updated</th>
+          <th style="padding:10px; border-bottom:1px solid var(--site-line);">Action</th>
         </tr>
       </thead>
       <tbody>
         {% if scenarios %}
           {% for scenario in scenarios %}
             <tr>
-              <td style="padding:10px; border-bottom:1px solid #eef1f6;">
+              <td style="padding:10px; border-bottom:1px solid var(--site-line);">
                 <div style="font-weight:700;">{{ scenario.title }}</div>
+                <div style="font-size:0.82rem; color:var(--site-muted); line-height:1.45;">
+                  {{ scenario.author_label }}{% if scenario.author_name %} | {{ scenario.author_name }}{% endif %} | {{ scenario.popularity_label }}
+                </div>
                 {% if scenario.is_official %}
-                  <div style="font-size:0.82rem; color:#475569;">Official</div>
+                  <div style="font-size:0.82rem; color:var(--site-muted);">Official</div>
                 {% endif %}
                 {% if scenario.approved_by %}
-                  <div style="font-size:0.82rem; color:#475569;">Approved by {{ scenario.approved_by }}</div>
+                  <div style="font-size:0.82rem; color:var(--site-muted);">Approved by {{ scenario.approved_by }}</div>
                 {% endif %}
               </td>
-              <td style="padding:10px; border-bottom:1px solid #eef1f6;">{{ scenario.status | replace('_', ' ') | title }}</td>
-              <td style="padding:10px; border-bottom:1px solid #eef1f6;">{{ scenario.question_count }}</td>
-              <td style="padding:10px; border-bottom:1px solid #eef1f6;">
+              <td style="padding:10px; border-bottom:1px solid var(--site-line);">{{ scenario.status_label }}</td>
+              <td style="padding:10px; border-bottom:1px solid var(--site-line);">{{ scenario.question_label }}</td>
+              <td style="padding:10px; border-bottom:1px solid var(--site-line);">
                 <div style="font-weight:700;">{{ scenario.like_count }}</div>
-                <div style="font-size:0.82rem; color:#475569;">like{{ '' if scenario.like_count == 1 else 's' }}</div>
+                <div style="font-size:0.82rem; color:var(--site-muted);">{{ scenario.likes_label }}</div>
               </td>
-              <td class="cell-updated" style="padding:10px; border-bottom:1px solid #eef1f6;">
-                {% if scenario.updated_at %}
-                  {{ scenario.updated_at.strftime("%Y-%m-%d %H:%M") }} UTC
+              <td class="cell-updated" style="padding:10px; border-bottom:1px solid var(--site-line);">
+                {% if scenario.updated_at_label %}
+                  {{ scenario.updated_at_label }}
                 {% else %}
                   -
                 {% endif %}
               </td>
-              <td class="action-cell" style="padding:10px; border-bottom:1px solid #eef1f6;">
-                <form method="post" action="{{ url_for('select_scenario') }}" style="margin:0 0 6px;">
+              <td class="action-cell" style="padding:10px; border-bottom:1px solid var(--site-line);">
+                <form method="post" action="{{ url_for('scenarios.select_scenario') }}" style="margin:0 0 6px;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
-                  <input type="hidden" name="next" value="{{ url_for('board') }}">
-                  <button type="submit" style="padding:6px 10px; border:0; border-radius:8px; background:#1e3a8a; color:#fff; font-weight:700;">Open</button>
+                  <input type="hidden" name="next" value="{{ url_for('main.board') }}">
+                  <button type="submit" style="padding:6px 10px; border:0; border-radius:999px; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#fff; font-weight:800;">Open</button>
                 </form>
                 {% if current_user.has_permission(permission_keys.create_sessions) and scenario.status == 'approved' %}
-                  <a href="{{ url_for('new_training_session_page', scenario_id=scenario.id) }}" style="display:inline-block; margin:0 0 6px; padding:6px 10px; border-radius:8px; text-decoration:none; background:#1f2937; color:#fff; font-weight:700;">Create Session</a>
+                  <a href="{{ url_for('sessions.new_training_session_page', scenario_id=scenario.id) }}" style="display:inline-block; margin:0 0 6px; padding:6px 10px; border-radius:999px; text-decoration:none; background:var(--site-accent); color:#fff; font-weight:800;">Create Session</a>
                 {% endif %}
                 {% if current_user.user_id == 'guest' %}
-                  <a href="{{ url_for('login_page', next=request.full_path) }}" style="display:inline-block; margin:0 0 6px; padding:6px 10px; border-radius:8px; text-decoration:none; background:#e5e7eb; color:#111827; font-weight:700;">Sign In To Like</a>
+                  <a href="{{ url_for('auth.login_page', next=request.full_path) }}" style="display:inline-block; margin:0 0 6px; padding:6px 10px; border-radius:8px; text-decoration:none; background:#e5e7eb; color:#111827; font-weight:700;">Sign In To Like</a>
                 {% elif scenario.can_like %}
-                  <form method="post" action="{{ url_for('vote_for_scenario') }}" style="margin:0 0 6px;">
+                  <form method="post" action="{{ url_for('scenarios.vote_for_scenario') }}" style="margin:0 0 6px;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
                     <input type="hidden" name="vote_action" value="{{ 'clear' if scenario.has_liked else 'like' }}">
                     <input type="hidden" name="next" value="{{ request.full_path }}">
-                    <button type="submit" style="padding:6px 10px; border:0; border-radius:8px; background:{{ '#e5e7eb' if scenario.has_liked else '#b64123' }}; color:{{ '#111827' if scenario.has_liked else '#fff' }}; font-weight:700;">{{ 'Remove Like' if scenario.has_liked else 'Like' }}</button>
+                    <button type="submit" style="padding:6px 10px; border:0; border-radius:8px; background:{{ '#e5e7eb' if scenario.has_liked else 'var(--site-blue)' }}; color:{{ '#111827' if scenario.has_liked else '#fff' }}; font-weight:700;">{{ 'Remove Like' if scenario.has_liked else 'Like' }}</button>
                   </form>
                 {% else %}
-                  <div style="margin:0 0 6px; font-size:0.82rem; color:#475569;">{{ scenario.eligibility_note }}</div>
+                  <div style="margin:0 0 6px; font-size:0.82rem; color:var(--site-muted);">{{ scenario.eligibility_note }}</div>
                 {% endif %}
                 {% if can_manage_official and scenario.status == 'approved' and not scenario.is_official %}
-                  <form method="post" action="{{ url_for('set_scenario_official_status') }}" style="margin:0;">
+                  <form method="post" action="{{ url_for('scenarios.set_scenario_official_status') }}" style="margin:0;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
                     <input type="hidden" name="official_action" value="make">
-                    <input type="hidden" name="next" value="{{ url_for('scenario_library', tab=selected_tab) }}">
-                    <button type="submit" style="padding:6px 10px; border:0; border-radius:8px; background:#0f766e; color:#fff; font-weight:700;">Make Official</button>
+                    <input type="hidden" name="next" value="{{ url_for('scenarios.scenario_library', tab=selected_tab) }}">
+                    <button type="submit" style="padding:6px 10px; border:0; border-radius:8px; background:var(--site-accent); color:#fff; font-weight:700;">Make Official</button>
                   </form>
                 {% endif %}
                 {% if can_manage_official and scenario.is_official %}
-                  <form method="post" action="{{ url_for('set_scenario_official_status') }}" style="margin:6px 0 0;">
+                  <form method="post" action="{{ url_for('scenarios.set_scenario_official_status') }}" style="margin:6px 0 0;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
                     <input type="hidden" name="official_action" value="remove">
-                    <input type="hidden" name="next" value="{{ url_for('scenario_library', tab=selected_tab) }}">
-                    <button type="submit" style="padding:6px 10px; border:0; border-radius:8px; background:#475569; color:#fff; font-weight:700;">Remove Official</button>
+                    <input type="hidden" name="next" value="{{ url_for('scenarios.scenario_library', tab=selected_tab) }}">
+                    <button type="submit" style="padding:6px 10px; border:0; border-radius:999px; background:rgba(255,255,255,0.78); color:var(--site-ink); font-weight:800; border:1px solid var(--site-line);">Remove Official</button>
                   </form>
                 {% endif %}
               </td>
@@ -150,7 +160,10 @@
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="6" style="padding:16px; color:#555;">No scenarios in this tab yet.</td>
+            <td colspan="6" style="padding:16px; color:var(--site-muted);">
+              <div style="font-weight:700; color:#111827;">Nothing To Show Yet</div>
+              <div style="margin-top:6px;">{{ empty_state_message }}</div>
+            </td>
           </tr>
         {% endif %}
       </tbody>

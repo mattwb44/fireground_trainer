@@ -1,88 +1,88 @@
 <div style="display:grid; gap:14px; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));">
-  <article style="border:1px solid #e1e5ec; border-radius:10px; padding:12px;">
-    <div style="font-size:0.82rem; color:#555; text-transform:uppercase; letter-spacing:0.04em;">Participants Joined</div>
+  <article style="border:1px solid var(--site-line); border-radius:14px; padding:12px; background:var(--site-panel-strong); box-shadow:var(--site-shadow);">
+    <div style="font-size:0.82rem; color:var(--site-muted); text-transform:uppercase; letter-spacing:0.04em;">Participants Joined</div>
     <div style="margin-top:6px; font-size:1.5rem; font-weight:800;">{{ dashboard.participant_count }}</div>
   </article>
-  <article style="border:1px solid #e1e5ec; border-radius:10px; padding:12px;">
-    <div style="font-size:0.82rem; color:#555; text-transform:uppercase; letter-spacing:0.04em;">Participants Submitted</div>
+  <article style="border:1px solid var(--site-line); border-radius:14px; padding:12px; background:var(--site-panel-strong); box-shadow:var(--site-shadow);">
+    <div style="font-size:0.82rem; color:var(--site-muted); text-transform:uppercase; letter-spacing:0.04em;">Participants Submitted</div>
     <div style="margin-top:6px; font-size:1.5rem; font-weight:800;">{{ dashboard.submitted_participant_count }}</div>
   </article>
-  <article style="border:1px solid #e1e5ec; border-radius:10px; padding:12px;">
-    <div style="font-size:0.82rem; color:#555; text-transform:uppercase; letter-spacing:0.04em;">Total Attempts</div>
+  <article style="border:1px solid var(--site-line); border-radius:14px; padding:12px; background:var(--site-panel-strong); box-shadow:var(--site-shadow);">
+    <div style="font-size:0.82rem; color:var(--site-muted); text-transform:uppercase; letter-spacing:0.04em;">Total Attempts</div>
     <div style="margin-top:6px; font-size:1.5rem; font-weight:800;">{{ dashboard.submission_count }}</div>
   </article>
-  <article style="border:1px solid #e1e5ec; border-radius:10px; padding:12px;">
-    <div style="font-size:0.82rem; color:#555; text-transform:uppercase; letter-spacing:0.04em;">Active Questions</div>
+  <article style="border:1px solid var(--site-line); border-radius:14px; padding:12px; background:var(--site-panel-strong); box-shadow:var(--site-shadow);">
+    <div style="font-size:0.82rem; color:var(--site-muted); text-transform:uppercase; letter-spacing:0.04em;">Active Questions</div>
     <div style="margin-top:6px; font-size:1.5rem; font-weight:800;">{{ dashboard.active_question_count }}</div>
   </article>
-  <article style="border:1px solid #e1e5ec; border-radius:10px; padding:12px;">
-    <div style="font-size:0.82rem; color:#555; text-transform:uppercase; letter-spacing:0.04em;">Approved For Reporting</div>
+  <article style="border:1px solid var(--site-line); border-radius:14px; padding:12px; background:var(--site-panel-strong); box-shadow:var(--site-shadow);">
+    <div style="font-size:0.82rem; color:var(--site-muted); text-transform:uppercase; letter-spacing:0.04em;">Approved For Reporting</div>
     <div style="margin-top:6px; font-size:1.5rem; font-weight:800;">{{ dashboard.approved_submission_count }}</div>
   </article>
 </div>
 
-<p style="margin:10px 0 0; font-size:0.86rem; color:#666;">
+<p style="margin:10px 0 0; font-size:0.86rem; color:var(--site-muted);">
   Last updated {{ dashboard.last_updated_label }}.
 </p>
 
-<section style="margin-top:14px; border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+<section style="margin-top:14px; border:1px solid var(--site-line); border-radius:16px; padding:14px; background:var(--site-panel); box-shadow:var(--site-shadow);">
   <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
     <div>
       <h3 style="margin:0 0 6px;">Facilitation Board</h3>
       {% if training_session.revealed_question_answers %}
-        <p style="margin:0; color:#444;">
+        <p style="margin:0; color:var(--site-ink);">
           {{ training_session.revealed_question_answers|length }} question reveal{{ '' if training_session.revealed_question_answers|length == 1 else 's' }} are currently live for participants.
         </p>
       {% else %}
-        <p style="margin:0; color:#666;">No question answers are currently revealed to the session.</p>
+        <p style="margin:0; color:var(--site-muted);">No question answers are currently revealed to the session.</p>
       {% endif %}
     </div>
-    <a href="{{ url_for('board', session_id=training_session.id) }}" style="display:inline-block; padding:9px 12px; border-radius:8px; text-decoration:none; background:#eff6ff; color:#1d4ed8; font-weight:700;">Open Board Workspace</a>
+    <a href="{{ url_for('main.board', session_id=training_session.id) }}" style="display:inline-block; padding:9px 12px; border-radius:999px; text-decoration:none; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#f8fbff; font-weight:800;">Open Board Workspace</a>
   </div>
 </section>
 
 <section style="margin-top:14px; display:grid; gap:14px; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));">
-  <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+  <article style="border:1px solid var(--site-line); border-radius:16px; padding:14px; background:var(--site-panel); box-shadow:var(--site-shadow);">
     <h3 style="margin:0 0 10px;">Joined Participants</h3>
     {% if dashboard.participant_rows %}
       <div style="display:grid; gap:10px;">
         {% for participant in dashboard.participant_rows %}
-          <div style="border:1px solid #edf0f5; border-radius:10px; padding:10px;">
+          <div style="border:1px solid var(--site-line); border-radius:12px; padding:10px; background:rgba(255,255,255,0.58);">
             <div style="font-weight:700;">{{ participant.identity_label }}</div>
-            <div style="margin-top:4px; font-size:0.9rem; color:#444;">Shift: {{ participant.shift_label }}</div>
-            <div style="margin-top:4px; font-size:0.86rem; color:#666;">Joined: {{ participant.joined_at_label }}</div>
+            <div style="margin-top:4px; font-size:0.9rem; color:var(--site-ink);">Shift: {{ participant.shift_label }}</div>
+            <div style="margin-top:4px; font-size:0.86rem; color:var(--site-muted);">Joined: {{ participant.joined_at_label }}</div>
             {% if participant.latest_attempt_number %}
               <div style="margin-top:4px; font-size:0.86rem; color:#166534;">
                 Latest submission: attempt #{{ participant.latest_attempt_number }} at {{ participant.latest_submitted_at_label }}
               </div>
             {% else %}
-              <div style="margin-top:4px; font-size:0.86rem; color:#92400e;">No submission yet.</div>
+              <div style="margin-top:4px; font-size:0.86rem; color:var(--site-accent);">No submission yet.</div>
             {% endif %}
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <p style="margin:0; color:#666;">No participants have joined this session yet.</p>
+      <p style="margin:0; color:var(--site-muted);">No participants have joined this session yet.</p>
     {% endif %}
   </article>
 
-  <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+  <article style="border:1px solid var(--site-line); border-radius:16px; padding:14px; background:var(--site-panel); box-shadow:var(--site-shadow);">
     <h3 style="margin:0 0 10px;">Submission Feed</h3>
     {% if dashboard.submission_rows %}
       <div style="display:grid; gap:10px;">
         {% for submission in dashboard.submission_rows %}
-          <div style="border:1px solid #edf0f5; border-radius:10px; padding:10px;">
+          <div style="border:1px solid var(--site-line); border-radius:12px; padding:10px; background:rgba(255,255,255,0.58);">
             <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
               <div>
                 <div style="font-weight:700;">{{ submission.identity_label }}</div>
-                <div style="margin-top:4px; font-size:0.9rem; color:#444;">Shift: {{ submission.shift_label }}</div>
+                <div style="margin-top:4px; font-size:0.9rem; color:var(--site-ink);">Shift: {{ submission.shift_label }}</div>
               </div>
-              <div style="font-size:0.86rem; color:#444; text-align:right;">
+              <div style="font-size:0.86rem; color:var(--site-ink); text-align:right;">
                 Attempt #{{ submission.attempt_number }}<br>
                 {{ submission.submitted_at_label }}
               </div>
             </div>
-            <div style="margin-top:8px; font-size:0.88rem; color:#555;">
+            <div style="margin-top:8px; font-size:0.88rem; color:var(--site-muted);">
               Saved answers: {{ submission.saved_answer_count }}/{{ submission.expected_answer_count }} active questions
             </div>
             <div style="margin-top:6px; font-size:0.88rem; color:{% if submission.status == 'approved' %}#166534{% else %}#92400e{% endif %};">
@@ -93,8 +93,8 @@
             </div>
             <div style="margin-top:10px;">
               <a
-                href="{{ url_for('training_session_submission_detail', session_id=training_session.id, submission_id=submission.submission_id) }}"
-                style="display:inline-block; padding:8px 10px; border-radius:8px; background:#eff6ff; color:#1d4ed8; text-decoration:none; font-weight:700;"
+                href="{{ url_for('sessions.training_session_submission_detail', session_id=training_session.id, submission_id=submission.submission_id) }}"
+                style="display:inline-block; padding:8px 10px; border-radius:999px; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#f8fbff; text-decoration:none; font-weight:800;"
               >
                 View Answers
               </a>
@@ -103,7 +103,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <p style="margin:0; color:#666;">No submissions recorded yet.</p>
+      <p style="margin:0; color:var(--site-muted);">No submissions recorded yet.</p>
     {% endif %}
   </article>
 </section>

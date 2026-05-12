@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block title %}Conflict{% endblock %}
+
+{% block body %}
+<main class="page-shell page-shell-compact" style="max-width:760px;">
+  <section class="theme-panel-strong">
+    <h1 style="margin-top:0;">Action no longer fits the current state</h1>
+    <p style="color:var(--site-muted);">This page is up to date, but the thing you tried to change has already moved to a different status. Refresh the board or library and try again if needed.</p>
+    <p><a href="{{ return_target }}">Return to the training board</a></p>
+  </section>
+</main>
+{% endblock %}

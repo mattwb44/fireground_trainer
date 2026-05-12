@@ -47,7 +47,7 @@
   .featured-card {
     border: 1px solid rgba(24, 33, 47, 0.12);
     border-radius: 24px;
-    background: rgba(255, 255, 255, 0.84);
+    background: var(--site-panel);
     box-shadow: 0 16px 32px rgba(24, 33, 47, 0.06);
   }
 
@@ -63,7 +63,9 @@
   }
 
   .filter-link {
-    display: block;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 11px 12px;
     margin-top: 8px;
     border-radius: 14px;
@@ -74,7 +76,7 @@
   }
 
   .filter-link.active {
-    background: #133c55;
+    background: var(--site-accent);
     color: #f6fbff;
   }
 
@@ -117,14 +119,30 @@
     display: inline-flex;
     padding: 6px 10px;
     border-radius: 999px;
-    background: #eef4f7;
-    color: #133c55;
+    background: var(--site-fire-soft);
+    color: var(--site-accent);
     font-size: 0.82rem;
     font-weight: 800;
   }
 
   .scenario-actions form {
     margin: 0;
+  }
+
+  .filter-count {
+    display: inline-flex;
+    min-width: 32px;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(24, 33, 47, 0.08);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .filter-link.active .filter-count {
+    background: rgba(255, 255, 255, 0.18);
+    color: #f8fafc;
   }
 
   .action-button,
@@ -139,13 +157,13 @@
   }
 
   .action-button {
-    background: linear-gradient(135deg, #b64123, #d0662d);
-    color: #fff8f0;
+    background: linear-gradient(135deg, var(--site-blue), var(--site-blue-dark));
+    color: #f8fbff;
   }
 
   .secondary-button {
-    background: #133c55;
-    color: #f4fbff;
+    background: var(--site-accent);
+    color: #fff8f7;
   }
 
   .ghost-button {
@@ -175,17 +193,25 @@
     <p style="margin:0; color:#5d6b7d; font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">Training Category</p>
     <h1>{{ category.label }}</h1>
     <p style="margin:0; max-width:54rem; color:#5d6b7d; line-height:1.65;">{{ category.description }}</p>
+    {% if not category.is_placeholder %}
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;">
+        <span class="meta-pill">{{ category.total_count }} live scenario{{ '' if category.total_count == 1 else 's' }}</span>
+        <span class="meta-pill">{{ category.result_count }} shown in {{ category.active_filter_label }}</span>
+        <span class="meta-pill">Likes come from completed signed-in submissions</span>
+      </div>
+    {% endif %}
 
     {% if not category.is_placeholder %}
       {% if category.featured_scenarios %}
         <div class="featured-strip">
           {% for scenario in category.featured_scenarios %}
             <article class="featured-card" style="padding:18px;">
-              <p style="margin:0 0 8px; color:#b64123; font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">
+              <p style="margin:0 0 8px; color:var(--site-brand); font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">
                 {% if loop.index == 1 %}Most Liked Right Now{% else %}Popular Pick{% endif %}
               </p>
               <h2 style="margin:0 0 6px; font-size:1.15rem;">{{ scenario.title }}</h2>
-              <p style="margin:0; color:#5d6b7d;">{{ scenario.like_count }} like{{ '' if scenario.like_count == 1 else 's' }}</p>
+              <p style="margin:0; color:#5d6b7d;">{{ scenario.likes_label }} | {{ scenario.question_label }}</p>
+              <p style="margin:8px 0 0; color:#5d6b7d; font-size:0.92rem;">{{ scenario.author_label }}{% if scenario.author_name %} | {{ scenario.author_name }}{% endif %}</p>
             </article>
           {% endfor %}
         </div>
@@ -200,13 +226,14 @@
   <section class="category-grid">
     <aside class="filter-panel">
       <h2 style="margin-top:0;">Filters</h2>
-      <p style="margin:0 0 12px; color:#5d6b7d;">We can add more later like New, Top Rated, and Top of the Month.</p>
+      <p style="margin:0 0 12px; color:#5d6b7d;">{{ category.result_count }} result{{ '' if category.result_count == 1 else 's' }} in {{ category.active_filter_label }}. We can add more later like New, Top Rated, and Top of the Month.</p>
       {% for filter_option in category.filter_options %}
         <a
           class="filter-link{% if category.selected_filter == filter_option.key %} active{% endif %}"
           href="{{ url_for(request.endpoint, filter=filter_option.key) if not category.is_placeholder else url_for(request.endpoint) }}"
         >
-          {{ filter_option.label }}
+          <span>{{ filter_option.label }}</span>
+          <span class="filter-count">{{ filter_option.count }}</span>
         </a>
       {% endfor %}
     </aside>
@@ -225,41 +252,45 @@
           {% for scenario in category.scenarios %}
             <article class="scenario-card">
               <div class="scenario-meta">
-                <span class="meta-pill">{{ scenario.creator_filter_label }}</span>
-                <span class="meta-pill">{{ scenario.question_count }} questions</span>
-                <span class="meta-pill">{{ scenario.like_count }} like{{ '' if scenario.like_count == 1 else 's' }}</span>
-                {% if scenario.updated_at %}
-                  <span class="meta-pill">Updated {{ scenario.updated_at.strftime("%Y-%m-%d") }}</span>
+                <span class="meta-pill">{{ scenario.author_label }}</span>
+                <span class="meta-pill">{{ scenario.question_label }}</span>
+                <span class="meta-pill">{{ scenario.likes_label }}</span>
+                <span class="meta-pill">{{ scenario.popularity_label }}</span>
+                {% if scenario.updated_at_label %}
+                  <span class="meta-pill">Updated {{ scenario.updated_at_label }}</span>
                 {% endif %}
               </div>
 
               <h2 style="margin:14px 0 8px;">{{ scenario.title }}</h2>
               <p style="margin:0; color:#5d6b7d; line-height:1.6;">{{ scenario.dispatch_summary }}</p>
+              <p style="margin:10px 0 0; color:#5d6b7d; font-size:0.92rem;">
+                {{ scenario.creator_filter_label }}{% if scenario.author_name %} | {{ scenario.author_name }}{% endif %} | {{ scenario.status_label }}
+              </p>
 
               <div class="scenario-actions" style="margin-top:16px;">
-                <form method="post" action="{{ url_for('select_scenario') }}">
+                <form method="post" action="{{ url_for('scenarios.select_scenario') }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
-                  <input type="hidden" name="next" value="{{ url_for('board') }}">
+                  <input type="hidden" name="next" value="{{ url_for('main.board') }}">
                   <button type="submit" class="action-button">Open On Board</button>
                 </form>
 
                 {% if current_user.has_permission(permission_keys.create_sessions) %}
-                  <a class="secondary-button" href="{{ url_for('new_training_session_page', scenario_id=scenario.id) }}">Create Session</a>
+                  <a class="secondary-button" href="{{ url_for('sessions.new_training_session_page', scenario_id=scenario.id) }}">Create Session</a>
                 {% endif %}
               </div>
 
               <div class="vote-panel">
                 <div>
-                  <div style="font-weight:800; color:#133c55;">{{ scenario.like_count }} like{{ '' if scenario.like_count == 1 else 's' }}</div>
+                  <div style="font-weight:800; color:var(--site-accent);">{{ scenario.likes_label }}</div>
                   <p class="vote-note">{{ scenario.eligibility_note }}</p>
                 </div>
 
                 <div class="scenario-actions">
                   {% if current_user.user_id == 'guest' %}
-                    <a class="ghost-button" href="{{ url_for('login_page', next=request.full_path) }}">Sign In To Like</a>
+                    <a class="ghost-button" href="{{ url_for('auth.login_page', next=request.full_path) }}">Sign In To Like</a>
                   {% elif scenario.can_like %}
-                    <form method="post" action="{{ url_for('vote_for_scenario') }}">
+                    <form method="post" action="{{ url_for('scenarios.vote_for_scenario') }}">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
                       <input type="hidden" name="vote_action" value="{{ 'clear' if scenario.has_liked else 'like' }}">
@@ -280,7 +311,10 @@
         <article class="placeholder-card">
           <h2 style="margin-top:0;">No Scenarios Match This Filter</h2>
           <p style="margin:0; color:#5d6b7d; line-height:1.65;">
-            The filter shell is in place. We just do not have matching Fireground scenarios under this creator bucket yet.
+            There are no {{ category.active_filter_label|lower }} scenarios to show right now. Try another creator bucket or return to All Scenarios to keep browsing.
+          </p>
+          <p style="margin:12px 0 0;">
+            <a class="secondary-button" href="{{ url_for(request.endpoint, filter='all') }}" style="display:inline-block;">Show All Scenarios</a>
           </p>
         </article>
       {% endif %}

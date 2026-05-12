@@ -4,22 +4,33 @@
 
 {% block head_extra %}
 <style>
-  body { font-family: system-ui, Arial; margin: 0; background:#0e0f12; color:#f2f2f2; }
-  .board-header {
-    padding: 14px;
-    border-bottom: 1px solid #2a2f3c;
-    position: sticky;
-    top: 78px;
-    background: rgba(14,15,18,0.92);
-    z-index: 20000;
+  body {
+    font-family: system-ui, Arial;
+    margin: 0;
+    background:
+      radial-gradient(circle at top left, rgba(176, 28, 46, 0.24), transparent 26%),
+      radial-gradient(circle at top right, rgba(111, 17, 29, 0.18), transparent 30%),
+      linear-gradient(180deg, #241015 0%, #14080b 100%);
+    color:#f2f2f2;
   }
-  main { max-width: 1200px; margin: 14px auto; padding: 0 14px; display: grid; gap: 14px; }
-  .card { background:#161922; border:1px solid #2a2f3c; border-radius: 14px; padding: 14px; }
+  .board-header {
+    max-width: 1200px;
+    margin: 16px auto 0;
+    padding: 16px 18px;
+    border: 1px solid #3b2028;
+    border-radius: 18px;
+    background:
+      radial-gradient(circle at top right, rgba(176, 28, 46, 0.2), transparent 34%),
+      linear-gradient(180deg, rgba(22, 15, 18, 0.96), rgba(15, 12, 14, 0.96));
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
+  }
+  main { max-width: 1200px; margin: 14px auto; padding: 0 14px 18px; display: grid; gap: 14px; }
+  .card { background:#161116; border:1px solid #34212a; border-radius: 14px; padding: 14px; box-shadow: 0 14px 28px rgba(0,0,0,0.16); }
   .imgwrap {
     position: relative;
     border-radius: 12px;
     overflow: hidden;
-    border: 1px solid #2a2f3c;
+    border: 1px solid #34212a;
     touch-action: none;
   }
 
@@ -63,8 +74,8 @@
     width: 22px;
     height: 22px;
     border-radius: 999px;
-    border: 1px solid #2a2f3c;
-    background: #0f121a;
+    border: 1px solid #3a232d;
+    background: #170f14;
     color: #f2f2f2;
     font-weight: 900;
     font-size: 14px;
@@ -84,8 +95,8 @@
     width: 26px;
     height: 26px;
     border-radius: 999px;
-    border: 1px solid #2a2f3c;
-    background: #161922;
+    border: 1px solid #3a232d;
+    background: #161116;
     color: #ffffff;
     font-weight: 900;
     font-size: 14px;
@@ -103,8 +114,8 @@
     width: 26px;
     height: 26px;
     border-radius: 999px;
-    border: 1px solid #2a2f3c;
-    background: #161922;
+    border: 1px solid #3a232d;
+    background: #161116;
     color: #ffffff;
     font-weight: 900;
     font-size: 12px;
@@ -122,7 +133,7 @@
   }
 
   .token.selected .token-inner {
-    outline: 2px solid #2f6fed;
+    outline: 2px solid #d33a4b;
     outline-offset: 4px;
     border-radius: 10px;
   }
@@ -134,8 +145,8 @@
   .toolbtn {
     padding: 8px 12px;
     border-radius: 12px;
-    border: 1px solid #2a2f3c;
-    background: #0f121a;
+    border: 1px solid #3a232d;
+    background: #170f14;
     color: #f2f2f2;
     font-weight: 800;
     cursor: pointer;
@@ -149,8 +160,8 @@
   textarea {
     width:100%;
     border-radius:12px;
-    border:1px solid #2a2f3c;
-    background:#0f121a;
+    border:1px solid #3a232d;
+    background:#170f14;
     color:#f2f2f2;
     padding: 10px;
     font-size: 1rem;
@@ -181,7 +192,7 @@
   .tools-panel {
     grid-area: tools;
     position: sticky;
-    top: 80px;
+    top: 14px;
     align-self: start;
   }
 
@@ -199,8 +210,8 @@
     padding: 4px 10px;
     font-size: 0.8rem;
     font-weight: 700;
-    border: 1px solid #2a2f3c;
-    background: #0f121a;
+    border: 1px solid #3a232d;
+    background: #170f14;
   }
 
   .status-pill.approved {
@@ -220,18 +231,18 @@
   .switcher button {
     margin-top: 0;
     border-radius: 10px;
-    border: 1px solid #2a2f3c;
-    background: #0f121a;
+    border: 1px solid #3a232d;
+    background: #170f14;
     color: #f2f2f2;
     padding: 8px 10px;
   }
 
   details {
     margin: 8px 0 0;
-    border: 1px solid #2a2f3c;
+    border: 1px solid #34212a;
     border-radius: 10px;
     padding: 8px 10px;
-    background: #111520;
+    background: #171016;
   }
 
   details summary {
@@ -253,8 +264,8 @@
     margin: 0 0 14px;
     padding: 12px 14px;
     border-radius: 12px;
-    border: 1px solid #2a2f3c;
-    background: #111520;
+    border: 1px solid #34212a;
+    background: #171016;
   }
 
   .vote-note {
@@ -283,10 +294,10 @@
 
 {% block body %}
 <section class="board-header">
-  <div style="font-weight:800;">{{ site_name }} Board</div>
-  <div style="opacity:0.8;font-size:0.9rem;">Scenario drills | Size-up | Tactics | Pump ops</div>
+  <div style="font-weight:900; letter-spacing:0.04em; text-transform:uppercase; color:#fff6f6;">{{ site_name }} Board</div>
+  <div style="opacity:0.8;font-size:0.9rem; color:#f3c7ce;">Scenario drills | Size-up | Tactics | Pump ops</div>
 
-  <div style="margin-top: 6px; font-size: 0.9rem;">
+  <div style="margin-top: 6px; font-size: 0.9rem; color:#f7e8ea;">
     Signed in as <strong>{{ current_user.display_name }}</strong>
     (
     {% for role in current_user.roles | sort %}
@@ -295,7 +306,7 @@
     )
   </div>
   {% if active_training_session and active_participant %}
-    <div style="margin-top: 4px; font-size: 0.86rem; opacity: 0.85;">
+    <div style="margin-top: 4px; font-size: 0.86rem; opacity: 0.88; color:#e9cbd0;">
       Joined Session <strong>{{ active_training_session.join_code }}</strong> |
       Shift: <strong>{{ active_participant.shift_label or "Unspecified" }}</strong> |
       Identity:
@@ -311,23 +322,23 @@
 
   <div class="switcher">
     {% if current_user.user_id == 'guest' %}
-      <a href="{{ url_for('login_page', next=request.path) }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Instructor Login</a>
-      <a href="{{ url_for('request_magic_link_page') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Magic Link</a>
+      <a href="{{ url_for('auth.login_page', next=request.path) }}" style="color:#ffd2d8; font-weight:700; text-decoration:none;">Instructor Login</a>
+      <a href="{{ url_for('auth.request_magic_link_page') }}" style="color:#ffd2d8; font-weight:700; text-decoration:none;">Magic Link</a>
     {% else %}
-      <form method="post" action="{{ url_for('logout') }}" style="margin:0;">
+      <form method="post" action="{{ url_for('auth.logout') }}" style="margin:0;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit">Sign Out</button>
+        <button type="submit" style="background:#7f1321; color:#fff8f7;">Sign Out</button>
       </form>
     {% endif %}
     {% if current_user.has_permission(permission_keys.view_reports) %}
-      <a href="{{ url_for('reports') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Reports</a>
+      <a href="{{ url_for('reports.reports') }}" style="color:#ffd2d8; font-weight:700; text-decoration:none;">Reports</a>
     {% endif %}
-    <a href="{{ url_for('scenario_library') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Library</a>
+    <a href="{{ url_for('scenarios.scenario_library') }}" style="color:#ffd2d8; font-weight:700; text-decoration:none;">Library</a>
     {% if current_user.has_permission(permission_keys.create_scenarios) %}
-      <a href="{{ url_for('new_scenario_page') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Create</a>
+      <a href="{{ url_for('scenarios.new_scenario_page') }}" style="color:#ffd2d8; font-weight:700; text-decoration:none;">Create</a>
     {% endif %}
     {% if current_user.has_permission(permission_keys.manage_users) %}
-      <a href="{{ url_for('admin_users') }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Users</a>
+      <a href="{{ url_for('admin.admin_users') }}" style="color:#ffd2d8; font-weight:700; text-decoration:none;">Users</a>
     {% endif %}
   </div>
 </section>
@@ -341,12 +352,12 @@
           <div style="margin-top:6px; font-size:1.1rem; font-weight:800;">{{ host_workspace.title }}</div>
           <div style="margin-top:4px; opacity:0.85;">Join code {{ host_workspace.join_code }} | {{ host_workspace.scenario_title }}</div>
         </div>
-        <a href="{{ url_for('training_session_detail', session_id=host_workspace.session_id) }}" style="
+        <a href="{{ url_for('sessions.training_session_detail', session_id=host_workspace.session_id) }}" style="
           display:inline-block;
           padding:10px 14px;
           border-radius:12px;
-          background:#2a2f3c;
-          border:1px solid #2a2f3c;
+          background:var(--site-blue);
+          border:1px solid var(--site-blue);
           color:#f2f2f2;
           font-weight:800;
           text-decoration:none;
@@ -357,8 +368,8 @@
         display:inline-block;
         padding:10px 14px;
         border-radius:12px;
-        background:#2a2f3c;
-        border:1px solid #2a2f3c;
+        background:var(--site-accent);
+        border:1px solid var(--site-accent);
         color:#f2f2f2;
         font-weight:800;
         text-decoration:none;
@@ -379,14 +390,14 @@
       </div>
       <div class="switcher" style="margin-top:0;">
         {% if current_user.user_id == 'guest' %}
-          <a href="{{ url_for('login_page', next=request.path) }}" style="color:#9fc5ff; font-weight:700; text-decoration:none;">Sign In To Like</a>
+          <a href="{{ url_for('auth.login_page', next=request.path) }}" style="color:#cfe0ff; font-weight:700; text-decoration:none;">Sign In To Like</a>
         {% elif scenario_vote.can_like %}
-          <form method="post" action="{{ url_for('vote_for_scenario') }}" style="margin:0;">
+          <form method="post" action="{{ url_for('scenarios.vote_for_scenario') }}" style="margin:0;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
             <input type="hidden" name="vote_action" value="{{ 'clear' if scenario_vote.has_liked else 'like' }}">
             <input type="hidden" name="next" value="{{ request.path }}">
-            <button type="submit" style="margin-top:0; background:{{ '#4b5563' if scenario_vote.has_liked else '#b64123' }}; color:#f2f2f2;">
+            <button type="submit" style="margin-top:0; background:{{ '#4b5563' if scenario_vote.has_liked else 'var(--site-blue)' }}; color:#f2f2f2;">
               {{ 'Remove Like' if scenario_vote.has_liked else 'Like Scenario' }}
             </button>
           </form>
@@ -407,47 +418,47 @@
         <span style="opacity:0.8; font-size: 0.9rem;">Approved by {{ scenario.approved_by }}</span>
       {% endif %}
       {% if current_user.has_permission(permission_keys.create_scenarios) and scenario.workflow_status == 'draft' %}
-        <form method="post" action="{{ url_for('submit_scenario_for_review') }}" style="margin:0;">
+        <form method="post" action="{{ url_for('scenarios.submit_scenario_for_review') }}" style="margin:0;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
           <button type="submit" style="margin-top:0; background:#4b5563; color:#f2f2f2;">Submit For Review</button>
         </form>
       {% endif %}
       {% if current_user.has_permission(permission_keys.approve_scenarios) and scenario.workflow_status == 'submitted' %}
-        <form method="post" action="{{ url_for('approve_scenario') }}" style="margin:0;">
+        <form method="post" action="{{ url_for('scenarios.approve_scenario') }}" style="margin:0;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
           <button type="submit" style="margin-top:0; background:#2f8f4e; color:#f2f2f2;">Approve Scenario</button>
         </form>
       {% endif %}
       {% if current_user.has_permission(permission_keys.approve_scenarios) and scenario.workflow_status != 'archived' %}
-        <form method="post" action="{{ url_for('archive_scenario') }}" style="margin:0;">
+        <form method="post" action="{{ url_for('scenarios.archive_scenario') }}" style="margin:0;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
           <button type="submit" style="margin-top:0; background:#7f1d1d; color:#f2f2f2;">Archive</button>
         </form>
       {% endif %}
       {% if current_user.has_permission(permission_keys.approve_scenarios) and scenario.workflow_status == 'approved' and not scenario.is_official %}
-        <form method="post" action="{{ url_for('set_scenario_official_status') }}" style="margin:0;">
+        <form method="post" action="{{ url_for('scenarios.set_scenario_official_status') }}" style="margin:0;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
           <input type="hidden" name="official_action" value="make">
-          <input type="hidden" name="next" value="{{ url_for('board') }}">
-          <button type="submit" style="margin-top:0; background:#0f766e; color:#f2f2f2;">Make Official</button>
+          <input type="hidden" name="next" value="{{ url_for('main.board') }}">
+          <button type="submit" style="margin-top:0; background:var(--site-accent); color:#f2f2f2;">Make Official</button>
         </form>
       {% endif %}
       {% if current_user.has_permission(permission_keys.approve_scenarios) and scenario.is_official %}
-        <form method="post" action="{{ url_for('set_scenario_official_status') }}" style="margin:0;">
+        <form method="post" action="{{ url_for('scenarios.set_scenario_official_status') }}" style="margin:0;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
           <input type="hidden" name="official_action" value="remove">
-          <input type="hidden" name="next" value="{{ url_for('board') }}">
-          <button type="submit" style="margin-top:0; background:#475569; color:#f2f2f2;">Remove Official</button>
+          <input type="hidden" name="next" value="{{ url_for('main.board') }}">
+          <button type="submit" style="margin-top:0; background:rgba(255,255,255,0.18); color:#f2f2f2; border:1px solid rgba(255,226,231,0.12);">Remove Official</button>
         </form>
       {% endif %}
       {% if current_user.has_permission(permission_keys.create_sessions) and scenario.workflow_status == 'approved' %}
         <a
-          href="{{ url_for('new_training_session_page', scenario_id=scenario.id) }}"
+          href="{{ url_for('sessions.new_training_session_page', scenario_id=scenario.id) }}"
           style="display:inline-block; padding:10px 12px; border-radius:10px; text-decoration:none; background:#1f2937; color:#f2f2f2; font-weight:700;"
         >
           Create Session
@@ -479,17 +490,66 @@
 
   </aside>
 
-  <form class="card questions-card" method="post" action="{{ url_for('submit') }}">
+  <form class="card questions-card" method="post" action="{{ url_for('scenarios.submit') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2 style="margin:0 0 10px;">{{ "Facilitation Questions" if host_workspace else "Questions" }}</h2>
+
+    {% if active_training_session and active_participant %}
+      <section style="margin:0 0 12px; border:1px solid rgba(255,226,231,0.1); border-radius:12px; padding:12px; background:rgba(40, 15, 21, 0.96);">
+        <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:0.82rem; opacity:0.76; text-transform:uppercase; letter-spacing:0.08em;">Your Live Session</div>
+            <div style="margin-top:6px; font-size:1rem; font-weight:800;">{{ participant_submission_state.session_title }}</div>
+            <div style="margin-top:4px; opacity:0.86;">Join code {{ participant_submission_state.join_code }} | Scenario {{ scenario.title }}</div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <span class="status-pill approved">Shift {{ participant_submission_state.shift_label }}</span>
+            <span class="status-pill">{{ participant_submission_state.identity_label }}</span>
+            <span class="status-pill {% if participant_submission_state.latest_attempt_number %}approved{% endif %}">
+              {% if participant_submission_state.latest_attempt_number %}
+                Latest attempt #{{ participant_submission_state.latest_attempt_number }}
+              {% else %}
+                No saved attempts yet
+              {% endif %}
+            </span>
+          </div>
+        </div>
+        <div style="margin-top:10px; color:#cbd5e1; line-height:1.5;">
+          {{ participant_submission_state.guidance }}
+        </div>
+        <div style="margin-top:8px; font-size:0.9rem; color:#94a3b8;">
+          {% if participant_submission_state.identity_label == 'Anonymous' %}
+            You are participating anonymously for this live session, even if you are signed in.
+          {% else %}
+            The host sees you as {{ participant_submission_state.identity_label }} for this live session.
+          {% endif %}
+        </div>
+        {% if participant_submission_state.can_submit %}
+          <div style="margin-top:8px; font-size:0.9rem; color:#cfe0ff;">
+            Your next submission will save as attempt #{{ participant_submission_state.next_attempt_number }}.
+          </div>
+        {% endif %}
+      </section>
+    {% elif current_user.has_permission(permission_keys.submit_answers) %}
+      <section style="margin:0 0 12px; border:1px solid rgba(255,226,231,0.1); border-radius:12px; padding:12px; background:rgba(40, 15, 21, 0.96); color:#f0d8dd; line-height:1.5;">
+        {{ participant_submission_state.guidance }}
+      </section>
+    {% endif %}
 
     {% if active_training_session %}
       <div
         id="revealedSubmissionPanel"
-        data-refresh-url="{{ url_for('training_session_revealed_answer_partial', session_id=active_training_session.id) }}"
+        data-refresh-url="{{ url_for('sessions.training_session_revealed_answer_partial', session_id=active_training_session.id) }}"
+        data-refresh-enabled="{{ 'true' if active_training_session.status == 'active' else 'false' }}"
         style="margin:0 0 12px;"
       >
         {% include "revealed_submission_partial.html" %}
+      </div>
+    {% endif %}
+
+    {% if participant_submission_state.message %}
+      <div style="margin:0 0 12px; padding:10px 12px; border:1px solid #7c5a12; border-radius:10px; background:#2a2111; color:#fde68a;">
+        {{ participant_submission_state.message }}
       </div>
     {% endif %}
 
@@ -504,15 +564,23 @@
       </div>
     {% endif %}
 
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px;">
+      {% for q in scenario.questions %}
+        <a href="#participant-question-{{ q.id }}" style="display:inline-block; padding:8px 10px; border-radius:999px; text-decoration:none; background:rgba(40, 15, 21, 0.96); color:#f0d8dd; border:1px solid rgba(255,226,231,0.1); font-size:0.84rem; font-weight:700;">
+          Q{{ loop.index }}
+        </a>
+      {% endfor %}
+    </div>
+
     {% for q in scenario.questions %}
-      <div>
+      <div id="participant-question-{{ q.id }}" style="scroll-margin-top:96px;">
         <label for="{{ q.id }}">{{ loop.index }}. {{ q.prompt }}</label>
         <div style="margin:-2px 0 6px; font-size:0.83rem; opacity:0.8;">Type: {{ q.question_type_label }}</div>
         <textarea id="{{ q.id }}" name="q_{{ q.id }}" rows="5" placeholder="Type your answer...">{{ answers.get(q.id|string, "") }}</textarea>
         {% if submitted %}
           {% set feedback = question_feedback.get(q.id|string) %}
           {% if feedback %}
-            <div style="margin-top:6px; padding:8px 10px; border:1px solid #2a2f3c; border-radius:8px; background:#111520; font-size:0.9rem;">
+            <div style="margin-top:6px; padding:8px 10px; border:1px solid rgba(255,226,231,0.1); border-radius:8px; background:rgba(40, 15, 21, 0.96); font-size:0.9rem;">
               <div style="font-weight:700;">{{ feedback.summary }}</div>
               {% if feedback.matched_items %}
                 <div style="margin-top:4px; color:#9fe6b0;">Matched: {{ feedback.matched_items|join(', ') }}</div>
@@ -532,19 +600,20 @@
       </div>
     {% endfor %}
 
-    {% if current_user.has_permission(permission_keys.submit_answers) %}
+    {% if current_user.has_permission(permission_keys.submit_answers) and participant_submission_state.can_submit %}
       <button type="submit">Submit</button>
     {% else %}
-      <button type="submit" disabled title="You do not have permission to submit answers.">Submit</button>
+      <button type="submit" disabled title="You cannot submit answers in the current session state.">Submit</button>
     {% endif %}
 
     {% if submitted %}
       <p style="margin:10px 0 0; color:#9fe6b0;">
-        Submitted.
         {% if saved_submission %}
-          Attempt #{{ saved_submission.attempt_number }} saved.
+          Attempt #{{ saved_submission.attempt_number }} is now your latest saved submission.
+        {% else %}
+          Submitted.
         {% endif %}
-        Use Reveal instructor answer under each question to compare.
+        Use Reveal instructor answer under each question to compare after the save completes.
       </p>
     {% endif %}
   </form>
@@ -553,7 +622,8 @@
     <section
       class="card review-card"
       id="hostWorkspacePanel"
-      data-refresh-url="{{ url_for('training_session_workspace_partial', session_id=host_workspace.session_id) }}"
+      data-session-id="{{ host_workspace.session_id }}"
+      data-refresh-url="{{ url_for('sessions.training_session_workspace_partial', session_id=host_workspace.session_id) }}"
     >
       {% with workspace = host_workspace %}
         {% include "session_board_workspace_partial.html" %}
@@ -567,8 +637,175 @@
 <script src="{{ url_for('static', filename='js/board.js') }}"></script>
 <script>
   (() => {
-    function installAutoRefresh(panel) {
+    function installHostWorkspaceControls(panel) {
       if (!panel) return;
+
+      const sessionId = panel.dataset.sessionId || "default";
+      const storageKey = `host-workspace-filter-${sessionId}`;
+      const groupStateKey = `host-workspace-question-groups-${sessionId}`;
+      const buttons = Array.from(panel.querySelectorAll("[data-review-filter]"));
+      const sections = Array.from(panel.querySelectorAll("[data-question-section='true']"));
+      const resultLabel = panel.querySelector("[data-review-filter-results]");
+      const questionGroups = Array.from(panel.querySelectorAll("[data-question-group='true']"));
+      const groupActionButtons = Array.from(panel.querySelectorAll("[data-question-group-action]"));
+      const jumpLinks = Array.from(panel.querySelectorAll("[data-question-jump-link='true']"));
+      if (!buttons.length || !sections.length || !resultLabel) return;
+
+      const readGroupState = () => {
+        try {
+          const storedValue = window.localStorage.getItem(groupStateKey);
+          return storedValue ? JSON.parse(storedValue) : {};
+        } catch (error) {
+          return {};
+        }
+      };
+
+      const writeGroupState = (state) => {
+        try {
+          window.localStorage.setItem(groupStateKey, JSON.stringify(state));
+        } catch (error) {
+          // Ignore storage failures and keep the state in-memory only.
+        }
+      };
+
+      const applyStoredGroupState = () => {
+        const storedState = readGroupState();
+        questionGroups.forEach((group) => {
+          const groupId = group.dataset.questionGroupId;
+          if (!groupId) return;
+          if (Object.prototype.hasOwnProperty.call(storedState, groupId)) {
+            group.open = Boolean(storedState[groupId]);
+          }
+        });
+      };
+
+      const saveCurrentGroupState = () => {
+        const nextState = {};
+        questionGroups.forEach((group) => {
+          const groupId = group.dataset.questionGroupId;
+          if (!groupId) return;
+          nextState[groupId] = group.open;
+        });
+        writeGroupState(nextState);
+      };
+
+      const isMatch = (answerCard, filterValue) => {
+        if (filterValue === "pending") {
+          return answerCard.dataset.statusTone === "pending";
+        }
+        if (filterValue === "flagged") {
+          return answerCard.dataset.statusTone === "flagged";
+        }
+        if (filterValue === "revealed") {
+          return answerCard.dataset.isRevealed === "true";
+        }
+        if (filterValue === "notes") {
+          return answerCard.dataset.hasNotes === "true";
+        }
+        return true;
+      };
+
+      const labelForFilter = (filterValue) => {
+        if (filterValue === "pending") return "answers that still need review";
+        if (filterValue === "flagged") return "flagged answers";
+        if (filterValue === "revealed") return "currently revealed answers";
+        if (filterValue === "notes") return "answers with saved notes";
+        return "all answers";
+      };
+
+      const applyFilter = (filterValue) => {
+        let visibleSectionCount = 0;
+        let visibleAnswerCount = 0;
+
+        sections.forEach((section) => {
+          const answerCards = Array.from(section.querySelectorAll("[data-answer-card='true']"));
+          let sectionVisibleAnswers = 0;
+          answerCards.forEach((answerCard) => {
+            const shouldShow = isMatch(answerCard, filterValue);
+            answerCard.style.display = shouldShow ? "" : "none";
+            if (shouldShow) {
+              sectionVisibleAnswers += 1;
+              visibleAnswerCount += 1;
+            }
+          });
+          section.style.display = sectionVisibleAnswers > 0 ? "" : "none";
+          if (sectionVisibleAnswers > 0) {
+            visibleSectionCount += 1;
+          }
+        });
+
+        buttons.forEach((button) => {
+          const isActive = button.dataset.reviewFilter === filterValue;
+          button.dataset.active = isActive ? "true" : "false";
+          button.style.outline = isActive ? "2px solid #f8fafc" : "none";
+          button.style.transform = isActive ? "translateY(-1px)" : "none";
+        });
+
+        resultLabel.textContent =
+          filterValue === "all"
+            ? `Showing ${visibleAnswerCount} answer${visibleAnswerCount === 1 ? "" : "s"} across ${visibleSectionCount} question${visibleSectionCount === 1 ? "" : "s"}.`
+            : `Showing ${visibleAnswerCount} ${labelForFilter(filterValue)} across ${visibleSectionCount} question${visibleSectionCount === 1 ? "" : "s"}.`;
+
+        panel.dataset.activeFilter = filterValue;
+        try {
+          window.localStorage.setItem(storageKey, filterValue);
+        } catch (error) {
+          // Ignore storage failures and keep the active filter in-memory only.
+        }
+      };
+
+      let activeFilter = panel.dataset.activeFilter || "all";
+      try {
+        activeFilter = window.localStorage.getItem(storageKey) || activeFilter;
+      } catch (error) {
+        // Ignore storage failures and use the default filter.
+      }
+      if (!buttons.some((button) => button.dataset.reviewFilter === activeFilter)) {
+        activeFilter = "all";
+      }
+
+      buttons.forEach((button) => {
+        button.onclick = () => applyFilter(button.dataset.reviewFilter || "all");
+      });
+
+      applyStoredGroupState();
+      questionGroups.forEach((group) => {
+        group.addEventListener("toggle", saveCurrentGroupState);
+      });
+      groupActionButtons.forEach((button) => {
+        button.onclick = () => {
+          const action = button.dataset.questionGroupAction;
+          questionGroups.forEach((group) => {
+            if (action === "expand-all") {
+              group.open = true;
+            } else if (action === "collapse-all") {
+              group.open = false;
+            } else if (action === "collapse-reviewed") {
+              const pendingCount = Number(group.dataset.pendingCount || "0");
+              const flaggedCount = Number(group.dataset.flaggedCount || "0");
+              const revealedCount = Number(group.dataset.revealedCount || "0");
+              group.open = pendingCount > 0 || flaggedCount > 0 || revealedCount > 0;
+            }
+          });
+          saveCurrentGroupState();
+        };
+      });
+      jumpLinks.forEach((link) => {
+        link.addEventListener("click", () => {
+          const targetId = link.getAttribute("href")?.replace("#", "");
+          if (!targetId) return;
+          const targetGroup = panel.querySelector(`#${targetId}`);
+          if (targetGroup && targetGroup.matches("[data-question-group='true']")) {
+            targetGroup.open = true;
+            saveCurrentGroupState();
+          }
+        });
+      });
+      applyFilter(activeFilter);
+    }
+
+    function installAutoRefresh(panel) {
+      if (!panel || panel.dataset.refreshEnabled === "false") return;
       let isRefreshing = false;
 
       async function refreshPanel() {
@@ -583,6 +820,7 @@
             return;
           }
           panel.innerHTML = await response.text();
+          installHostWorkspaceControls(panel);
         } finally {
           isRefreshing = false;
         }
@@ -592,7 +830,9 @@
     }
 
     installAutoRefresh(document.getElementById("revealedSubmissionPanel"));
-    installAutoRefresh(document.getElementById("hostWorkspacePanel"));
+    const hostWorkspacePanel = document.getElementById("hostWorkspacePanel");
+    installHostWorkspaceControls(hostWorkspacePanel);
+    installAutoRefresh(hostWorkspacePanel);
   })();
 </script>
 {% endblock %}

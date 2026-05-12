@@ -140,6 +140,24 @@
     - Documentation pass
     - Final MVP-to-pilot ship checklist
 
+## Technical Roadmap
+
+Priority order. Each item is a prerequisite for the ones below it.
+
+1. ~~Introduce Flask-Migrate (stop using db.create_all() as the only schema management)~~ ✅ Done
+2. Refactor app.py into Flask Blueprints (auth, scenarios, sessions, practice, reports, admin)
+3. Migrate to PostgreSQL before any real user load
+4. Gunicorn with (2 × CPU cores) + 1 workers; Nginx serving /static/ directly
+5. Add DrillAttempt + DrillAttemptAnswer models and solo self-paced practice flow
+    - Agreed naming: TrainingSession → LiveSession, Participant → SessionParticipant, Submission → SessionSubmission
+    - Solo tables stay separate from live-session tables — the two flows must never mix
+6. Update like eligibility to accept completed drills OR session submissions
+7. Add user dashboard for drill history
+8. Server-side sessions (Flask-Session) before any multi-server deployment
+9. Replace host board AJAX polling with SSE; only move to WebSockets if SSE proves insufficient
+
+**Production target:** 150 concurrent users — achievable with PostgreSQL + Gunicorn (8–12 workers on a 4-core box) + Nginx static file serving.
+
 ## Future Ideas
 
 - Add contributor badges such as Top Rated Submitter, Certified Instructor, Certified Firefighter

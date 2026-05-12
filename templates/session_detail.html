@@ -3,19 +3,19 @@
 {% block title %}Session Ready | {{ site_name }}{% endblock %}
 
 {% block body %}
-<main style="max-width: 960px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
+<main class="page-shell" style="max-width:960px;">
   <section style="margin-bottom: 14px;">
     <h1 style="margin:0 0 6px;">Session Created</h1>
-    <p style="margin:0; color:#444;">The board is now the primary host workspace. Share this join code or QR with participants, then use the board for live facilitation and grouped answer review.</p>
+    <p style="margin:0; color:var(--site-muted);">The board is now the primary host workspace. Share this join code or QR with participants, then use the board for live facilitation and grouped answer review.</p>
     <p style="margin:8px 0 0;">
-      <a href="{{ url_for('board', session_id=training_session.id) }}">Open Facilitation Board</a> |
-      <a href="{{ url_for('board') }}">Back to Board</a> |
-      <a href="{{ url_for('scenario_library') }}">Library</a>
+      <a href="{{ url_for('main.board', session_id=training_session.id) }}">Open Facilitation Board</a> |
+      <a href="{{ url_for('main.board') }}">Back to Board</a> |
+      <a href="{{ url_for('scenarios.scenario_library') }}">Library</a>
     </p>
   </section>
 
   <section style="display:grid; gap:14px; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));">
-    <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+    <article class="theme-panel">
       <h2 style="margin-top:0;">Session Info</h2>
       <p style="margin:6px 0;"><strong>ID:</strong> {{ training_session.id }}</p>
       <p style="margin:6px 0;"><strong>Join Code:</strong> <span style="font-size:1.3rem; font-weight:800; letter-spacing:0.08em;">{{ training_session.join_code }}</span></p>
@@ -26,30 +26,30 @@
       <p style="margin:6px 0;"><strong>Status:</strong> {{ training_session.status | title }}</p>
       <p style="margin:6px 0;"><strong>Join URL:</strong><br><a href="{{ join_url }}">{{ join_url }}</a></p>
       {% if join_url_warning %}
-        <p style="margin:10px 0 0; padding:10px 12px; border:1px solid #f59e0b; border-radius:10px; background:#fffbeb; color:#92400e;">
+        <p class="theme-alert-warning" style="margin:10px 0 0;">
           {{ join_url_warning }}
         </p>
       {% endif %}
     </article>
 
-    <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+    <article class="theme-panel">
       <h2 style="margin-top:0;">Participant QR</h2>
-      <p style="margin:6px 0 12px; color:#444;">Scan to open join link.</p>
-      <img src="{{ qr_image_url }}" alt="Session join QR code" style="max-width:240px; width:100%; border:1px solid #e5e7eb; border-radius:10px;">
-      <p style="margin:10px 0 0; font-size:0.85rem; color:#555;">If QR does not load, share the join code or URL above.</p>
+      <p style="margin:6px 0 12px; color:var(--site-muted);">Scan to open join link.</p>
+      <img src="{{ qr_image_url }}" alt="Session join QR code" style="max-width:240px; width:100%; border:1px solid var(--site-line); border-radius:10px;">
+      <p style="margin:10px 0 0; font-size:0.85rem; color:var(--site-muted);">If QR does not load, share the join code or URL above.</p>
     </article>
   </section>
 
-  <section style="margin-top:14px; border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+  <section class="theme-panel" style="margin-top:14px;">
     <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
       <div>
         <h2 style="margin:0;">Live Session Dashboard</h2>
-        <p style="margin:6px 0 0; color:#555;">Auto-refreshes every 10 seconds while this page is open.</p>
+        <p style="margin:6px 0 0; color:var(--site-muted);">Auto-refreshes every 10 seconds while this page is open.</p>
       </div>
       <button
         type="button"
         id="refreshSubmissions"
-        style="padding:9px 12px; border:1px solid #c7ced9; border-radius:8px; background:#fff; font-weight:700; cursor:pointer;"
+        style="padding:9px 12px; border:0; border-radius:999px; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#fff; font-weight:800; cursor:pointer;"
       >
         Refresh Now
       </button>
@@ -57,7 +57,7 @@
 
     <div
       id="sessionSubmissionDashboard"
-      data-refresh-url="{{ url_for('training_session_submissions_partial', session_id=training_session.id) }}"
+      data-refresh-url="{{ url_for('sessions.training_session_submissions_partial', session_id=training_session.id) }}"
       style="margin-top:14px;"
     >
       {% include "session_submissions_partial.html" %}

@@ -53,8 +53,16 @@ class User(TimestampMixin, db.Model):
     magic_tokens = db.relationship(
         "MagicLoginToken", back_populates="user", cascade="all, delete-orphan"
     )
+    activation_tokens = db.relationship(
+        "AccountActivationToken", back_populates="user", cascade="all, delete-orphan"
+    )
     scenario_likes = db.relationship(
         "ScenarioLike", back_populates="user", cascade="all, delete-orphan"
+    )
+    admin_audit_entries = db.relationship(
+        "AdminAuditLog",
+        back_populates="actor",
+        foreign_keys="AdminAuditLog.actor_user_id",
     )
 
 
@@ -354,6 +362,27 @@ class SubmissionAuditLog(db.Model):
     actor = db.relationship("User", foreign_keys=[actor_user_id])
 
 
+class AdminAuditLog(db.Model):
+    __tablename__ = "admin_audit_logs"
+    __table_args__ = (
+        db.Index("ix_admin_audit_logs_created_at", "created_at"),
+        db.Index("ix_admin_audit_logs_actor_created", "actor_user_id", "created_at"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    actor_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    action = db.Column(db.String(80), nullable=False)
+    target_type = db.Column(db.String(40), nullable=False)
+    target_id = db.Column(db.Integer, nullable=True)
+    target_label = db.Column(db.String(255), nullable=True)
+    details = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    actor = db.relationship("User", back_populates="admin_audit_entries", foreign_keys=[actor_user_id])
+
+
 class MagicLoginToken(db.Model):
     __tablename__ = "magic_login_tokens"
     __table_args__ = (
@@ -371,3 +400,22 @@ class MagicLoginToken(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     user = db.relationship("User", back_populates="magic_tokens")
+
+
+class AccountActivationToken(db.Model):
+    __tablename__ = "account_activation_tokens"
+    __table_args__ = (
+        db.Index("ix_account_activation_tokens_user_expires", "user_id", "expires_at"),
+        db.Index("ix_account_activation_tokens_token_hash", "token_hash"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash = db.Column(db.String(64), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship("User", back_populates="activation_tokens")

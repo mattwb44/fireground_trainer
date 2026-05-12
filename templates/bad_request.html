@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block title %}Bad Request{% endblock %}
+
+{% block body %}
+<main class="page-shell page-shell-compact" style="max-width:760px;">
+  <section class="theme-panel-strong">
+    <h1 style="margin-top:0;">Bad request</h1>
+    <p style="color:var(--site-muted);">That request could not be processed. The form may be incomplete, expired, or missing required information.</p>
+    <p><a href="{{ return_target }}">Return to a safe page</a></p>
+  </section>
+</main>
+{% endblock %}

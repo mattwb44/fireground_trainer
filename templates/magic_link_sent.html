@@ -3,14 +3,14 @@
 {% block title %}Magic Link Sent | Fireground Trainer{% endblock %}
 
 {% block body %}
-<main style="max-width: 680px; margin: 40px auto; padding: 0 16px; font-family: system-ui, Arial;">
-  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:18px;">
+<main class="page-shell page-shell-compact">
+  <section class="theme-panel-strong">
     <h1 style="margin-top:0;">Check Your Email</h1>
     <p>If the address is a valid staff account, a sign-in link has been generated.</p>
-    <p style="color:#555;">Requested email: <strong>{{ requested_email }}</strong></p>
+    <p style="color:var(--site-muted);">Requested email: <strong>{{ requested_email }}</strong></p>
 
     {% if magic_link %}
-      <p style="margin-top:16px; color:#0f5132; font-weight:700;">
+      <p class="theme-alert-info" style="margin-top:16px;">
         Dev mode link (normally sent via email):
       </p>
       <p style="word-break: break-all;">
@@ -19,7 +19,7 @@
     {% endif %}
 
     <p style="margin:14px 0 0;">
-      <a href="{{ url_for('login_page') }}">Back to login</a>
+      <a href="{{ url_for('auth.login_page') }}">Back to login</a>
     </p>
   </section>
 </main>

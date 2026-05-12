@@ -3,38 +3,51 @@
 {% block title %}Submission Detail | Fireground Trainer{% endblock %}
 
 {% block body %}
-<main style="max-width: 960px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
+<main class="page-shell" style="max-width:960px;">
   <section style="margin-bottom: 14px;">
     <h1 style="margin:0 0 6px;">Submission Detail</h1>
-    <p style="margin:0; color:#444;">
+    <p style="margin:0; color:var(--site-muted);">
       {{ submission.participant_label }} | Shift {{ submission.shift_label }} | Attempt #{{ submission.attempt_number }}
     </p>
-    <p style="margin:8px 0 0;">
-      <a href="{{ url_for('training_session_detail', session_id=training_session.id) }}">Back to Session Dashboard</a>
+    <p style="margin:8px 0 0; display:flex; gap:12px; flex-wrap:wrap;">
+      <a href="{{ url_for('sessions.training_session_detail', session_id=training_session.id) }}">Back to Session Dashboard</a>
+      <a href="{{ url_for('main.board', session_id=training_session.id) }}">Open Board Workspace</a>
     </p>
   </section>
 
-  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; margin-bottom:14px;">
+  <section class="theme-panel" style="margin-bottom:14px;">
     <h2 style="margin:0 0 10px;">Submission Info</h2>
     <p style="margin:6px 0;"><strong>Session:</strong> {{ training_session.title or ("Session #" ~ training_session.id) }}</p>
     <p style="margin:6px 0;"><strong>Scenario:</strong> {{ training_session.scenario.title }}</p>
     <p style="margin:6px 0;"><strong>Submitted:</strong> {{ submission.submitted_at_label }}</p>
-    <p style="margin:6px 0;"><strong>Status:</strong> {{ submission.status_label }}</p>
+    <p style="margin:6px 0;">
+      <strong>Status:</strong>
+      <span style="
+        display:inline-block;
+        padding:4px 9px;
+        border-radius:999px;
+        font-size:0.86rem;
+        font-weight:700;
+        background:{% if submission.status_tone == 'approved' %}#dcfce7{% elif submission.status_tone == 'flagged' %}#fef3c7{% elif submission.status_tone == 'excluded' %}#fee2e2{% else %}#e5e7eb{% endif %};
+        color:{% if submission.status_tone == 'approved' %}#166534{% elif submission.status_tone == 'flagged' %}#92400e{% elif submission.status_tone == 'excluded' %}#991b1b{% else %}#374151{% endif %};
+      ">{{ submission.status_label }}</span>
+    </p>
     {% if submission.approved_by_label %}
       <p style="margin:6px 0;"><strong>Approved By:</strong> {{ submission.approved_by_label }}</p>
       <p style="margin:6px 0;"><strong>Approved At:</strong> {{ submission.approved_at_label }}</p>
     {% endif %}
   </section>
 
-  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; margin-bottom:14px;">
+  <section class="theme-panel" style="margin-bottom:14px;">
     <h2 style="margin:0 0 10px;">Review</h2>
     {% if current_user.has_permission(permission_keys.select_review_answer) %}
-      <form method="post" action="{{ url_for('review_submission_for_session', session_id=training_session.id, submission_id=submission.submission_id) }}">
+      <p style="margin:0 0 12px; color:var(--site-muted);">Use this page for longer notes and audit-heavy review. Quick moderation now also lives directly on the board workspace.</p>
+      <form method="post" action="{{ url_for('sessions.review_submission_for_session', session_id=training_session.id, submission_id=submission.submission_id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="review_notes" style="font-weight:700; display:block; margin-bottom:6px;">Review Notes</label>
-        <textarea id="review_notes" name="review_notes" rows="4" style="width:100%; border:1px solid #d6d9e0; border-radius:10px; padding:10px;">{{ submission.review_notes }}</textarea>
+        <textarea id="review_notes" name="review_notes" rows="4" class="theme-textarea">{{ submission.review_notes }}</textarea>
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-          <button type="submit" name="review_action" value="save_notes" style="margin-top:0; background:#475569; color:#fff;">Save Notes</button>
+          <button type="submit" name="review_action" value="save_notes" style="margin-top:0; background:rgba(255,255,255,0.78); color:var(--site-ink); border:1px solid var(--site-line);">Save Notes</button>
           <button type="submit" name="review_action" value="approve" style="margin-top:0; background:#166534; color:#fff;">Approve For Reporting</button>
           <button type="submit" name="review_action" value="flag" style="margin-top:0; background:#b45309; color:#fff;">Flag For Follow-Up</button>
           <button type="submit" name="review_action" value="exclude" style="margin-top:0; background:#991b1b; color:#fff;">Exclude</button>
@@ -47,50 +60,50 @@
         </div>
       </form>
     {% else %}
-      <p style="margin:0; color:#666;">You do not have permission to review this submission.</p>
+      <p style="margin:0; color:var(--site-muted);">You do not have permission to review this submission.</p>
       {% if submission.review_notes %}
-        <div style="margin-top:10px; white-space:pre-wrap; line-height:1.45; border:1px solid #edf0f5; border-radius:10px; padding:12px; background:#fafbfc;">
+        <div style="margin-top:10px; white-space:pre-wrap; line-height:1.45; border:1px solid var(--site-line); border-radius:12px; padding:12px; background:rgba(255,255,255,0.58);">
           {{ submission.review_notes }}
         </div>
       {% endif %}
     {% endif %}
   </section>
 
-  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; margin-bottom:14px;">
+  <section class="theme-panel" style="margin-bottom:14px;">
     <h2 style="margin:0 0 10px;">Audit History</h2>
     {% if submission.audit_rows %}
       <div style="display:grid; gap:10px;">
         {% for row in submission.audit_rows %}
-          <div style="border:1px solid #edf0f5; border-radius:10px; padding:12px; background:#fafbfc;">
+          <div style="border:1px solid var(--site-line); border-radius:12px; padding:12px; background:rgba(255,255,255,0.58);">
             <div style="font-weight:700;">{{ row.action_label }}</div>
-            <div style="margin-top:4px; font-size:0.9rem; color:#475569;">
+            <div style="margin-top:4px; font-size:0.9rem; color:var(--site-muted);">
               {{ row.actor_label }} | {{ row.created_at_label }}
             </div>
             {% if row.notes %}
-              <div style="margin-top:8px; white-space:pre-wrap; line-height:1.45; color:#334155;">{{ row.notes }}</div>
+              <div style="margin-top:8px; white-space:pre-wrap; line-height:1.45; color:var(--site-ink);">{{ row.notes }}</div>
             {% endif %}
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <p style="margin:0; color:#666;">No audit entries yet.</p>
+      <p style="margin:0; color:var(--site-muted);">No audit entries yet.</p>
     {% endif %}
   </section>
 
   <section style="display:grid; gap:14px;">
     {% for row in submission.question_rows %}
-      <article style="border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
-        <div style="font-size:0.85rem; color:#555;">{{ loop.index }}. {{ row.question_type_label }}</div>
+      <article class="theme-panel">
+        <div style="font-size:0.85rem; color:var(--site-muted);">{{ loop.index }}. {{ row.question_type_label }}</div>
         <h2 style="margin:6px 0 10px; font-size:1.05rem;">{{ row.prompt }}</h2>
 
         <div style="margin-bottom:12px;">
           <div style="font-weight:700; margin-bottom:6px;">Submitted Answer</div>
-          <div style="white-space:pre-wrap; line-height:1.45; border:1px solid #edf0f5; border-radius:10px; padding:12px; background:#fafbfc;">
+          <div style="white-space:pre-wrap; line-height:1.45; border:1px solid var(--site-line); border-radius:12px; padding:12px; background:rgba(255,255,255,0.58);">
             {{ row.answer_text or "No answer submitted." }}
           </div>
         </div>
 
-        <div style="border:1px solid #edf0f5; border-radius:10px; padding:12px; background:#f8fafc;">
+        <div style="border:1px solid var(--site-line); border-radius:12px; padding:12px; background:rgba(255,255,255,0.58);">
           <div style="font-weight:700;">{{ row.feedback.summary }}</div>
           {% if row.feedback.matched_items %}
             <div style="margin-top:6px; color:#166534;">Matched: {{ row.feedback.matched_items | join(', ') }}</div>
@@ -103,7 +116,7 @@
         {% if current_user.has_permission(permission_keys.reveal_instructor_answers) %}
           <details style="margin-top:10px;">
             <summary style="cursor:pointer; font-weight:700;">Reveal Instructor Answer</summary>
-            <div style="margin-top:8px; white-space:pre-wrap; line-height:1.45; color:#334155;">
+            <div style="margin-top:8px; white-space:pre-wrap; line-height:1.45; color:var(--site-ink);">
               {{ row.instructor_answer or "No instructor answer provided." }}
             </div>
           </details>

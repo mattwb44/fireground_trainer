@@ -3,42 +3,124 @@
 {% block title %}User Management | {{ site_name }}{% endblock %}
 
 {% block body %}
-<main style="max-width: 1100px; margin: 24px auto; padding: 0 16px; font-family: system-ui, Arial;">
+<main class="page-shell">
   <section style="margin-bottom: 16px;">
     <h1 style="margin: 0 0 6px;">User Management</h1>
-    <p style="margin: 0; color: #444;">Admin-only screen for account status, roles, and password resets.</p>
-    <p style="margin: 8px 0 0;"><a href="{{ url_for('board') }}">Back to board</a></p>
+    <p style="margin: 0; color: var(--site-muted);">Admin-only screen for account status, roles, and password resets.</p>
+    <p style="margin: 8px 0 0;"><a href="{{ url_for('main.board') }}">Back to board</a></p>
   </section>
 
   {% if error %}
-    <section style="margin-bottom: 14px; border:1px solid #d93025; border-radius:10px; padding:10px; background:#fdecea; color:#7f1d1d;">
+    <section class="theme-alert-error" style="margin-bottom:14px;">
       {{ error }}
     </section>
   {% endif %}
   {% if success %}
-    <section style="margin-bottom: 14px; border:1px solid #137333; border-radius:10px; padding:10px; background:#e6f4ea; color:#0f5132;">
+    <section class="theme-alert-success" style="margin-bottom:14px;">
       {{ success }}
     </section>
   {% endif %}
 
-  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:14px; margin-bottom: 16px;">
+  <section style="display:grid; gap:14px; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); margin-bottom:16px;">
+    <article class="theme-stat-card">
+      <div class="theme-kicker">Users</div>
+      <div style="margin-top:6px; font-size:1.5rem; font-weight:800;">{{ overview.total_users }}</div>
+      <div style="margin-top:4px; color:var(--site-muted);">{{ overview.active_users }} active | {{ overview.inactive_users }} inactive</div>
+    </article>
+    <article class="theme-stat-card">
+      <div class="theme-kicker">Scenarios</div>
+      <div style="margin-top:6px; font-size:1.5rem; font-weight:800;">{{ overview.total_scenarios }}</div>
+      <div style="margin-top:4px; color:var(--site-muted);">{{ overview.approved_scenarios }} approved | {{ overview.archived_scenarios }} archived</div>
+    </article>
+    <article class="theme-stat-card">
+      <div class="theme-kicker">Sessions</div>
+      <div style="margin-top:6px; font-size:1.5rem; font-weight:800;">{{ overview.total_sessions }}</div>
+      <div style="margin-top:4px; color:var(--site-muted);">{{ overview.active_sessions }} active | {{ overview.archived_sessions }} archived</div>
+    </article>
+    <article class="theme-stat-card">
+      <div class="theme-kicker">Moderation</div>
+      <div style="margin-top:6px; font-size:1.5rem; font-weight:800;">{{ overview.total_submissions }}</div>
+      <div style="margin-top:4px; color:var(--site-muted);">{{ overview.flagged_submissions }} flagged | {{ overview.excluded_submissions }} excluded</div>
+    </article>
+  </section>
+
+  <section style="display:grid; gap:14px; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); margin-bottom:16px;">
+    <article class="theme-panel">
+      <h2 style="margin-top:0;">Pre-Pilot Checklist</h2>
+      <div style="display:grid; gap:10px;">
+        {% for item in pre_pilot_checklist %}
+          <div style="border:1px solid var(--site-line); border-radius:12px; padding:12px; background:rgba(255,255,255,0.58);">
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+              <div style="font-weight:700;">{{ item.label }}</div>
+              <span style="padding:4px 8px; border-radius:999px; font-size:0.78rem; font-weight:800; background:{% if item.status == 'pass' %}#dcfce7{% else %}#fef3c7{% endif %}; color:{% if item.status == 'pass' %}#166534{% else %}#92400e{% endif %};">
+                {{ "Ready" if item.status == 'pass' else "Review" }}
+              </span>
+            </div>
+            <div style="margin-top:6px; color:var(--site-muted); line-height:1.45;">{{ item.detail }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="theme-panel">
+      <h2 style="margin-top:0;">Attention Needed</h2>
+      {% if overview.attention_items %}
+        <div style="display:grid; gap:10px;">
+          {% for item in overview.attention_items %}
+            <div class="theme-alert-warning">{{ item }}</div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="theme-alert-success">No immediate admin attention items are currently surfaced.</div>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="theme-panel" style="margin-bottom:16px;">
+    <h2 style="margin-top:0;">Recent Admin Activity</h2>
+    {% if recent_activity %}
+      <div style="display:grid; gap:10px;">
+        {% for item in recent_activity %}
+          <article style="border:1px solid var(--site-line); border-radius:12px; padding:12px; background:rgba(255,255,255,0.58);">
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+              <div>
+                <div style="font-weight:800;">{{ item.action_label }}</div>
+                <div style="margin-top:4px; color:var(--site-ink);">{{ item.target_label }}</div>
+              </div>
+              <div style="font-size:0.88rem; color:var(--site-muted); text-align:right;">
+                {{ item.actor_label }}<br>
+                {{ item.created_at_label }}
+              </div>
+            </div>
+            {% if item.details %}
+              <div style="margin-top:8px; color:var(--site-muted); line-height:1.45;">{{ item.details }}</div>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="margin:0; color:var(--site-muted);">No admin activity has been recorded yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="theme-panel" style="margin-bottom:16px;">
     <h2 style="margin-top:0;">Create User</h2>
-    <form method="post" action="{{ url_for('admin_create_user') }}" style="display:grid; gap:10px;">
+    <form method="post" action="{{ url_for('admin.admin_create_user') }}" style="display:grid; gap:10px;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <label>
         <div style="font-weight:700; margin-bottom:4px;">Email</div>
-        <input name="email" type="email" required style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+        <input name="email" type="email" required class="theme-input">
       </label>
 
       <label>
         <div style="font-weight:700; margin-bottom:4px;">Full Name</div>
-        <input name="full_name" type="text" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+        <input name="full_name" type="text" class="theme-input">
       </label>
 
       <label>
         <div style="font-weight:700; margin-bottom:4px;">Initial Password</div>
-        <input name="password" type="password" required minlength="8" style="width:100%; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+        <input name="password" type="password" required minlength="8" class="theme-input">
       </label>
 
       <div>
@@ -57,22 +139,23 @@
       </label>
 
       <div>
-        <button type="submit" style="padding:8px 12px; border:0; border-radius:8px; background:#1e3a8a; color:#fff; font-weight:700;">Create User</button>
+        <button type="submit" class="theme-button-blue">Create User</button>
       </div>
     </form>
   </section>
 
-  <section style="border:1px solid #d6d9e0; border-radius:12px; padding:14px;">
+  <section class="theme-panel">
     <h2 style="margin-top:0;">Existing Users</h2>
 
     {% for user in users %}
       {% set current_roles = user.role_links | map(attribute='role.name') | list %}
-      <article style="border:1px solid #e0e3ea; border-radius:10px; padding:12px; margin-bottom:12px;">
+      <article style="border:1px solid var(--site-line); border-radius:12px; padding:12px; margin-bottom:12px; background:rgba(255,255,255,0.58);">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
           <div>
             <div style="font-weight:800;">{{ user.full_name or "(No name)" }}</div>
-            <div style="color:#444;">{{ user.email }}</div>
-            <div style="font-size:0.9rem; color:#555;">
+            <div style="color:var(--site-ink);">{{ user.email }}</div>
+            <div style="font-size:0.9rem; color:var(--site-muted);">
+              Email verification: {{ "verified" if user.is_email_verified else "pending" }}<br>
               Last login:
               {% if user.last_login_at %}
                 {{ user.last_login_at.strftime("%Y-%m-%d %H:%M:%S") }} UTC
@@ -83,11 +166,11 @@
           </div>
         </div>
 
-        <form method="post" action="{{ url_for('admin_update_user', user_id=user.id) }}" style="margin-top:10px;">
+        <form method="post" action="{{ url_for('admin.admin_update_user', user_id=user.id) }}" style="margin-top:10px;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
           <label style="display:block; font-weight:700; margin-bottom:4px;">Full Name</label>
-          <input name="full_name" value="{{ user.full_name or '' }}" style="width:100%; max-width:420px; padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
+          <input name="full_name" value="{{ user.full_name or '' }}" class="theme-input" style="max-width:420px;">
 
           <div style="margin-top:10px;">
             <div style="font-weight:700; margin-bottom:4px;">Roles</div>
@@ -105,15 +188,15 @@
           </label>
 
           <div style="margin-top:10px;">
-            <button type="submit" style="padding:8px 12px; border:0; border-radius:8px; background:#374151; color:#fff; font-weight:700;">Save User</button>
+            <button type="submit" class="theme-button-soft">Save User</button>
           </div>
         </form>
 
-        <form method="post" action="{{ url_for('admin_reset_user_password', user_id=user.id) }}" style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <form method="post" action="{{ url_for('admin.admin_reset_user_password', user_id=user.id) }}" style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <label style="font-weight:700;">Reset Password:</label>
-          <input type="password" name="new_password" minlength="8" required placeholder="New password" style="padding:8px; border:1px solid #bcc2ce; border-radius:8px;">
-          <button type="submit" style="padding:8px 12px; border:0; border-radius:8px; background:#6b21a8; color:#fff; font-weight:700;">Update Password</button>
+          <input type="password" name="new_password" minlength="8" required placeholder="New password" class="theme-input" style="max-width:240px;">
+          <button type="submit" class="theme-button-blue">Update Password</button>
         </form>
       </article>
     {% endfor %}
