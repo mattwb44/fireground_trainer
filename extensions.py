@@ -1,5 +1,6 @@
 from sqlalchemy import MetaData
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 
 # Stable naming keeps migration diffs readable and deterministic.
@@ -13,3 +14,4 @@ NAMING_CONVENTION = {
 
 metadata = MetaData(naming_convention=NAMING_CONVENTION)
 db = SQLAlchemy(metadata=metadata)
+migrate = Migrate()
