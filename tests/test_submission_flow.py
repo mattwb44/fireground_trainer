@@ -451,7 +451,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
         response = self.client.get("/board")
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotIn(b"Primary Host Workspace", response.data)
+        self.assertNotIn(b"Live Session", response.data)
         with self.client.session_transaction() as flask_session:
             self.assertNotIn(app_module.HOST_TRAINING_SESSION_ID_KEY, flask_session)
 
@@ -773,7 +773,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
         board_response = self.client.get(response.headers["Location"])
         self.assertEqual(board_response.status_code, 200)
-        self.assertIn(b"Primary Host Workspace", board_response.data)
+        self.assertIn(b"Live Session", board_response.data)
         self.assertIn(b"Question Review", board_response.data)
         self.assertIn(b"Join Code", board_response.data)
 
@@ -1786,10 +1786,10 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
         board_before_submit = self.client.get("/board")
         self.assertEqual(board_before_submit.status_code, 200)
-        self.assertIn(b"Your Live Session", board_before_submit.data)
-        self.assertIn(b"Your next submission will save as attempt #1.", board_before_submit.data)
+        self.assertIn(b"Guidance Tester", board_before_submit.data)
+        self.assertIn(b"Next saves as #1", board_before_submit.data)
         self.assertIn(b"participant-question-", board_before_submit.data)
-        self.assertIn(b"The host sees you as Guidance Tester for this live session.", board_before_submit.data)
+        self.assertIn(b"A Shift", board_before_submit.data)
         self.assertIn(
             b"The host board now uses your latest saved attempt.",
             self._submit_answers_for_session(self.client, self.csrf_token, training_session, "Participant guidance").data,
