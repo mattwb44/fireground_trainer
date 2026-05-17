@@ -26,12 +26,8 @@
         <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ workspace.dashboard.participant_count }}</div>
       </div>
       <div style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:12px; padding:12px; background:rgba(78, 22, 31, 0.42);">
-        <div style="font-size:0.82rem; color:#e6c7ce; text-transform:uppercase;">Latest Submissions</div>
+        <div style="font-size:0.82rem; color:#e6c7ce; text-transform:uppercase;">Submissions</div>
         <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ workspace.dashboard.submitted_participant_count }}</div>
-      </div>
-      <div style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:12px; padding:12px; background:rgba(78, 22, 31, 0.42);">
-        <div style="font-size:0.82rem; color:#e6c7ce; text-transform:uppercase;">Approved</div>
-        <div style="margin-top:6px; font-size:1.6rem; font-weight:800;">{{ workspace.dashboard.approved_submission_count }}</div>
       </div>
     </div>
 
@@ -47,7 +43,7 @@
           </div>
         {% endif %}
         <div style="margin-top:10px; font-size:0.88rem; color:#e6c7ce;">
-          Review below is grouped by question and uses each participant's latest submission for a cleaner facilitation pass.
+          Answers are grouped by question. Reveal individual answers to share them with participants.
         </div>
       </div>
       <div style="justify-self:center;">
@@ -60,20 +56,14 @@
     <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
       <div>
         <h2 style="margin:0;">Question Review</h2>
-        <p style="margin:6px 0 0; color:#e6c7ce;">Answers are grouped by question so you can review, annotate, and reveal one answer at a time.</p>
+        <p style="margin:6px 0 0; color:#e6c7ce;">Reveal individual answers to share them with participants during discussion.</p>
       </div>
       <div style="font-size:0.86rem; color:#e6c7ce;">Last updated {{ workspace.dashboard.last_updated_label }}</div>
     </div>
 
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
       <span style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#1f2937; color:#e5e7eb; font-size:0.86rem; font-weight:700;">
-        <span style="width:10px; height:10px; border-radius:999px; background:#fcd34d;"></span> Pending Review
-      </span>
-      <span style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#102117; color:#bbf7d0; font-size:0.86rem; font-weight:700;">
-        <span style="width:10px; height:10px; border-radius:999px; background:#22c55e;"></span> Approved
-      </span>
-      <span style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#2b1a07; color:#fcd34d; font-size:0.86rem; font-weight:700;">
-        <span style="width:10px; height:10px; border-radius:999px; background:#f59e0b;"></span> Flagged
+        <span style="width:10px; height:10px; border-radius:999px; background:#e5e7eb;"></span> Active
       </span>
       <span style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#2a1414; color:#fecaca; font-size:0.86rem; font-weight:700;">
         <span style="width:10px; height:10px; border-radius:999px; background:#ef4444;"></span> Excluded
@@ -84,14 +74,6 @@
     </div>
 
     <div style="display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); margin-top:14px;">
-      <div style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:12px; padding:10px 12px; background:rgba(78, 22, 31, 0.42);">
-        <div style="font-size:0.76rem; color:#e6c7ce; text-transform:uppercase; letter-spacing:0.08em;">Questions Needing Review</div>
-        <div style="margin-top:6px; font-size:1.3rem; font-weight:800; color:#f8fafc;">{{ workspace.review_summary.pending_question_count }}</div>
-      </div>
-      <div style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:12px; padding:10px 12px; background:rgba(78, 22, 31, 0.42);">
-        <div style="font-size:0.76rem; color:#e6c7ce; text-transform:uppercase; letter-spacing:0.08em;">Questions With Flags</div>
-        <div style="margin-top:6px; font-size:1.3rem; font-weight:800; color:#f8fafc;">{{ workspace.review_summary.flagged_question_count }}</div>
-      </div>
       <div style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:12px; padding:10px 12px; background:rgba(78, 22, 31, 0.42);">
         <div style="font-size:0.76rem; color:#e6c7ce; text-transform:uppercase; letter-spacing:0.08em;">Live Reveals</div>
         <div style="margin-top:6px; font-size:1.3rem; font-weight:800; color:#f8fafc;">{{ workspace.review_summary.revealed_question_count }}</div>
@@ -107,8 +89,7 @@
         <div style="font-size:0.82rem; color:#e6c7ce; text-transform:uppercase; letter-spacing:0.08em;">Show Only</div>
         <div data-review-filter-toolbar style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
           <button type="button" data-review-filter="all" style="margin-top:0; background:var(--site-blue-soft); color:var(--site-blue-dark);">All Answers</button>
-          <button type="button" data-review-filter="pending" style="margin-top:0; background:#1f2937; color:#fcd34d;">Needs Review Only</button>
-          <button type="button" data-review-filter="flagged" style="margin-top:0; background:#2b1a07; color:#fcd34d;">Flagged Only</button>
+          <button type="button" data-review-filter="excluded" style="margin-top:0; background:#2a1414; color:#fca5a5;">Excluded</button>
           <button type="button" data-review-filter="revealed" style="margin-top:0; background:#183756; color:#cfe0ff;">Live Reveals</button>
           <button type="button" data-review-filter="notes" style="margin-top:0; background:#243e66; color:#dce8f7;">Notes Saved</button>
         </div>
@@ -122,10 +103,8 @@
           {% for question in workspace.question_rows %}
             <a href="#question-review-{{ question.question_id }}" data-question-jump-link="true" style="display:inline-block; padding:8px 10px; border-radius:999px; text-decoration:none; background:rgba(40, 15, 21, 0.72); color:#f4dde1; border:1px solid rgba(255, 226, 231, 0.12); font-size:0.85rem; font-weight:700;">
               Q{{ loop.index }}
-              {% if question.status_counts.flagged %}
-                | Flagged {{ question.status_counts.flagged }}
-              {% elif question.status_counts.pending %}
-                | Pending {{ question.status_counts.pending }}
+              {% if question.revealed_answer_count %}
+                | {{ question.revealed_answer_count }} Live
               {% endif %}
             </a>
           {% endfor %}
@@ -136,19 +115,16 @@
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
       <button type="button" data-question-group-action="expand-all" style="margin-top:0; background:var(--site-blue-soft); color:var(--site-blue-dark);">Expand All Questions</button>
       <button type="button" data-question-group-action="collapse-all" style="margin-top:0; background:rgba(255,255,255,0.18); color:#f4dde1;">Collapse All Questions</button>
-      <button type="button" data-question-group-action="collapse-reviewed" style="margin-top:0; background:#1f2937; color:#fcd34d;">Collapse Reviewed Questions</button>
     </div>
 
     <div style="display:grid; gap:14px; margin-top:14px;">
       {% for question in workspace.question_rows %}
-        {% set should_open = question.status_counts.pending > 0 or question.status_counts.flagged > 0 or question.revealed_answer_count or loop.first %}
+        {% set should_open = question.revealed_answer_count or loop.first %}
         <details
           id="question-review-{{ question.question_id }}"
           data-question-section="true"
           data-question-group="true"
           data-question-group-id="question-review-{{ question.question_id }}"
-          data-pending-count="{{ question.status_counts.pending }}"
-          data-flagged-count="{{ question.status_counts.flagged }}"
           data-revealed-count="{{ question.revealed_answer_count }}"
           style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:12px; padding:12px; background:rgba(78, 22, 31, 0.42); scroll-margin-top:18px;"
           {% if should_open %}open{% endif %}
@@ -161,13 +137,12 @@
               </div>
               <div>
                 <div style="font-size:0.82rem; color:#e6c7ce; text-align:right;">
-                  {{ question.answer_rows|length }} latest answer{{ '' if question.answer_rows|length == 1 else 's' }}
+                  {{ question.answer_rows|length }} answer{{ '' if question.answer_rows|length == 1 else 's' }}
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; margin-top:8px;">
-                  <span style="padding:4px 8px; border-radius:999px; background:#1f2937; color:#fcd34d; font-size:0.78rem; font-weight:700;">Pending {{ question.status_counts.pending }}</span>
-                  <span style="padding:4px 8px; border-radius:999px; background:#102117; color:#86efac; font-size:0.78rem; font-weight:700;">Approved {{ question.status_counts.approved }}</span>
-                  <span style="padding:4px 8px; border-radius:999px; background:#2b1a07; color:#fcd34d; font-size:0.78rem; font-weight:700;">Flagged {{ question.status_counts.flagged }}</span>
-                  <span style="padding:4px 8px; border-radius:999px; background:#2a1414; color:#fca5a5; font-size:0.78rem; font-weight:700;">Excluded {{ question.status_counts.excluded }}</span>
+                  {% if question.status_counts.excluded %}
+                    <span style="padding:4px 8px; border-radius:999px; background:#2a1414; color:#fca5a5; font-size:0.78rem; font-weight:700;">Excluded {{ question.status_counts.excluded }}</span>
+                  {% endif %}
                   {% if question.revealed_answer_count %}
                     <span style="padding:4px 8px; border-radius:999px; background:#0f2f2f; color:#99f6e4; font-size:0.78rem; font-weight:700;">{{ question.revealed_answer_count }} Live Reveal{{ '' if question.revealed_answer_count == 1 else 's' }}</span>
                   {% endif %}
@@ -196,28 +171,15 @@
           {% if question.answer_rows %}
             <div style="display:grid; gap:10px; margin-top:12px;">
               {% for answer in question.answer_rows %}
-                {% set border_color = 'rgba(255, 226, 231, 0.12)' %}
-                {% set card_background = 'rgba(34, 12, 17, 0.92)' %}
-                {% set status_background = 'rgba(255, 255, 255, 0.12)' %}
-                {% set status_color = '#f6d299' %}
-                {% if answer.status_tone == 'approved' %}
-                  {% set border_color = '#166534' %}
-                  {% set card_background = '#102117' %}
-                  {% set status_background = '#143026' %}
-                  {% set status_color = '#86efac' %}
-                {% elif answer.status_tone == 'flagged' %}
-                  {% set border_color = '#b45309' %}
-                  {% set card_background = '#2b1a07' %}
-                  {% set status_background = '#3b250c' %}
-                  {% set status_color = '#fcd34d' %}
-                {% elif answer.status_tone == 'excluded' %}
+                {% if answer.is_excluded %}
                   {% set border_color = '#991b1b' %}
                   {% set card_background = '#2a1414' %}
-                  {% set status_background = '#3a1717' %}
-                  {% set status_color = '#fca5a5' %}
-                {% endif %}
-                {% if answer.is_revealed %}
+                {% elif answer.is_revealed %}
                   {% set border_color = 'var(--site-blue)' %}
+                  {% set card_background = 'rgba(34, 12, 17, 0.92)' %}
+                {% else %}
+                  {% set border_color = 'rgba(255, 226, 231, 0.12)' %}
+                  {% set card_background = 'rgba(34, 12, 17, 0.92)' %}
                 {% endif %}
                 <article
                   data-answer-card="true"
@@ -230,7 +192,9 @@
                     <div>
                       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                         <div style="font-weight:700; color:#f8fafc;">{{ answer.participant_label }}</div>
-                        <span style="display:inline-block; padding:4px 8px; border-radius:999px; background:{{ status_background }}; color:{{ status_color }}; font-size:0.78rem; font-weight:700;">{{ answer.status_label }}</span>
+                        {% if answer.is_excluded %}
+                          <span style="display:inline-block; padding:4px 8px; border-radius:999px; background:#3a1717; color:#fca5a5; font-size:0.78rem; font-weight:700;">Excluded</span>
+                        {% endif %}
                         {% if answer.is_revealed %}
                           <span style="display:inline-block; padding:4px 8px; border-radius:999px; background:#183756; color:#cfe0ff; font-size:0.78rem; font-weight:700;">Live Reveal</span>
                         {% endif %}
@@ -242,9 +206,6 @@
                     </div>
                     <div style="font-size:0.84rem; color:#e6c7ce; text-align:right;">
                       {{ answer.submitted_at_label }}
-                      {% if answer.approved_by_label %}
-                        <br>{{ answer.approved_by_label }}{% if answer.approved_at_label %} at {{ answer.approved_at_label }}{% endif %}
-                      {% endif %}
                     </div>
                   </div>
 
@@ -254,9 +215,6 @@
                     <div style="margin-top:10px; padding:10px 12px; border:1px solid rgba(255, 226, 231, 0.12); border-radius:10px; background:rgba(60, 20, 28, 0.72);">
                       <div style="font-size:0.76rem; color:#e6c7ce; text-transform:uppercase; letter-spacing:0.08em;">Latest Notes</div>
                       <div style="margin-top:5px; color:#fff7f8;">{{ answer.review_notes_preview }}</div>
-                      {% if answer.last_review_action_label %}
-                        <div style="margin-top:6px; font-size:0.82rem; color:#e6c7ce;">Last action: {{ answer.last_review_action_label }}{% if answer.last_review_at_label %} at {{ answer.last_review_at_label }}{% endif %}</div>
-                      {% endif %}
                     </div>
                   {% endif %}
 
@@ -279,27 +237,19 @@
                       {% endif %}
                     {% endif %}
 
-                    {# ── Quick status actions — no notes sent, existing notes preserved ── #}
-                    <form method="post" action="{{ url_for('sessions.review_submission_for_session', session_id=workspace.session_id, submission_id=answer.submission_id) }}" style="margin:0; display:flex; gap:6px; flex-wrap:wrap;">
+                    {# ── Exclude / Reinstate ── #}
+                    <form method="post" action="{{ url_for('sessions.review_submission_for_session', session_id=workspace.session_id, submission_id=answer.submission_id) }}" style="margin:0;">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <input type="hidden" name="next" value="{{ url_for('main.board', session_id=workspace.session_id) }}">
-                      {% if not answer.is_excluded %}
-                        {% if answer.status != 'approved' %}
-                          <button type="submit" name="review_action" value="approve" style="margin-top:0; background:#166534; color:#d1fae5; padding:7px 12px; font-size:0.88rem;">Approve</button>
-                        {% endif %}
-                        {% if answer.status != 'flagged' %}
-                          <button type="submit" name="review_action" value="flag" style="margin-top:0; background:#b45309; color:#fef3c7; padding:7px 12px; font-size:0.88rem;">Flag</button>
-                        {% endif %}
-                        {% if answer.status in ['approved', 'flagged'] %}
-                          <button type="submit" name="review_action" value="reopen" style="margin-top:0; background:rgba(255,255,255,0.14); color:#f4dde1; padding:7px 12px; font-size:0.88rem;">Return To Review</button>
-                        {% endif %}
-                      {% else %}
+                      {% if answer.is_excluded %}
                         <button type="submit" name="review_action" value="reinstate" style="margin-top:0; background:var(--site-blue); color:#f0f8ff; padding:7px 12px; font-size:0.88rem;">Reinstate</button>
+                      {% else %}
+                        <button type="submit" name="review_action" value="exclude" style="margin-top:0; background:#991b1b; color:#fee2e2; padding:7px 12px; font-size:0.88rem;">Exclude</button>
                       {% endif %}
                     </form>
                   </div>
 
-                  {# ── Notes & destructive actions ── #}
+                  {# ── Notes & detail link ── #}
                   <details style="margin-top:10px; border:1px solid rgba(255, 226, 231, 0.1); border-radius:10px; overflow:hidden;">
                     <summary style="cursor:pointer; font-weight:700; color:#e6c7ce; font-size:0.85rem; padding:8px 12px; background:rgba(40, 15, 20, 0.6); list-style:none; display:flex; align-items:center; gap:6px;">
                       <span style="font-size:0.6rem; transition:transform 0.15s;" class="details-arrow">▶</span>
@@ -313,9 +263,6 @@
                         <textarea id="review_notes_{{ answer.submission_id }}" name="review_notes" rows="3" placeholder="Add review notes…" style="width:100%; border:1px solid rgba(255, 226, 231, 0.12); border-radius:8px; padding:9px 10px; background:rgba(20, 8, 12, 0.8); color:#fff7f8; font-size:0.9rem; resize:vertical; box-sizing:border-box;">{{ answer.review_notes }}</textarea>
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px;">
                           <button type="submit" name="review_action" value="save_notes" style="margin-top:0; background:rgba(255,255,255,0.14); color:#fff8f7; padding:7px 12px; font-size:0.88rem;">Save Notes</button>
-                          {% if not answer.is_excluded %}
-                            <button type="submit" name="review_action" value="exclude" style="margin-top:0; background:#991b1b; color:#fee2e2; padding:7px 12px; font-size:0.88rem;">Exclude</button>
-                          {% endif %}
                         </div>
                       </form>
                       <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,226,231,0.08);">

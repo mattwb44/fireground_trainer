@@ -1,4 +1,7 @@
 {% if revealed_submission %}
+  {% if not revealed_submission.has_revealed_answers %}
+    <p style="color:var(--site-muted); font-size:0.9rem;">No answers have been revealed for this session yet. Keep this panel open during the session.</p>
+  {% endif %}
   {% for row in revealed_submission.question_rows %}
     <div data-question-id="{{ row.question_id }}">
       {% if row.is_revealed %}

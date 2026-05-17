@@ -1355,7 +1355,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertIn(b"Anonymous Person 1", board_response.data)
         self.assertIn(b"Anonymous Person 2", board_response.data)
 
-    def test_instructor_can_review_and_approve_submission_for_reporting(self):
+    def test_instructor_can_save_review_notes_for_submission(self):
         training_session = self._create_training_session()
         questions = self._active_questions_for_scenario(training_session.scenario_id)
 
@@ -1365,7 +1365,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
                 "csrf_token": self.csrf_token,
                 "shift_label": "D Shift",
                 "identity_mode": "named",
-                "display_name": "Approval Tester",
+                "display_name": "Notes Tester",
             },
             follow_redirects=False,
         )
@@ -1373,50 +1373,28 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
         payload = {"csrf_token": self.csrf_token}
         for index, question in enumerate(questions, start=1):
-            payload[f"q_{question['id']}"] = f"Approval answer {index}"
-        submit_response = self.client.post("/submit", data=payload)
-        self.assertEqual(submit_response.status_code, 200)
+            payload[f"q_{question['id']}"] = f"Notes answer {index}"
+        self.assertEqual(self.client.post("/submit", data=payload).status_code, 200)
 
         with app.app_context():
             submission = Submission.query.filter_by(training_session_id=training_session.id).first()
 
         instructor_client, instructor_csrf_token = self._build_instructor_client()
-        approve_response = instructor_client.post(
+        save_response = instructor_client.post(
             f"/sessions/{training_session.id}/submissions/{submission.id}/review",
             data={
                 "csrf_token": instructor_csrf_token,
-                "review_notes": "Solid tactical reasoning. Approved for reporting.",
-                "review_action": "approve",
+                "review_notes": "Good situational awareness shown here.",
+                "review_action": "save_notes",
             },
             follow_redirects=False,
         )
-        self.assertEqual(approve_response.status_code, 302)
+        self.assertEqual(save_response.status_code, 302)
 
-        partial_response = instructor_client.get(f"/sessions/{training_session.id}/submissions")
         detail_response = instructor_client.get(
             f"/sessions/{training_session.id}/submissions/{submission.id}"
         )
-
-        self.assertIn(b"Approved For Reporting", partial_response.data)
-        self.assertIn(b"Solid tactical reasoning. Approved for reporting.", detail_response.data)
-        self.assertIn(b"Approved By", detail_response.data)
-
-        reopen_response = instructor_client.post(
-            f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-            data={
-                "csrf_token": instructor_csrf_token,
-                "review_notes": "Needs another pass before reporting.",
-                "review_action": "reopen",
-            },
-            follow_redirects=False,
-        )
-        self.assertEqual(reopen_response.status_code, 302)
-
-        reopened_detail_response = instructor_client.get(
-            f"/sessions/{training_session.id}/submissions/{submission.id}"
-        )
-        self.assertIn(b"Pending Review", reopened_detail_response.data)
-        self.assertIn(b"Needs another pass before reporting.", reopened_detail_response.data)
+        self.assertIn(b"Good situational awareness shown here.", detail_response.data)
 
     def test_board_review_surfaces_saved_notes_without_leaving_workspace(self):
         training_session = self._create_training_session()
@@ -1482,14 +1460,12 @@ class SubmissionFlowTestCase(unittest.TestCase):
         board_response = instructor_client.get(f"/board?session_id={training_session.id}")
 
         self.assertEqual(board_response.status_code, 200)
-        self.assertIn(b"Questions Needing Review", board_response.data)
         self.assertIn(b"Show Only", board_response.data)
-        self.assertIn(b"Needs Review Only", board_response.data)
+        self.assertIn(b"Live Reveals", board_response.data)
         self.assertIn(b"Jump To Question", board_response.data)
         self.assertIn(b"Expand All Questions", board_response.data)
-        self.assertIn(b"Collapse Reviewed Questions", board_response.data)
         self.assertIn(b"Q1", board_response.data)
-        self.assertIn(b'data-review-filter="pending"', board_response.data)
+        self.assertIn(b'data-review-filter="revealed"', board_response.data)
         self.assertIn(b'data-question-group="true"', board_response.data)
 
     def test_excluding_submission_clears_reveal_and_writes_audit_log(self):
@@ -1602,7 +1578,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
             self.assertEqual(refreshed_submission.status, original_status)
             self.assertEqual(refreshed_submission.notes, original_notes)
 
-    def test_reinstated_submission_stays_hidden_until_reapproved(self):
+    def test_exclude_clears_reveal_and_reinstate_restores_active_state(self):
         training_session = self._create_training_session()
         questions = self._active_questions_for_scenario(training_session.scenario_id)
 
@@ -1671,102 +1647,11 @@ class SubmissionFlowTestCase(unittest.TestCase):
         revealed_partial_response = self.client.get(
             f"/sessions/{training_session.id}/revealed-answer"
         )
-        report_response = chief_client.get(f"/reports/sessions/{training_session.id}")
-
         self.assertIn(b"No answers have been revealed for this session yet.", revealed_partial_response.data)
-        self.assertNotIn(b"Reinstate answer 1", report_response.data)
-
-        self.assertEqual(
-            instructor_client.post(
-                f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-                data={
-                    "csrf_token": instructor_csrf_token,
-                    "review_notes": "Approved after reinstate.",
-                    "review_action": "approve",
-                },
-                follow_redirects=False,
-            ).status_code,
-            302,
-        )
-
-        approved_report_response = chief_client.get(f"/reports/sessions/{training_session.id}")
-        self.assertIn(b"Reinstate answer 1", approved_report_response.data)
-        self.assertIn(b"Approved after reinstate.", approved_report_response.data)
-
-    def test_reports_update_when_approved_submission_is_reopened_and_flagged(self):
-        training_session = self._create_training_session()
-
-        join_response = self.client.post(
-            f"/join/{training_session.join_code}",
-            data={
-                "csrf_token": self.csrf_token,
-                "shift_label": "B Shift",
-                "identity_mode": "named",
-                "display_name": "Report Reopen Tester",
-            },
-            follow_redirects=False,
-        )
-        self.assertEqual(join_response.status_code, 302)
-        self.assertEqual(
-            self._submit_answers_for_session(self.client, self.csrf_token, training_session, "Report reopen").status_code,
-            200,
-        )
 
         with app.app_context():
-            submission = Submission.query.filter_by(training_session_id=training_session.id).first()
-
-        instructor_client, instructor_csrf_token = self._build_instructor_client()
-        self.assertEqual(
-            instructor_client.post(
-                f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-                data={
-                    "csrf_token": instructor_csrf_token,
-                    "review_notes": "Approved once.",
-                    "review_action": "approve",
-                },
-                follow_redirects=False,
-            ).status_code,
-            302,
-        )
-
-        chief_client, _chief_csrf = self._build_chief_client()
-        approved_report_response = chief_client.get(f"/reports/sessions/{training_session.id}")
-        self.assertIn(b"Approved once.", approved_report_response.data)
-        self.assertIn(b"Approved Submission List", approved_report_response.data)
-
-        self.assertEqual(
-            instructor_client.post(
-                f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-                data={
-                    "csrf_token": instructor_csrf_token,
-                    "review_notes": "Back to pending.",
-                    "review_action": "reopen",
-                },
-                follow_redirects=False,
-            ).status_code,
-            302,
-        )
-
-        reopened_report_response = chief_client.get(f"/reports/sessions/{training_session.id}")
-        self.assertNotIn(b"Approved once.", reopened_report_response.data)
-        self.assertNotIn(b"Report reopen answer 1", reopened_report_response.data)
-
-        self.assertEqual(
-            instructor_client.post(
-                f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-                data={
-                    "csrf_token": instructor_csrf_token,
-                    "review_notes": "Needs follow-up.",
-                    "review_action": "flag",
-                },
-                follow_redirects=False,
-            ).status_code,
-            302,
-        )
-
-        flagged_report_response = chief_client.get(f"/reports/sessions/{training_session.id}")
-        self.assertNotIn(b"Approved once.", flagged_report_response.data)
-        self.assertNotIn(b"Report reopen answer 1", flagged_report_response.data)
+            refreshed = Submission.query.get(submission.id)
+            self.assertEqual(refreshed.status, app_module.SUBMISSION_STATUS_SUBMITTED)
 
     def test_participant_board_and_reveal_panel_show_attempt_guidance(self):
         training_session = self._create_training_session()

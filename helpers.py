@@ -100,9 +100,9 @@ SUBMISSION_STATUS_APPROVED = "approved"
 SUBMISSION_STATUS_FLAGGED = "flagged"
 SUBMISSION_STATUS_EXCLUDED = "excluded"
 SUBMISSION_STATUS_LABELS = {
-    SUBMISSION_STATUS_SUBMITTED: "Pending Review",
-    SUBMISSION_STATUS_APPROVED: "Approved For Reporting",
-    SUBMISSION_STATUS_FLAGGED: "Flagged For Follow-Up",
+    SUBMISSION_STATUS_SUBMITTED: "Active",
+    SUBMISSION_STATUS_APPROVED: "Active",
+    SUBMISSION_STATUS_FLAGGED: "Active",
     SUBMISSION_STATUS_EXCLUDED: "Excluded",
 }
 SHIFT_OPTIONS = (
@@ -1775,13 +1775,9 @@ def summarize_review_notes(notes: str | None, max_length: int = 120) -> str | No
 
 
 def submission_status_tone(status: str | None) -> str:
-    if status == SUBMISSION_STATUS_APPROVED:
-        return "approved"
-    if status == SUBMISSION_STATUS_FLAGGED:
-        return "flagged"
     if status == SUBMISSION_STATUS_EXCLUDED:
         return "excluded"
-    return "pending"
+    return "active"
 
 
 def format_user_identity(user: User | None) -> str | None:
@@ -1852,7 +1848,7 @@ def build_session_question_review_view_model(training_session: TrainingSession) 
     for question in active_questions:
         answer_rows = []
         revealed_ids = revealed_answer_ids_by_question.get(question.id, set())
-        status_counts = {"approved": 0, "flagged": 0, "excluded": 0, "pending": 0}
+        status_counts = {"active": 0, "excluded": 0}
         for submission in latest_submissions:
             answer = next(
                 (row for row in submission.answers if row.question_id == question.id),
@@ -1888,14 +1884,6 @@ def build_session_question_review_view_model(training_session: TrainingSession) 
                     "review_notes": submission.notes or "",
                     "review_notes_preview": summarize_review_notes(submission.notes),
                     "has_notes": bool(submission.notes),
-                    "approved_by_label": format_user_identity(submission.approved_by),
-                    "approved_at_label": format_submission_timestamp(submission.approved_at),
-                    "last_review_action_label": (
-                        format_audit_action(latest_audit.action) if latest_audit is not None else None
-                    ),
-                    "last_review_at_label": (
-                        format_submission_timestamp(latest_audit.created_at) if latest_audit is not None else None
-                    ),
                 }
             )
 
@@ -2014,7 +2002,6 @@ def build_session_dashboard_view_model(training_session: TrainingSession) -> dic
         )
 
     submission_rows = []
-    approved_submission_count = 0
     for submission in submissions:
         participant = submission.participant
         saved_answer_count = len(
@@ -2024,8 +2011,6 @@ def build_session_dashboard_view_model(training_session: TrainingSession) -> dic
                 if answer.question_id in active_question_ids
             ]
         )
-        if submission.status == SUBMISSION_STATUS_APPROVED:
-            approved_submission_count += 1
         submission_rows.append(
             {
                 "submission_id": submission.id,
@@ -2041,8 +2026,6 @@ def build_session_dashboard_view_model(training_session: TrainingSession) -> dic
                 "expected_answer_count": len(active_question_ids),
                 "status": submission.status,
                 "status_label": format_submission_status(submission.status),
-                "approved_at_label": format_submission_timestamp(submission.approved_at),
-                "approved_by_label": format_user_identity(submission.approved_by),
                 "is_excluded": submission.status == SUBMISSION_STATUS_EXCLUDED,
             }
         )
@@ -2052,7 +2035,6 @@ def build_session_dashboard_view_model(training_session: TrainingSession) -> dic
         "participant_count": len(participants),
         "submitted_participant_count": len(submitted_participant_ids),
         "submission_count": len(submissions),
-        "approved_submission_count": approved_submission_count,
         "active_question_count": len(active_question_ids),
         "participant_rows": participant_rows,
         "submission_rows": submission_rows,
@@ -2125,12 +2107,6 @@ def build_submission_detail_view_model(submission: Submission) -> dict:
 def build_host_review_summary(question_rows: list[dict]) -> dict:
     return {
         "question_count": len(question_rows),
-        "pending_question_count": sum(
-            1 for question in question_rows if question["status_counts"]["pending"] > 0
-        ),
-        "flagged_question_count": sum(
-            1 for question in question_rows if question["status_counts"]["flagged"] > 0
-        ),
         "revealed_question_count": sum(
             question["revealed_answer_count"] for question in question_rows
         ),
@@ -2496,21 +2472,6 @@ def update_submission_review_state(
     training_session: TrainingSession | None = None,
 ) -> None:
     if action == "save_notes":
-        return
-    if action == "approve":
-        submission.status = SUBMISSION_STATUS_APPROVED
-        submission.approved_at = datetime.utcnow()
-        submission.approved_by_user_id = actor.id if actor else None
-        return
-    if action == "reopen":
-        submission.status = SUBMISSION_STATUS_SUBMITTED
-        submission.approved_at = None
-        submission.approved_by_user_id = None
-        return
-    if action == "flag":
-        submission.status = SUBMISSION_STATUS_FLAGGED
-        submission.approved_at = None
-        submission.approved_by_user_id = None
         return
     if action == "exclude":
         submission.status = SUBMISSION_STATUS_EXCLUDED
