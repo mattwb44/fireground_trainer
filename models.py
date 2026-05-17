@@ -413,3 +413,48 @@ class AccountActivationToken(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     user = db.relationship("User", back_populates="activation_tokens")
+
+
+class DrillAttempt(TimestampMixin, db.Model):
+    __tablename__ = "drill_attempts"
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "scenario_id", "attempt_number"),
+        db.Index("ix_drill_attempts_user_scenario", "user_id", "scenario_id"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    scenario_id = db.Column(
+        db.Integer, db.ForeignKey("scenarios.id", ondelete="RESTRICT"), nullable=False
+    )
+    attempt_number = db.Column(db.Integer, nullable=False, default=1)
+    status = db.Column(db.String(20), nullable=False, default="submitted")
+    submitted_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship("User")
+    scenario = db.relationship("Scenario")
+    answers = db.relationship(
+        "DrillAttemptAnswer", back_populates="drill_attempt", cascade="all, delete-orphan"
+    )
+
+
+class DrillAttemptAnswer(db.Model):
+    __tablename__ = "drill_attempt_answers"
+    __table_args__ = (
+        db.UniqueConstraint("drill_attempt_id", "question_id"),
+        db.Index("ix_drill_attempt_answers_question", "question_id"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    drill_attempt_id = db.Column(
+        db.Integer, db.ForeignKey("drill_attempts.id", ondelete="CASCADE"), nullable=False
+    )
+    question_id = db.Column(
+        db.Integer, db.ForeignKey("questions.id", ondelete="RESTRICT"), nullable=False
+    )
+    answer_text = db.Column(db.Text, nullable=False, default="")
+
+    drill_attempt = db.relationship("DrillAttempt", back_populates="answers")
+    question = db.relationship("Question")

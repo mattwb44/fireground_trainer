@@ -1698,6 +1698,43 @@ def get_next_submission_attempt_number(participant_id: int) -> int:
     return latest_submission.attempt_number + 1
 
 
+def get_next_drill_attempt_number(user_id: int, scenario_id: int) -> int:
+    from models import DrillAttempt
+    latest = (
+        DrillAttempt.query.filter_by(user_id=user_id, scenario_id=scenario_id)
+        .order_by(DrillAttempt.attempt_number.desc())
+        .first()
+    )
+    return 1 if latest is None else latest.attempt_number + 1
+
+
+def persist_drill_attempt(
+    user: User,
+    scenario_row: Scenario,
+    answers: dict[str, str],
+) -> "DrillAttempt":
+    from models import DrillAttempt, DrillAttemptAnswer
+    attempt_number = get_next_drill_attempt_number(user.id, scenario_row.id)
+    drill = DrillAttempt(
+        user_id=user.id,
+        scenario_id=scenario_row.id,
+        attempt_number=attempt_number,
+        status="submitted",
+    )
+    db.session.add(drill)
+    db.session.flush()
+    for question in scenario_row.questions:
+        if not question.is_active:
+            continue
+        db.session.add(DrillAttemptAnswer(
+            drill_attempt_id=drill.id,
+            question_id=question.id,
+            answer_text=answers.get(str(question.id), ""),
+        ))
+    db.session.commit()
+    return drill
+
+
 def persist_submission(
     scenario_row: Scenario,
     scenario: dict,

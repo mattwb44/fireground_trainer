@@ -42,6 +42,7 @@ from helpers import (
     load_visible_scenarios_for_user,
     normalize_static_asset_path,
     parse_create_scenario_questions,
+    persist_drill_attempt,
     persist_submission,
     render_create_scenario,
     resolve_category_filter,
@@ -296,10 +297,20 @@ def submit():
     saved_submission = None
     submission_message = None
 
+    submission_message_level = "success"
+    show_instructor_answers = False
+
     if participant is None or training_session is None:
-        # Solo practice — show feedback but don't save anything.
         submission_error = None
-        submission_message = "Practicing solo — answers not saved. Join a live session to submit for real."
+        if db_user is not None:
+            drill = persist_drill_attempt(db_user, scenario_row, answers)
+            show_instructor_answers = True
+            submission_message = (
+                f"Drill attempt #{drill.attempt_number} saved."
+            )
+        else:
+            submission_message = "Sign in to save your drill attempts and track your progress."
+            submission_message_level = "info"
     elif submission_error is None:
         saved_submission, submission_error = persist_submission(
             scenario_row=scenario_row,
@@ -310,7 +321,8 @@ def submit():
         )
         if saved_submission is not None:
             submission_message = (
-                f"Attempt #{saved_submission.attempt_number} saved for this session. The host board now uses your latest saved attempt."
+                f"Attempt #{saved_submission.attempt_number} submitted. "
+                f"The host board is now using your latest answers."
             )
 
     return render_template(
@@ -319,8 +331,10 @@ def submit():
         answers=answers,
         question_feedback=question_feedback,
         submitted=True,
+        show_instructor_answers=show_instructor_answers,
         submission_error=submission_error,
         submission_message=submission_message,
+        submission_message_level=submission_message_level,
         saved_submission=saved_submission,
         participant_submission_state=build_participant_submission_state(scenario_row),
         scenario_vote=build_scenario_vote_summary(scenario_row, db_user),

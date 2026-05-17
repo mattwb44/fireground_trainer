@@ -39,6 +39,8 @@ from helpers import build_runtime_config, ensure_seed_data, ensure_seed_scenario
 from models import (  # noqa: F401
     AccountActivationToken,
     AdminAuditLog,
+    DrillAttempt,
+    DrillAttemptAnswer,
     MagicLoginToken,
     Participant,
     Question,

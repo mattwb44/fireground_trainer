@@ -106,7 +106,7 @@
 
   .host-card    { grid-area: host; }
   .scenario-card { grid-area: scenario; min-width: 0; }
-  .tools-panel  { grid-area: tools; position: sticky; top: 14px; align-self: start; }
+  .tools-panel  { grid-area: tools; align-self: start; }
   .questions-card { grid-area: questions; min-width: 0; }
   .review-card  { grid-area: review; min-width: 0; }
 
@@ -247,9 +247,8 @@
   /* ── Session info strip ── */
   .session-strip {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 5px;
     padding: 10px 12px;
     border-radius: 10px;
     background: rgba(20,10,14,0.5);
@@ -258,6 +257,24 @@
     font-size: 0.88rem;
     color: rgba(255,210,218,0.8);
   }
+  .session-strip-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    line-height: 1.4;
+  }
+  .session-strip-meta {
+    font-size: 0.8rem;
+    color: rgba(180,220,255,0.75);
+  }
+  .session-strip-guidance {
+    font-size: 0.8rem;
+    color: rgba(255,210,218,0.55);
+    font-style: italic;
+    margin-top: 2px;
+  }
+  .strip-sep { color: rgba(255,180,195,0.3); font-weight: 400; }
 
   /* ── Instructor reveal ── */
   .instructor-reveal {
@@ -290,6 +307,60 @@
     line-height: 1.65;
     font-size: 0.95rem;
     white-space: pre-wrap;
+  }
+
+  /* ── Discussion reveals ── */
+  .discussion-reveal {
+    margin-top: 10px;
+    border: 1px solid rgba(20,184,166,0.3);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .discussion-reveal summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(10,40,40,0.8);
+    color: #99f6e4;
+    font-weight: 800;
+    font-size: 0.88rem;
+    cursor: pointer;
+    list-style: none;
+    letter-spacing: 0.02em;
+  }
+  .discussion-reveal summary::-webkit-details-marker { display: none; }
+  .discussion-reveal summary::before { content: "▶"; font-size: 0.65rem; transition: transform 0.15s; }
+  .discussion-reveal[open] summary::before { transform: rotate(90deg); }
+  .discussion-reveal summary:hover { background: rgba(10,50,50,0.9); }
+  .discussion-answers {
+    background: rgba(5,20,20,0.7);
+  }
+  .discussion-answer-item {
+    padding: 10px 14px;
+    border-top: 1px solid rgba(20,184,166,0.15);
+    line-height: 1.55;
+  }
+  .discussion-answer-item:first-child { border-top: none; }
+  .discussion-answer-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 6px;
+    font-size: 0.8rem;
+    color: rgba(153,246,228,0.65);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+  .discussion-answer-meta .meta-sep {
+    color: rgba(153,246,228,0.3);
+    font-weight: 400;
+  }
+  .discussion-answer-text {
+    color: #e2fafb;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+    line-height: 1.6;
   }
 
   /* ── Feedback ── */
@@ -338,13 +409,34 @@
   .msg-success { background: #122117; border: 1px solid #2f8f4e; color: #bbf7d0; }
   .msg-info    { background: rgba(20,10,14,0.5); border: 1px solid rgba(255,180,195,0.1); color: rgba(255,210,218,0.8); }
 
-  @media (max-width: 980px) {
+  @media (max-width: 1080px) {
     .workspace {
       grid-template-columns: 1fr;
       grid-template-areas: "host" "scenario" "tools" "questions" "review";
     }
-    .tools-panel { position: static; }
-    .toolbtn { display: inline-block; width: auto; margin-right: 6px; margin-bottom: 6px; }
+    .tools-panel {
+      position: static !important;
+      top: auto !important;
+      right: auto !important;
+      width: auto !important;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .tools-panel > div:first-child {
+      width: 100%;
+    }
+    .toolbtn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      min-width: 64px;
+      margin: 0;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+    }
   }
 </style>
 {% endblock %}
@@ -524,18 +616,26 @@
     {# Session status strip #}
     {% if active_training_session and active_participant %}
       <div class="session-strip">
-        <strong style="color:#ffd2d8;">{{ participant_submission_state.session_title }}</strong>
-        <span>·</span>
-        <span>{{ participant_submission_state.shift_label }}</span>
-        <span>·</span>
-        <span>{{ participant_submission_state.identity_label }}</span>
-        {% if participant_submission_state.latest_attempt_number %}
-          <span>·</span>
-          <span>Attempt {{ participant_submission_state.latest_attempt_number }} saved</span>
-        {% endif %}
+        <div class="session-strip-row">
+          <strong style="color:#ffd2d8;">{{ participant_submission_state.session_title }}</strong>
+          <span class="strip-sep">·</span>
+          <span>{{ participant_submission_state.shift_label }}</span>
+          <span class="strip-sep">·</span>
+          <span>{{ participant_submission_state.identity_label }}</span>
+        </div>
+        <div class="session-strip-row session-strip-meta">
+          {% if participant_submission_state.latest_attempt_number %}
+            <span>Last saved: Attempt #{{ participant_submission_state.latest_attempt_number }}</span>
+          {% else %}
+            <span>No submissions yet this session</span>
+          {% endif %}
+          {% if participant_submission_state.can_submit %}
+            <span class="strip-sep">·</span>
+            <span>Submitting as #{{ participant_submission_state.next_attempt_number }}</span>
+          {% endif %}
+        </div>
         {% if participant_submission_state.can_submit %}
-          <span>·</span>
-          <span style="color:rgba(180,220,255,0.8);">Next saves as #{{ participant_submission_state.next_attempt_number }}</span>
+          <div class="session-strip-guidance">{{ participant_submission_state.guidance }}</div>
         {% endif %}
       </div>
     {% elif current_user.user_id == 'guest' %}
@@ -544,13 +644,14 @@
       </p>
     {% endif %}
 
-    {# Revealed answers panel #}
+    {# Hidden refresh container — JS distributes its content to per-question placeholders #}
     {% if active_training_session %}
       <div
         id="revealedSubmissionPanel"
         data-refresh-url="{{ url_for('sessions.training_session_revealed_answer_partial', session_id=active_training_session.id) }}"
         data-refresh-enabled="{{ 'true' if active_training_session.status == 'active' else 'false' }}"
-        style="margin-bottom:14px;"
+        style="display:none; visibility:hidden; position:absolute; pointer-events:none;"
+        aria-hidden="true"
       >
         {% include "revealed_submission_partial.html" %}
       </div>
@@ -564,7 +665,7 @@
       <div class="msg msg-error">{{ submission_error }}</div>
     {% endif %}
     {% if submission_message %}
-      <div class="msg msg-success">{{ submission_message }}</div>
+      <div class="msg msg-{{ submission_message_level | default('success') }}">{{ submission_message }}</div>
     {% endif %}
 
     {# Questions #}
@@ -573,6 +674,9 @@
         <label for="{{ q.id }}">{{ loop.index }}. {{ q.prompt }}</label>
         <div class="q-type-badge">{{ q.question_type_label }}</div>
         <textarea id="{{ q.id }}" name="q_{{ q.id }}" rows="4" placeholder="Type your answer…">{{ answers.get(q.id|string, "") }}</textarea>
+        {% if active_training_session %}
+          <div data-revealed-placeholder="{{ q.id }}"></div>
+        {% endif %}
         {% if submitted %}
           {% set feedback = question_feedback.get(q.id|string) %}
           {% if feedback %}
@@ -586,8 +690,8 @@
               {% endif %}
             </div>
           {% endif %}
-          {% if current_user.has_permission(permission_keys.reveal_instructor_answers) and q.instructor_answer %}
-            <details class="instructor-reveal">
+          {% if q.instructor_answer and (show_instructor_answers or current_user.has_permission(permission_keys.reveal_instructor_answers)) %}
+            <details class="instructor-reveal" {% if show_instructor_answers %}open{% endif %}>
               <summary>Instructor Answer</summary>
               <div class="instructor-answer">{{ q.instructor_answer }}</div>
             </details>
@@ -604,10 +708,15 @@
             {{ "Submit" if participant_submission_state.can_submit else "Practice Submit" }}
           </button>
         {% else %}
-          <button type="submit" class="btn-primary" disabled title="You cannot submit answers in the current session state.">Submit</button>
+          <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-start;">
+            <button type="submit" class="btn-primary" disabled>Submit</button>
+            <span style="font-size:0.82rem; color:rgba(255,210,218,0.6); line-height:1.4;">
+              {{ participant_submission_state.message or "Submissions are locked for this session." }}
+            </span>
+          </div>
         {% endif %}
       {% else %}
-        <button type="submit" class="btn-muted" disabled title="You need participant access to submit answers.">Submit</button>
+        <button type="submit" class="btn-muted" disabled>Submit</button>
       {% endif %}
 
       <a href="{{ url_for('scenarios.new_scenario') }}" class="btn-muted" style="text-decoration:none; padding:10px 18px; border-radius:10px;">
@@ -747,6 +856,44 @@
         });
       });
       applyFilter(activeFilter);
+
+      // AJAX form submissions — no full page reload, scroll position preserved
+      panel.querySelectorAll('form[method="post"]').forEach(function (form) {
+        form.addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const submitter = e.submitter;
+          const formData = new FormData(form);
+          if (submitter && submitter.name) formData.set(submitter.name, submitter.value);
+          if (submitter) { submitter.disabled = true; submitter.style.opacity = "0.55"; }
+          try {
+            await fetch(form.action, { method: "POST", body: formData, redirect: "manual" });
+          } catch (_) {
+            form.submit(); return;
+          }
+          const scrollY = window.scrollY;
+          try {
+            const res = await fetch(panel.dataset.refreshUrl, {
+              headers: { "X-Requested-With": "XMLHttpRequest" }, cache: "no-store",
+            });
+            if (!res.ok) { window.location.reload(); return; }
+            panel.innerHTML = await res.text();
+            installHostWorkspaceControls(panel);
+            window.scrollTo({ top: scrollY, behavior: "instant" });
+          } catch (_) {
+            window.location.reload();
+          }
+        });
+      });
+    }
+
+    function distributeRevealedAnswers() {
+      const container = document.getElementById("revealedSubmissionPanel");
+      if (!container) return;
+      document.querySelectorAll("[data-revealed-placeholder]").forEach(el => { el.innerHTML = ""; });
+      container.querySelectorAll("[data-question-id]").forEach(source => {
+        const target = document.querySelector(`[data-revealed-placeholder="${source.dataset.questionId}"]`);
+        if (target) target.innerHTML = source.innerHTML;
+      });
     }
 
     function installAutoRefresh(panel) {
@@ -754,21 +901,57 @@
       let busy = false;
       async function refresh() {
         if (busy) return;
+        if (panel.querySelector("textarea:focus")) return;
         busy = true;
         try {
           const res = await fetch(panel.dataset.refreshUrl, { headers: { "X-Requested-With": "XMLHttpRequest" }, cache: "no-store" });
           if (!res.ok) return;
           panel.innerHTML = await res.text();
-          installHostWorkspaceControls(panel);
+          if (panel.id === "revealedSubmissionPanel") distributeRevealedAnswers();
+          else installHostWorkspaceControls(panel);
         } finally { busy = false; }
       }
       window.setInterval(refresh, 10000);
     }
 
+    distributeRevealedAnswers();
     installAutoRefresh(document.getElementById("revealedSubmissionPanel"));
     const hostPanel = document.getElementById("hostWorkspacePanel");
     installHostWorkspaceControls(hostPanel);
     installAutoRefresh(hostPanel);
+  })();
+
+  (function () {
+    const toolbar = document.querySelector(".tools-panel");
+    const workspace = document.querySelector(".workspace");
+    if (!toolbar || !workspace) return;
+
+    const MOBILE_BREAKPOINT = 1080;
+
+    function update() {
+      if (window.innerWidth <= MOBILE_BREAKPOINT) {
+        toolbar.style.removeProperty("position");
+        toolbar.style.removeProperty("top");
+        toolbar.style.removeProperty("right");
+        toolbar.style.removeProperty("width");
+        toolbar.style.removeProperty("z-index");
+        return;
+      }
+      const wRect = workspace.getBoundingClientRect();
+      const header = document.querySelector(".site-header");
+      const headerBottom = header ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+      const rightEdge = Math.max(14, window.innerWidth - wRect.right);
+      // Ensure the toolbar is never pushed off the left edge of the viewport
+      const maxRight = window.innerWidth - 110;
+      toolbar.style.position = "fixed";
+      toolbar.style.top = (headerBottom + 14) + "px";
+      toolbar.style.right = Math.min(rightEdge, maxRight) + "px";
+      toolbar.style.width = "96px";
+      toolbar.style.zIndex = "10";
+    }
+
+    window.addEventListener("resize", update);
+    update();
   })();
 </script>
 {% endblock %}

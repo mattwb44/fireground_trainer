@@ -28,6 +28,8 @@ AdminAuditLog = app_module.AdminAuditLog
 User = app_module.User
 Role = app_module.Role
 UserRole = app_module.UserRole
+DrillAttemptAnswer = app_module.DrillAttemptAnswer
+DrillAttempt = app_module.DrillAttempt
 
 
 class SubmissionFlowTestCase(unittest.TestCase):
@@ -45,6 +47,8 @@ class SubmissionFlowTestCase(unittest.TestCase):
             Submission.query.delete()
             Participant.query.delete()
             TrainingSession.query.delete()
+            DrillAttemptAnswer.query.delete()
+            DrillAttempt.query.delete()
             Scenario.query.update({"like_count": 0}, synchronize_session=False)
             db.session.commit()
 
@@ -1797,6 +1801,107 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertIn(b"Approved report answer 1", shift_export_response.data)
         self.assertNotIn(b"Excluded report answer 1", shift_export_response.data)
         self.assertNotIn(b",B Shift,", shift_export_response.data)
+
+
+    def test_logged_in_user_solo_submit_saves_drill_attempt(self):
+        from models import DrillAttempt, DrillAttemptAnswer
+        training_session = self._create_training_session()
+        questions = self._active_questions_for_scenario(training_session.scenario_id)
+
+        self._login_as_instructor()
+        with self.client.session_transaction() as s:
+            s["scenario_id"] = training_session.scenario_id
+
+        payload = {"csrf_token": self.csrf_token}
+        for index, question in enumerate(questions, start=1):
+            payload[f"q_{question['id']}"] = f"Drill answer {index}"
+
+        response = self.client.post("/submit", data=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Drill attempt #1 saved.", response.data)
+
+        with app.app_context():
+            user = User.query.filter_by(email="instructor@demo.local").first()
+            drill = DrillAttempt.query.filter_by(
+                user_id=user.id, scenario_id=training_session.scenario_id
+            ).first()
+            self.assertIsNotNone(drill)
+            self.assertEqual(drill.attempt_number, 1)
+            self.assertEqual(drill.status, "submitted")
+            self.assertEqual(len(drill.answers), len(questions))
+
+    def test_drill_attempt_number_increments_on_retry(self):
+        from models import DrillAttempt
+        training_session = self._create_training_session()
+        questions = self._active_questions_for_scenario(training_session.scenario_id)
+
+        self._login_as_instructor()
+        with self.client.session_transaction() as s:
+            s["scenario_id"] = training_session.scenario_id
+
+        payload = {"csrf_token": self.csrf_token}
+        for index, question in enumerate(questions, start=1):
+            payload[f"q_{question['id']}"] = f"First attempt {index}"
+
+        self.client.post("/submit", data=payload)
+
+        payload2 = {"csrf_token": self.csrf_token}
+        for index, question in enumerate(questions, start=1):
+            payload2[f"q_{question['id']}"] = f"Second attempt {index}"
+
+        response2 = self.client.post("/submit", data=payload2)
+        self.assertIn(b"Drill attempt #2 saved.", response2.data)
+
+        with app.app_context():
+            user = User.query.filter_by(email="instructor@demo.local").first()
+            attempts = DrillAttempt.query.filter_by(
+                user_id=user.id, scenario_id=training_session.scenario_id
+            ).order_by(DrillAttempt.attempt_number).all()
+            self.assertEqual(len(attempts), 2)
+            self.assertEqual(attempts[0].attempt_number, 1)
+            self.assertEqual(attempts[1].attempt_number, 2)
+
+    def test_drill_submit_shows_instructor_answers(self):
+        training_session = self._create_training_session()
+        questions = self._active_questions_for_scenario(training_session.scenario_id)
+
+        self._login_as_instructor()
+        with self.client.session_transaction() as s:
+            s["scenario_id"] = training_session.scenario_id
+
+        with app.app_context():
+            from models import Question
+            q_with_answer = Question.query.filter(
+                Question.scenario_id == training_session.scenario_id,
+                Question.instructor_answer.isnot(None),
+                Question.is_active.is_(True),
+            ).first()
+
+        if q_with_answer is None:
+            self.skipTest("No questions with instructor answers in seed data")
+
+        payload = {"csrf_token": self.csrf_token}
+        for question in questions:
+            payload[f"q_{question['id']}"] = "test answer"
+
+        response = self.client.post("/submit", data=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Instructor Answer", response.data)
+
+    def test_guest_solo_submit_shows_sign_in_prompt(self):
+        training_session = self._create_training_session()
+        questions = self._active_questions_for_scenario(training_session.scenario_id)
+
+        with self.client.session_transaction() as s:
+            s["scenario_id"] = training_session.scenario_id
+
+        payload = {"csrf_token": self.csrf_token}
+        for index, question in enumerate(questions, start=1):
+            payload[f"q_{question['id']}"] = f"Guest answer {index}"
+
+        response = self.client.post("/submit", data=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Sign in to save your drill attempts", response.data)
 
 
 if __name__ == "__main__":
