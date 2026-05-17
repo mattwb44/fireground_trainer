@@ -41,21 +41,17 @@
   <section class="theme-panel" style="margin-bottom:14px;">
     <h2 style="margin:0 0 10px;">Review</h2>
     {% if current_user.has_permission(permission_keys.select_review_answer) %}
-      <p style="margin:0 0 12px; color:var(--site-muted);">Use this page for longer notes and audit-heavy review. Quick moderation now also lives directly on the board workspace.</p>
+      <p style="margin:0 0 12px; color:var(--site-muted);">Use this page for longer notes and facilitation moderation. Reporting approval and flag workflows are no longer active review actions.</p>
       <form method="post" action="{{ url_for('sessions.review_submission_for_session', session_id=training_session.id, submission_id=submission.submission_id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="review_notes" style="font-weight:700; display:block; margin-bottom:6px;">Review Notes</label>
         <textarea id="review_notes" name="review_notes" rows="4" class="theme-textarea">{{ submission.review_notes }}</textarea>
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
           <button type="submit" name="review_action" value="save_notes" style="margin-top:0; background:rgba(255,255,255,0.78); color:var(--site-ink); border:1px solid var(--site-line);">Save Notes</button>
-          <button type="submit" name="review_action" value="approve" style="margin-top:0; background:#166534; color:#fff;">Approve For Reporting</button>
-          <button type="submit" name="review_action" value="flag" style="margin-top:0; background:#b45309; color:#fff;">Flag For Follow-Up</button>
-          <button type="submit" name="review_action" value="exclude" style="margin-top:0; background:#991b1b; color:#fff;">Exclude</button>
-          {% if submission.status in ['approved', 'flagged'] %}
-            <button type="submit" name="review_action" value="reopen" style="margin-top:0; background:#92400e; color:#fff;">Return To Review</button>
-          {% endif %}
           {% if submission.status == 'excluded' %}
             <button type="submit" name="review_action" value="reinstate" style="margin-top:0; background:#1d4ed8; color:#fff;">Reinstate</button>
+          {% else %}
+            <button type="submit" name="review_action" value="exclude" style="margin-top:0; background:#991b1b; color:#fff;">Exclude</button>
           {% endif %}
         </div>
       </form>

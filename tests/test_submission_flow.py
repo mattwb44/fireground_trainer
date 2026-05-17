@@ -3,6 +3,7 @@ import os
 import re
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import inspect, text
@@ -1355,7 +1356,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertIn(b"Anonymous Person 1", board_response.data)
         self.assertIn(b"Anonymous Person 2", board_response.data)
 
-    def test_instructor_can_review_and_approve_submission_for_reporting(self):
+    def test_removed_review_actions_are_rejected_without_changing_submission(self):
         training_session = self._create_training_session()
         questions = self._active_questions_for_scenario(training_session.scenario_id)
 
@@ -1379,44 +1380,30 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
         with app.app_context():
             submission = Submission.query.filter_by(training_session_id=training_session.id).first()
+            original_status = submission.status
+            original_notes = submission.notes
+            original_approved_at = submission.approved_at
+            original_approved_by_user_id = submission.approved_by_user_id
 
         instructor_client, instructor_csrf_token = self._build_instructor_client()
-        approve_response = instructor_client.post(
-            f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-            data={
-                "csrf_token": instructor_csrf_token,
-                "review_notes": "Solid tactical reasoning. Approved for reporting.",
-                "review_action": "approve",
-            },
-            follow_redirects=False,
-        )
-        self.assertEqual(approve_response.status_code, 302)
+        for action in ("approve", "flag", "reopen"):
+            response = instructor_client.post(
+                f"/sessions/{training_session.id}/submissions/{submission.id}/review",
+                data={
+                    "csrf_token": instructor_csrf_token,
+                    "review_notes": f"{action} should not stick.",
+                    "review_action": action,
+                },
+                follow_redirects=False,
+            )
+            self.assertEqual(response.status_code, 400)
 
-        partial_response = instructor_client.get(f"/sessions/{training_session.id}/submissions")
-        detail_response = instructor_client.get(
-            f"/sessions/{training_session.id}/submissions/{submission.id}"
-        )
-
-        self.assertIn(b"Approved For Reporting", partial_response.data)
-        self.assertIn(b"Solid tactical reasoning. Approved for reporting.", detail_response.data)
-        self.assertIn(b"Approved By", detail_response.data)
-
-        reopen_response = instructor_client.post(
-            f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-            data={
-                "csrf_token": instructor_csrf_token,
-                "review_notes": "Needs another pass before reporting.",
-                "review_action": "reopen",
-            },
-            follow_redirects=False,
-        )
-        self.assertEqual(reopen_response.status_code, 302)
-
-        reopened_detail_response = instructor_client.get(
-            f"/sessions/{training_session.id}/submissions/{submission.id}"
-        )
-        self.assertIn(b"Pending Review", reopened_detail_response.data)
-        self.assertIn(b"Needs another pass before reporting.", reopened_detail_response.data)
+        with app.app_context():
+            refreshed_submission = Submission.query.filter_by(id=submission.id).first()
+            self.assertEqual(refreshed_submission.status, original_status)
+            self.assertEqual(refreshed_submission.notes, original_notes)
+            self.assertEqual(refreshed_submission.approved_at, original_approved_at)
+            self.assertEqual(refreshed_submission.approved_by_user_id, original_approved_by_user_id)
 
     def test_board_review_surfaces_saved_notes_without_leaving_workspace(self):
         training_session = self._create_training_session()
@@ -1458,6 +1445,12 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertIn(b"Latest Notes", board_response.data)
         self.assertIn(b"Host note from the board workspace.", board_response.data)
         self.assertIn(b"Review Actions & Notes", board_response.data)
+        self.assertNotIn(b'name="review_action" value="approve"', board_response.data)
+        self.assertNotIn(b'name="review_action" value="flag"', board_response.data)
+        self.assertNotIn(b'name="review_action" value="reopen"', board_response.data)
+        self.assertNotIn(b">Approve<", board_response.data)
+        self.assertNotIn(b">Flag<", board_response.data)
+        self.assertNotIn(b"Return To Review", board_response.data)
 
     def test_board_workspace_exposes_filters_and_question_jump_links(self):
         training_session = self._create_training_session()
@@ -1485,12 +1478,18 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertIn(b"Questions Needing Review", board_response.data)
         self.assertIn(b"Show Only", board_response.data)
         self.assertIn(b"Needs Review Only", board_response.data)
+        self.assertIn(b"Excluded Only", board_response.data)
         self.assertIn(b"Jump To Question", board_response.data)
         self.assertIn(b"Expand All Questions", board_response.data)
         self.assertIn(b"Collapse Reviewed Questions", board_response.data)
         self.assertIn(b"Q1", board_response.data)
         self.assertIn(b'data-review-filter="pending"', board_response.data)
+        self.assertIn(b'data-review-filter="excluded"', board_response.data)
         self.assertIn(b'data-question-group="true"', board_response.data)
+        self.assertNotIn(b"Approved</div>", board_response.data)
+        self.assertNotIn(b"Approved ", board_response.data)
+        self.assertNotIn(b"Flagged", board_response.data)
+        self.assertNotIn(b'data-review-filter="flagged"', board_response.data)
 
     def test_excluding_submission_clears_reveal_and_writes_audit_log(self):
         training_session = self._create_training_session()
@@ -1603,7 +1602,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
             self.assertEqual(refreshed_submission.status, original_status)
             self.assertEqual(refreshed_submission.notes, original_notes)
 
-    def test_reinstated_submission_stays_hidden_until_reapproved(self):
+    def test_reinstated_submission_returns_to_pending_without_report_approval(self):
         training_session = self._create_training_session()
         questions = self._active_questions_for_scenario(training_session.scenario_id)
 
@@ -1677,24 +1676,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertIn(b"No answers have been revealed for this session yet.", revealed_partial_response.data)
         self.assertNotIn(b"Reinstate answer 1", report_response.data)
 
-        self.assertEqual(
-            instructor_client.post(
-                f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-                data={
-                    "csrf_token": instructor_csrf_token,
-                    "review_notes": "Approved after reinstate.",
-                    "review_action": "approve",
-                },
-                follow_redirects=False,
-            ).status_code,
-            302,
-        )
-
-        approved_report_response = chief_client.get(f"/reports/sessions/{training_session.id}")
-        self.assertIn(b"Reinstate answer 1", approved_report_response.data)
-        self.assertIn(b"Approved after reinstate.", approved_report_response.data)
-
-    def test_reports_update_when_approved_submission_is_reopened_and_flagged(self):
+    def test_board_treats_legacy_approved_and_flagged_submissions_as_pending(self):
         training_session = self._create_training_session()
 
         join_response = self.client.post(
@@ -1715,59 +1697,25 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
         with app.app_context():
             submission = Submission.query.filter_by(training_session_id=training_session.id).first()
+            submission_id = submission.id
+            submission.status = app_module.SUBMISSION_STATUS_APPROVED
+            db.session.commit()
 
-        instructor_client, instructor_csrf_token = self._build_instructor_client()
-        self.assertEqual(
-            instructor_client.post(
-                f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-                data={
-                    "csrf_token": instructor_csrf_token,
-                    "review_notes": "Approved once.",
-                    "review_action": "approve",
-                },
-                follow_redirects=False,
-            ).status_code,
-            302,
-        )
+        instructor_client, _instructor_csrf_token = self._build_instructor_client()
+        approved_board_response = instructor_client.get(f"/board?session_id={training_session.id}")
+        self.assertEqual(approved_board_response.status_code, 200)
+        self.assertIn(b"Pending Review", approved_board_response.data)
+        self.assertNotIn(b"Approved For Reporting", approved_board_response.data)
 
-        chief_client, _chief_csrf = self._build_chief_client()
-        approved_report_response = chief_client.get(f"/reports/sessions/{training_session.id}")
-        self.assertIn(b"Approved once.", approved_report_response.data)
-        self.assertIn(b"Approved Submission List", approved_report_response.data)
+        with app.app_context():
+            submission = Submission.query.filter_by(id=submission_id).first()
+            submission.status = app_module.SUBMISSION_STATUS_FLAGGED
+            db.session.commit()
 
-        self.assertEqual(
-            instructor_client.post(
-                f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-                data={
-                    "csrf_token": instructor_csrf_token,
-                    "review_notes": "Back to pending.",
-                    "review_action": "reopen",
-                },
-                follow_redirects=False,
-            ).status_code,
-            302,
-        )
-
-        reopened_report_response = chief_client.get(f"/reports/sessions/{training_session.id}")
-        self.assertNotIn(b"Approved once.", reopened_report_response.data)
-        self.assertNotIn(b"Report reopen answer 1", reopened_report_response.data)
-
-        self.assertEqual(
-            instructor_client.post(
-                f"/sessions/{training_session.id}/submissions/{submission.id}/review",
-                data={
-                    "csrf_token": instructor_csrf_token,
-                    "review_notes": "Needs follow-up.",
-                    "review_action": "flag",
-                },
-                follow_redirects=False,
-            ).status_code,
-            302,
-        )
-
-        flagged_report_response = chief_client.get(f"/reports/sessions/{training_session.id}")
-        self.assertNotIn(b"Approved once.", flagged_report_response.data)
-        self.assertNotIn(b"Report reopen answer 1", flagged_report_response.data)
+        flagged_board_response = instructor_client.get(f"/board?session_id={training_session.id}")
+        self.assertEqual(flagged_board_response.status_code, 200)
+        self.assertIn(b"Pending Review", flagged_board_response.data)
+        self.assertNotIn(b"Flagged For Follow-Up", flagged_board_response.data)
 
     def test_participant_board_and_reveal_panel_show_attempt_guidance(self):
         training_session = self._create_training_session()
@@ -1853,33 +1801,16 @@ class SubmissionFlowTestCase(unittest.TestCase):
                 .filter(Participant.display_name == "Report Excluded")
                 .first()
             )
+            chief_user = User.query.filter_by(email="chief@demo.local").first()
+            approved_submission.status = app_module.SUBMISSION_STATUS_APPROVED
+            approved_submission.notes = "Approved for after-action review."
+            approved_submission.approved_at = datetime.utcnow()
+            approved_submission.approved_by_user_id = chief_user.id
+            excluded_submission.status = app_module.SUBMISSION_STATUS_EXCLUDED
+            excluded_submission.notes = "Excluded from reporting."
+            db.session.commit()
 
-        chief_client, chief_csrf = self._build_staff_client("chief@demo.local", "chief-csrf-token")
-        self.assertEqual(
-            chief_client.post(
-                f"/sessions/{training_session.id}/submissions/{approved_submission.id}/review",
-                data={
-                    "csrf_token": chief_csrf,
-                    "review_notes": "Approved for after-action review.",
-                    "review_action": "approve",
-                },
-                follow_redirects=False,
-            ).status_code,
-            302,
-        )
-        self.assertEqual(
-            chief_client.post(
-                f"/sessions/{training_session.id}/submissions/{excluded_submission.id}/review",
-                data={
-                    "csrf_token": chief_csrf,
-                    "review_notes": "Excluded from reporting.",
-                    "review_action": "exclude",
-                },
-                follow_redirects=False,
-            ).status_code,
-            302,
-        )
-
+        chief_client, _chief_csrf = self._build_staff_client("chief@demo.local", "chief-csrf-token")
         reports_response = chief_client.get("/reports")
         session_report_response = chief_client.get(f"/reports/sessions/{training_session.id}")
 

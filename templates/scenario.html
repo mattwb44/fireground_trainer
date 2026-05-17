@@ -673,14 +673,14 @@
 
       const isMatch = (card, filter) => {
         if (filter === "pending")  return card.dataset.statusTone === "pending";
-        if (filter === "flagged")  return card.dataset.statusTone === "flagged";
+        if (filter === "excluded") return card.dataset.statusTone === "excluded";
         if (filter === "revealed") return card.dataset.isRevealed === "true";
         if (filter === "notes")    return card.dataset.hasNotes === "true";
         return true;
       };
       const labelForFilter = (f) => {
         if (f === "pending")  return "answers that still need review";
-        if (f === "flagged")  return "flagged answers";
+        if (f === "excluded") return "excluded answers";
         if (f === "revealed") return "currently revealed answers";
         if (f === "notes")    return "answers with saved notes";
         return "all answers";
@@ -731,7 +731,7 @@
             else if (action === "collapse-all") g.open = false;
             else if (action === "collapse-reviewed") {
               g.open = Number(g.dataset.pendingCount||0) > 0
-                    || Number(g.dataset.flaggedCount||0) > 0
+                    || Number(g.dataset.excludedCount||0) > 0
                     || Number(g.dataset.revealedCount||0) > 0;
             }
           });

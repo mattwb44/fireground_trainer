@@ -1698,6 +1698,18 @@ def submission_status_tone(status: str | None) -> str:
     return "pending"
 
 
+def facilitation_submission_status_tone(status: str | None) -> str:
+    if status == SUBMISSION_STATUS_EXCLUDED:
+        return "excluded"
+    return "pending"
+
+
+def format_facilitation_submission_status(status: str | None) -> str:
+    if status == SUBMISSION_STATUS_EXCLUDED:
+        return SUBMISSION_STATUS_LABELS[SUBMISSION_STATUS_EXCLUDED]
+    return SUBMISSION_STATUS_LABELS[SUBMISSION_STATUS_SUBMITTED]
+
+
 def format_user_identity(user: User | None) -> str | None:
     if user is None:
         return None
@@ -1765,7 +1777,7 @@ def build_session_question_review_view_model(training_session: TrainingSession) 
     for question in active_questions:
         answer_rows = []
         current_reveal = reveal_by_question_id.get(question.id)
-        status_counts = {"approved": 0, "flagged": 0, "excluded": 0, "pending": 0}
+        status_counts = {"excluded": 0, "pending": 0}
         for submission in latest_submissions:
             answer = next(
                 (row for row in submission.answers if row.question_id == question.id),
@@ -1774,7 +1786,7 @@ def build_session_question_review_view_model(training_session: TrainingSession) 
             if answer is None:
                 continue
             participant = submission.participant
-            tone = submission_status_tone(submission.status)
+            tone = facilitation_submission_status_tone(submission.status)
             status_counts[tone] += 1
             latest_audit = max(
                 submission.audit_logs,
@@ -1794,7 +1806,7 @@ def build_session_question_review_view_model(training_session: TrainingSession) 
                     "submitted_at_label": format_submission_timestamp(submission.submitted_at),
                     "answer_text": answer.answer_text,
                     "status": submission.status,
-                    "status_label": format_submission_status(submission.status),
+                    "status_label": format_facilitation_submission_status(submission.status),
                     "status_tone": tone,
                     "is_excluded": submission.status == SUBMISSION_STATUS_EXCLUDED,
                     "is_revealed": (
@@ -2043,8 +2055,8 @@ def build_host_review_summary(question_rows: list[dict]) -> dict:
         "pending_question_count": sum(
             1 for question in question_rows if question["status_counts"]["pending"] > 0
         ),
-        "flagged_question_count": sum(
-            1 for question in question_rows if question["status_counts"]["flagged"] > 0
+        "excluded_question_count": sum(
+            1 for question in question_rows if question["status_counts"]["excluded"] > 0
         ),
         "revealed_question_count": sum(
             question["revealed_answer_count"] for question in question_rows
@@ -2456,21 +2468,6 @@ def update_submission_review_state(
     training_session: TrainingSession | None = None,
 ) -> None:
     if action == "save_notes":
-        return
-    if action == "approve":
-        submission.status = SUBMISSION_STATUS_APPROVED
-        submission.approved_at = datetime.utcnow()
-        submission.approved_by_user_id = actor.id if actor else None
-        return
-    if action == "reopen":
-        submission.status = SUBMISSION_STATUS_SUBMITTED
-        submission.approved_at = None
-        submission.approved_by_user_id = None
-        return
-    if action == "flag":
-        submission.status = SUBMISSION_STATUS_FLAGGED
-        submission.approved_at = None
-        submission.approved_by_user_id = None
         return
     if action == "exclude":
         submission.status = SUBMISSION_STATUS_EXCLUDED
