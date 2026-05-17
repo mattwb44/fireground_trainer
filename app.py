@@ -5,6 +5,7 @@ from flask_migrate import upgrade as db_upgrade
 
 from blueprints.admin import admin_bp
 from blueprints.auth import auth_bp
+from blueprints.departments import departments_bp
 from blueprints.main import main_bp
 from blueprints.reports import reports_bp
 from blueprints.scenarios import scenarios_bp
@@ -39,6 +40,7 @@ from helpers import build_runtime_config, ensure_seed_data, ensure_seed_scenario
 from models import (  # noqa: F401
     AccountActivationToken,
     AdminAuditLog,
+    Department,
     DrillAttempt,
     DrillAttemptAnswer,
     MagicLoginToken,
@@ -66,6 +68,7 @@ migrate.init_app(app, db)
 
 app.register_blueprint(admin_bp)
 app.register_blueprint(auth_bp)
+app.register_blueprint(departments_bp)
 app.register_blueprint(main_bp)
 app.register_blueprint(reports_bp)
 app.register_blueprint(scenarios_bp)

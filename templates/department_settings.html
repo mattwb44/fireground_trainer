@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+
+{% block title %}Department Settings | Fireground Trainer{% endblock %}
+
+{% block body %}
+<main style="max-width:560px; margin:28px auto 52px; padding:0 16px;">
+
+  <section class="theme-panel">
+    <h1 style="margin:0 0 4px; font-size:1.4rem;">{{ dept.name }}</h1>
+    <p style="margin:0 0 22px; color:var(--site-muted); font-size:0.9rem;">Department Settings</p>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in msgs %}
+        <div class="theme-alert-{{ 'success' if cat == 'success' else 'error' }}" style="margin-bottom:14px;">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% if error %}
+      <div class="theme-alert-error" style="margin-bottom:14px;">{{ error }}</div>
+    {% endif %}
+
+    {# ── Invite code ── #}
+    <div style="border:1px solid var(--site-line); border-radius:12px; padding:16px; margin-bottom:18px;">
+      <p style="margin:0 0 6px; font-weight:800; font-size:0.88rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--site-muted);">Invite Code</p>
+      <p style="margin:0 0 14px; font-family:monospace; font-size:1.35rem; font-weight:700; letter-spacing:0.12em; color:var(--site-ink);">{{ dept.invite_code }}</p>
+      <p style="margin:0 0 14px; font-size:0.85rem; color:var(--site-muted); line-height:1.5;">
+        Share this code with firefighters who need to join your department library.
+        Regenerating it immediately revokes the old code.
+      </p>
+      <form method="post" action="{{ url_for('departments.department_regenerate_code') }}"
+        onsubmit="return confirm('Regenerate the invite code? The old code will stop working immediately.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" style="padding:9px 18px; border:1px solid var(--site-line); border-radius:8px;
+          background:var(--site-panel); color:var(--site-ink); font-weight:700; font-size:0.9rem; cursor:pointer;">
+          Regenerate Code
+        </button>
+      </form>
+    </div>
+
+    {# ── Members ── #}
+    <h2 style="margin:0 0 10px; font-size:1rem; font-weight:800;">Members ({{ dept.members | length }})</h2>
+    {% if dept.members %}
+      <ul style="margin:0; padding:0; list-style:none; display:grid; gap:6px;">
+        {% for member in dept.members | sort(attribute='full_name') %}
+          <li style="padding:8px 12px; border-radius:8px; background:var(--site-bg); font-size:0.9rem;">
+            {{ member.full_name or member.email }}
+            {% if member.email != member.full_name %}
+              <span style="color:var(--site-muted); font-size:0.82rem;">({{ member.email }})</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="color:var(--site-muted); font-size:0.9rem; margin:0;">No members yet. Share the invite code above.</p>
+    {% endif %}
+
+  </section>
+
+</main>
+{% endblock %}

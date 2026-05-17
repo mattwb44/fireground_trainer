@@ -23,6 +23,7 @@ PERM_SHARE_REVIEW_ANSWER = "share_review_answer"
 PERM_VIEW_REPORTS = "view_reports"
 PERM_EXPORT_REPORTS = "export_reports"
 PERM_MANAGE_USERS = "manage_users"
+PERM_MANAGE_DEPARTMENT = "manage_department"
 
 ROLE_PERMISSIONS = {
     ROLE_PARTICIPANT: {
@@ -52,6 +53,7 @@ ROLE_PERMISSIONS = {
         PERM_SHARE_REVIEW_ANSWER,
         PERM_VIEW_REPORTS,
         PERM_EXPORT_REPORTS,
+        PERM_MANAGE_DEPARTMENT,
     },
     ROLE_ADMIN: set(),
 }

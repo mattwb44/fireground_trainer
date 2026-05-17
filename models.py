@@ -25,6 +25,22 @@ class UserRole(db.Model):
     role = db.relationship("Role", back_populates="user_links")
 
 
+class Department(TimestampMixin, db.Model):
+    __tablename__ = "departments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    invite_code = db.Column(db.String(32), nullable=False, unique=True, index=True)
+    created_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
+    created_by = db.relationship("User", foreign_keys=[created_by_user_id])
+    members = db.relationship(
+        "User", back_populates="department", foreign_keys="User.department_id"
+    )
+
+
 class User(TimestampMixin, db.Model):
     __tablename__ = "users"
 
@@ -35,7 +51,13 @@ class User(TimestampMixin, db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     is_email_verified = db.Column(db.Boolean, nullable=False, default=False)
     last_login_at = db.Column(db.DateTime, nullable=True)
+    department_id = db.Column(
+        db.Integer, db.ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
+    department = db.relationship(
+        "Department", back_populates="members", foreign_keys=[department_id]
+    )
     role_links = db.relationship(
         "UserRole", back_populates="user", cascade="all, delete-orphan"
     )

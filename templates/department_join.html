@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+
+{% block title %}Join Department | Fireground Trainer{% endblock %}
+
+{% block body %}
+<main style="max-width:480px; margin:28px auto 52px; padding:0 16px;">
+
+  <section class="theme-panel">
+    <h1 style="margin:0 0 16px; font-size:1.4rem;">Join Your Department</h1>
+
+    {% if already_in %}
+      <p style="color:var(--site-muted); margin:0 0 14px;">
+        You are already a member of <strong>{{ dept.name }}</strong>.
+        Contact your Training Chief if you need to switch departments.
+      </p>
+      <a href="{{ url_for('main.board') }}" class="theme-btn-primary" style="display:inline-block;">Back to Board</a>
+    {% else %}
+      <p style="color:var(--site-muted); margin:0 0 18px; font-size:0.93rem; line-height:1.5;">
+        Enter the invite code from your Training Chief to join your department's private library.
+      </p>
+
+      {% if error %}
+        <div class="theme-alert-error" style="margin-bottom:14px;">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('departments.department_join_submit') }}" style="display:grid; gap:14px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label style="display:grid; gap:5px;">
+          <span style="font-weight:800; color:var(--site-ink);">Invite Code</span>
+          <input name="invite_code" maxlength="32" placeholder="Paste invite code here"
+            class="theme-input" autofocus autocomplete="off"
+            style="font-family:monospace; letter-spacing:0.08em;">
+        </label>
+
+        <button type="submit" style="padding:13px; border:0; border-radius:12px;
+          background:linear-gradient(135deg,var(--site-blue),var(--site-blue-dark));
+          color:#fff; font-weight:800; font-size:1rem; cursor:pointer;">
+          Join Department
+        </button>
+      </form>
+    {% endif %}
+  </section>
+
+</main>
+{% endblock %}
