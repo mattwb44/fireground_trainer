@@ -46,6 +46,7 @@ from models import (  # noqa: F401
     MagicLoginToken,
     Participant,
     Question,
+    QuestionChoice,
     Role,
     Scenario,
     ScenarioLike,

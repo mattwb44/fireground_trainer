@@ -222,6 +222,27 @@ class Question(TimestampMixin, db.Model):
 
     scenario = db.relationship("Scenario", back_populates="questions")
     submission_answers = db.relationship("SubmissionAnswer", back_populates="question")
+    choices = db.relationship(
+        "QuestionChoice", back_populates="question", cascade="all, delete-orphan",
+        order_by="QuestionChoice.sort_order",
+    )
+
+
+class QuestionChoice(db.Model):
+    __tablename__ = "question_choices"
+    __table_args__ = (
+        db.Index("ix_question_choices_question", "question_id"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    question_id = db.Column(
+        db.Integer, db.ForeignKey("questions.id", ondelete="CASCADE"), nullable=False
+    )
+    choice_text = db.Column(db.Text, nullable=False)
+    is_correct = db.Column(db.Boolean, nullable=False, default=False)
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    question = db.relationship("Question", back_populates="choices")
 
 
 class TrainingSession(TimestampMixin, db.Model):
@@ -350,10 +371,14 @@ class SubmissionAnswer(TimestampMixin, db.Model):
         db.Integer, db.ForeignKey("questions.id", ondelete="RESTRICT"), nullable=False
     )
     answer_text = db.Column(db.Text, nullable=False, default="")
+    selected_choice_id = db.Column(
+        db.Integer, db.ForeignKey("question_choices.id", ondelete="SET NULL"), nullable=True
+    )
 
     submission = db.relationship("Submission", back_populates="answers")
     question = db.relationship("Question", back_populates="submission_answers")
     session_reveals = db.relationship("SessionQuestionReveal", back_populates="submission_answer")
+    selected_choice = db.relationship("QuestionChoice", foreign_keys=[selected_choice_id])
 
 
 class SessionQuestionReveal(TimestampMixin, db.Model):
@@ -517,6 +542,10 @@ class DrillAttemptAnswer(db.Model):
         db.Integer, db.ForeignKey("questions.id", ondelete="RESTRICT"), nullable=False
     )
     answer_text = db.Column(db.Text, nullable=False, default="")
+    selected_choice_id = db.Column(
+        db.Integer, db.ForeignKey("question_choices.id", ondelete="SET NULL"), nullable=True
+    )
 
     drill_attempt = db.relationship("DrillAttempt", back_populates="answers")
     question = db.relationship("Question")
+    selected_choice = db.relationship("QuestionChoice", foreign_keys=[selected_choice_id])

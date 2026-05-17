@@ -88,10 +88,12 @@ SCENARIO_ACTIVE_STATUSES = frozenset(
 QUESTION_TYPE_AUTO_CHECKLIST = "auto_checklist"
 QUESTION_TYPE_KEY_POINT_AUTO = "key_point_auto"
 QUESTION_TYPE_DISCUSSION_ONLY = "discussion_only"
+QUESTION_TYPE_MULTIPLE_CHOICE = "multiple_choice"
 QUESTION_TYPE_LABELS = {
     QUESTION_TYPE_AUTO_CHECKLIST: "Auto-scored checklist",
     QUESTION_TYPE_KEY_POINT_AUTO: "Short Answer (Participant's Answers Matched and Scored to Creator's Answer)",
     QUESTION_TYPE_DISCUSSION_ONLY: "Discussion-only open-ended (non-graded)",
+    QUESTION_TYPE_MULTIPLE_CHOICE: "Multiple Choice",
 }
 QUESTION_TYPE_CHOICES = frozenset(QUESTION_TYPE_LABELS.keys())
 DEFAULT_QUESTION_TYPE = QUESTION_TYPE_DISCUSSION_ONLY
@@ -638,6 +640,15 @@ def build_scenario_view_model(scenario: Scenario) -> dict:
                     QUESTION_TYPE_LABELS[DEFAULT_QUESTION_TYPE],
                 ),
                 "instructor_answer": q.instructor_answer or "",
+                "choices": [
+                    {
+                        "id": c.id,
+                        "choice_text": c.choice_text,
+                        "is_correct": c.is_correct,
+                        "sort_order": c.sort_order,
+                    }
+                    for c in sorted(getattr(q, "choices", []), key=lambda c: c.sort_order)
+                ] if (q.question_type or DEFAULT_QUESTION_TYPE) == QUESTION_TYPE_MULTIPLE_CHOICE else [],
             }
             for q in sorted(scenario.questions, key=lambda item: item.sort_order)
             if q.is_active
@@ -1589,13 +1600,32 @@ def parse_create_scenario_questions() -> tuple[list[dict], str | None]:
         instructor_answer = (
             instructor_answers[idx].strip() if idx < len(instructor_answers) else ""
         )
-        questions.append(
-            {
-                "prompt": prompt,
-                "question_type": question_type,
-                "instructor_answer": instructor_answer,
-            }
-        )
+        question_data: dict = {
+            "prompt": prompt,
+            "question_type": question_type,
+            "instructor_answer": instructor_answer,
+            "choices": [],
+        }
+        if question_type == QUESTION_TYPE_MULTIPLE_CHOICE:
+            # choices submitted as choice_text_<idx>_<choice_idx> and correct_choice_<idx>
+            choice_texts_raw = request.form.getlist(f"choice_text_{idx}")
+            correct_idx_raw = request.form.get(f"correct_choice_{idx}", "").strip()
+            choice_texts = [c.strip() for c in choice_texts_raw if c.strip()]
+            if len(choice_texts) < 2:
+                return [], f"Multiple choice question {idx + 1} needs at least 2 choices."
+            if len(choice_texts) > 6:
+                return [], f"Multiple choice question {idx + 1} can have at most 6 choices."
+            try:
+                correct_idx = int(correct_idx_raw)
+                if correct_idx < 0 or correct_idx >= len(choice_texts):
+                    raise ValueError
+            except (ValueError, TypeError):
+                return [], f"Multiple choice question {idx + 1} must have one correct choice marked."
+            question_data["choices"] = [
+                {"choice_text": text, "is_correct": (i == correct_idx), "sort_order": i}
+                for i, text in enumerate(choice_texts)
+            ]
+        questions.append(question_data)
 
     if not questions:
         return [], "At least one question is required."
@@ -1775,6 +1805,7 @@ def persist_drill_attempt(
     user: User,
     scenario_row: Scenario,
     answers: dict[str, str],
+    selected_choice_ids: dict[str, int | None] | None = None,
 ) -> "DrillAttempt":
     from models import DrillAttempt, DrillAttemptAnswer
     attempt_number = get_next_drill_attempt_number(user.id, scenario_row.id)
@@ -1789,10 +1820,12 @@ def persist_drill_attempt(
     for question in scenario_row.questions:
         if not question.is_active:
             continue
+        qid = str(question.id)
         db.session.add(DrillAttemptAnswer(
             drill_attempt_id=drill.id,
             question_id=question.id,
-            answer_text=answers.get(str(question.id), ""),
+            answer_text=answers.get(qid, ""),
+            selected_choice_id=(selected_choice_ids or {}).get(qid),
         ))
     db.session.commit()
     return drill
@@ -1804,6 +1837,7 @@ def persist_submission(
     participant: Participant,
     training_session: TrainingSession,
     answers: dict[str, str],
+    selected_choice_ids: dict[str, int | None] | None = None,
 ) -> tuple[Submission | None, str | None]:
     submission = Submission(
         participant_id=participant.id,
@@ -1816,11 +1850,13 @@ def persist_submission(
     db.session.flush()
 
     for question in scenario["questions"]:
+        qid = str(question["id"])
         db.session.add(
             SubmissionAnswer(
                 submission_id=submission.id,
                 question_id=question["id"],
-                answer_text=answers.get(str(question["id"]), ""),
+                answer_text=answers.get(qid, ""),
+                selected_choice_id=(selected_choice_ids or {}).get(qid),
             )
         )
 
@@ -1964,6 +2000,8 @@ def build_session_question_review_view_model(training_session: TrainingSession) 
                 key=lambda item: (item.created_at or datetime.min, item.id),
                 default=None,
             )
+            # MC choice info
+            selected_choice = getattr(answer, "selected_choice", None)
             answer_rows.append(
                 {
                     "submission_id": submission.id,
@@ -1976,6 +2014,8 @@ def build_session_question_review_view_model(training_session: TrainingSession) 
                     "attempt_number": submission.attempt_number,
                     "submitted_at_label": format_submission_timestamp(submission.submitted_at),
                     "answer_text": answer.answer_text,
+                    "selected_choice_text": selected_choice.choice_text if selected_choice else None,
+                    "selected_choice_is_correct": selected_choice.is_correct if selected_choice else None,
                     "status": submission.status,
                     "status_label": format_submission_status(submission.status),
                     "status_tone": tone,

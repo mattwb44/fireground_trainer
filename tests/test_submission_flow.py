@@ -1888,6 +1888,97 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Instructor Answer", response.data)
 
+    # ── Issue #8: Multiple choice question type ───────────────────────────────
+
+    def test_create_scenario_with_multiple_choice_question(self):
+        self._login_as_instructor()
+        resp = self.client.post(
+            "/scenarios/new",
+            data={
+                "csrf_token": self.csrf_token,
+                "title": "MC Test Scenario",
+                "dispatch": "Units respond to a fire.",
+                "base_image_path": "images/house1.jpg",
+                "overlay_image_path": "",
+                "question_prompt": ["What is the best action?"],
+                "question_type": ["multiple_choice"],
+                "instructor_answer": [""],
+                "choice_text_0": ["Attack from unburned side", "Defensive mode", "Call for backup"],
+                "correct_choice_0": "0",
+                "visibility": "private",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 302)
+        with app.app_context():
+            from models import QuestionChoice
+            scenario = Scenario.query.filter_by(title="MC Test Scenario").first()
+            self.assertIsNotNone(scenario)
+            q = scenario.questions[0]
+            self.assertEqual(q.question_type, "multiple_choice")
+            choices = QuestionChoice.query.filter_by(question_id=q.id).all()
+            self.assertEqual(len(choices), 3)
+            correct = [c for c in choices if c.is_correct]
+            self.assertEqual(len(correct), 1)
+            self.assertEqual(correct[0].choice_text, "Attack from unburned side")
+
+    def test_create_mc_question_requires_at_least_2_choices(self):
+        self._login_as_instructor()
+        resp = self.client.post(
+            "/scenarios/new",
+            data={
+                "csrf_token": self.csrf_token,
+                "title": "MC Bad Choices",
+                "dispatch": "Dispatch.",
+                "base_image_path": "images/house1.jpg",
+                "overlay_image_path": "",
+                "question_prompt": ["Question?"],
+                "question_type": ["multiple_choice"],
+                "instructor_answer": [""],
+                "choice_text_0": ["Only one choice"],
+                "correct_choice_0": "0",
+                "visibility": "private",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_mc_drill_submit_saves_selected_choice(self):
+        """Submitting a MC answer as a solo drill persists selected_choice_id."""
+        self._login_as_instructor()
+        # Create a MC scenario
+        with app.app_context():
+            from models import QuestionChoice
+            scenario = Scenario.query.filter_by(title="MC Test Scenario").first()
+            if scenario is None:
+                self.skipTest("MC Test Scenario not found — run create test first")
+            q = scenario.questions[0]
+            correct_choice = next(c for c in q.choices if c.is_correct)
+            scenario_id = scenario.id
+            question_id = q.id
+            choice_id = correct_choice.id
+
+        with self.client.session_transaction() as s:
+            s["scenario_id"] = scenario_id
+
+        resp = self.client.post(
+            "/submit",
+            data={
+                "csrf_token": self.csrf_token,
+                f"qc_{question_id}": str(choice_id),
+            },
+        )
+        self.assertEqual(resp.status_code, 200)
+        with app.app_context():
+            from models import DrillAttemptAnswer
+            attempt = DrillAttempt.query.filter_by(scenario_id=scenario_id).first()
+            self.assertIsNotNone(attempt)
+            answer = DrillAttemptAnswer.query.filter_by(
+                drill_attempt_id=attempt.id, question_id=question_id
+            ).first()
+            self.assertIsNotNone(answer)
+            self.assertEqual(answer.selected_choice_id, choice_id)
+
     def test_guest_solo_submit_shows_sign_in_prompt(self):
         training_session = self._create_training_session()
         questions = self._active_questions_for_scenario(training_session.scenario_id)

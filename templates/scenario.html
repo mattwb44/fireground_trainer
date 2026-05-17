@@ -690,24 +690,63 @@
       <div id="participant-question-{{ q.id }}" style="padding-bottom:18px; {% if not loop.last %}border-bottom:1px solid rgba(255,180,195,0.07); margin-bottom:18px;{% endif %}">
         <label for="{{ q.id }}">{{ loop.index }}. {{ q.prompt }}</label>
         <div class="q-type-badge">{{ q.question_type_label }}</div>
-        <textarea id="{{ q.id }}" name="q_{{ q.id }}" rows="4" placeholder="Type your answer…">{{ answers.get(q.id|string, "") }}</textarea>
+
+        {% if q.question_type == 'multiple_choice' and q.choices %}
+          {# Multiple choice: radio buttons #}
+          <div style="display:grid; gap:6px; margin-top:6px;">
+            {% for choice in q.choices %}
+              {% set was_selected = answers.get(q.id|string, "") == choice.choice_text %}
+              <label style="display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; cursor:pointer;
+                {% if submitted %}
+                  {% if choice.is_correct %}background:rgba(15,50,25,0.55); border:1px solid rgba(47,143,78,0.4);
+                  {% else %}background:rgba(20,10,14,0.4); border:1px solid rgba(255,180,195,0.12);
+                  {% endif %}
+                {% else %}
+                  background:rgba(20,10,14,0.4); border:1px solid rgba(255,180,195,0.12);
+                {% endif %}
+              ">
+                <input
+                  type="radio"
+                  name="qc_{{ q.id }}"
+                  value="{{ choice.id }}"
+                  {% if was_selected %}checked{% endif %}
+                  {% if submitted %}disabled{% endif %}
+                  style="accent-color: #b01c2e;"
+                >
+                <span style="{% if submitted and choice.is_correct %}color:#9fe6b0; font-weight:700;{% endif %}">
+                  {{ choice.choice_text }}
+                  {% if submitted and choice.is_correct %}
+                    <span style="margin-left:6px; font-size:0.82rem; color:#9fe6b0;">✓ Correct</span>
+                  {% endif %}
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+          {# Hidden textarea not needed for MC, but include empty value to avoid submission issues #}
+        {% else %}
+          <textarea id="{{ q.id }}" name="q_{{ q.id }}" rows="4" placeholder="Type your answer…">{{ answers.get(q.id|string, "") }}</textarea>
+        {% endif %}
+
         {% if active_training_session %}
           <div data-revealed-placeholder="{{ q.id }}"></div>
         {% endif %}
+
         {% if submitted %}
-          {% set feedback = question_feedback.get(q.id|string) %}
-          {% if feedback %}
-            <div class="feedback-box">
-              <div style="font-weight:700;">{{ feedback.summary }}</div>
-              {% if feedback.matched_items %}
-                <div style="margin-top:4px; color:#9fe6b0;">✓ {{ feedback.matched_items|join('  ·  ') }}</div>
-              {% endif %}
-              {% if feedback.missing_items %}
-                <div style="margin-top:3px; color:#fbbf24;">✗ {{ feedback.missing_items|join('  ·  ') }}</div>
-              {% endif %}
-            </div>
+          {% if q.question_type != 'multiple_choice' %}
+            {% set feedback = question_feedback.get(q.id|string) %}
+            {% if feedback %}
+              <div class="feedback-box">
+                <div style="font-weight:700;">{{ feedback.summary }}</div>
+                {% if feedback.matched_items %}
+                  <div style="margin-top:4px; color:#9fe6b0;">✓ {{ feedback.matched_items|join('  ·  ') }}</div>
+                {% endif %}
+                {% if feedback.missing_items %}
+                  <div style="margin-top:3px; color:#fbbf24;">✗ {{ feedback.missing_items|join('  ·  ') }}</div>
+                {% endif %}
+              </div>
+            {% endif %}
           {% endif %}
-          {% if q.instructor_answer and (show_instructor_answers or current_user.has_permission(permission_keys.reveal_instructor_answers)) %}
+          {% if q.instructor_answer and q.question_type != 'multiple_choice' and (show_instructor_answers or current_user.has_permission(permission_keys.reveal_instructor_answers)) %}
             <details class="instructor-reveal" {% if show_instructor_answers %}open{% endif %}>
               <summary>Instructor Answer</summary>
               <div class="instructor-answer">{{ q.instructor_answer }}</div>

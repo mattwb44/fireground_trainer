@@ -261,17 +261,25 @@ def create_scenario():
     db.session.flush()
 
     for index, question in enumerate(questions, start=1):
-        db.session.add(
-            Question(
-                scenario_id=scenario.id,
-                question_key=f"q{index}",
-                prompt=question["prompt"],
-                question_type=question["question_type"],
-                instructor_answer=question["instructor_answer"],
-                sort_order=index,
-                is_active=True,
-            )
+        q_obj = Question(
+            scenario_id=scenario.id,
+            question_key=f"q{index}",
+            prompt=question["prompt"],
+            question_type=question["question_type"],
+            instructor_answer=question["instructor_answer"],
+            sort_order=index,
+            is_active=True,
         )
+        db.session.add(q_obj)
+        db.session.flush()
+        from models import QuestionChoice
+        for choice_data in question.get("choices", []):
+            db.session.add(QuestionChoice(
+                question_id=q_obj.id,
+                choice_text=choice_data["choice_text"],
+                is_correct=choice_data["is_correct"],
+                sort_order=choice_data["sort_order"],
+            ))
 
     raw_tag_ids = [int(v) for v in request.form.getlist("tag_ids") if v.isdigit()]
     if raw_tag_ids:
@@ -314,13 +322,27 @@ def new_scenario():
 @scenarios_bp.post("/submit")
 @requires_permission(PERM_SUBMIT_ANSWERS)
 def submit():
+    from helpers import QUESTION_TYPE_MULTIPLE_CHOICE
     validate_csrf_or_abort()
     scenario_row, scenario = get_current_scenario()
     db_user = get_current_db_user()
-    answers = {
-        str(question["id"]): request.form.get(f"q_{question['id']}", "").strip()
-        for question in scenario["questions"]
-    }
+    answers = {}
+    selected_choice_ids: dict[str, int | None] = {}
+    for question in scenario["questions"]:
+        qid = str(question["id"])
+        if question.get("question_type") == QUESTION_TYPE_MULTIPLE_CHOICE:
+            raw_choice = request.form.get(f"qc_{question['id']}", "").strip()
+            choice_id = int(raw_choice) if raw_choice.isdigit() else None
+            selected_choice_ids[qid] = choice_id
+            # Populate answer_text from the selected choice text for display/scoring
+            chosen = next(
+                (c for c in question.get("choices", []) if c["id"] == choice_id),
+                None,
+            )
+            answers[qid] = chosen["choice_text"] if chosen else ""
+        else:
+            answers[qid] = request.form.get(f"q_{question['id']}", "").strip()
+            selected_choice_ids[qid] = None
     question_feedback = build_submission_feedback(scenario, answers)
     participant, training_session, submission_error = validate_submission_context(scenario_row)
     saved_submission = None
@@ -332,7 +354,7 @@ def submit():
     if participant is None or training_session is None:
         submission_error = None
         if db_user is not None:
-            drill = persist_drill_attempt(db_user, scenario_row, answers)
+            drill = persist_drill_attempt(db_user, scenario_row, answers, selected_choice_ids=selected_choice_ids)
             show_instructor_answers = True
             submission_message = (
                 f"Drill attempt #{drill.attempt_number} saved."
@@ -347,6 +369,7 @@ def submit():
             participant=participant,
             training_session=training_session,
             answers=answers,
+            selected_choice_ids=selected_choice_ids,
         )
         if saved_submission is not None:
             submission_message = (

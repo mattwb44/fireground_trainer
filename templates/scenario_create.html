@@ -106,11 +106,12 @@
         <h2 style="margin:0;">Questions</h2>
         <button type="button" id="addQuestionRow" class="theme-button-blue">Add Question</button>
       </div>
-      <p style="margin:6px 0 12px; color:var(--site-muted);">Supported types: Auto-scored checklist, Short Answer (Participant's Answers Matched and Scored to Creator's Answer), Discussion-only open-ended (non-graded).</p>
-      <p style="margin:0 0 12px; color:var(--site-muted); font-size:0.9rem;">For auto-scored types, put key points in "Instructor Answer / Key Guidance" as short phrases separated by commas or new lines.</p>
+      <p style="margin:6px 0 12px; color:var(--site-muted);">Supported types: Discussion, Auto-scored, Short Answer, and Multiple Choice.</p>
+      <p style="margin:0 0 12px; color:var(--site-muted); font-size:0.9rem;">For auto-scored types, put key points in "Instructor Answer" as short phrases. For Multiple Choice, add 2–6 options and mark one correct.</p>
 
       <div id="questionRows" style="display:grid; gap:12px;">
         {% for row in question_rows %}
+          {% set qidx = loop.index0 %}
           <article class="question-row" style="border:1px solid var(--site-line); border-radius:12px; padding:10px; background:rgba(255,255,255,0.58);">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
               <strong>Question {{ loop.index }}</strong>
@@ -124,17 +125,36 @@
 
             <label style="display:block; margin-top:8px;">
               <div style="font-weight:700; margin-bottom:4px;">Question Type</div>
-              <select name="question_type" class="theme-select">
+              <select name="question_type" class="theme-select question-type-select">
                 {% for type_key, type_label in question_type_labels.items() %}
                   <option value="{{ type_key }}" {% if row.question_type == type_key %}selected{% endif %}>{{ type_label }}</option>
                 {% endfor %}
               </select>
             </label>
 
-            <label style="display:block; margin-top:8px;">
-              <div style="font-weight:700; margin-bottom:4px;">Instructor Answer / Key Guidance (optional)</div>
-              <textarea name="instructor_answer" rows="2" class="theme-textarea">{{ row.instructor_answer }}</textarea>
-            </label>
+            <div class="mc-builder" style="{% if row.question_type != 'multiple_choice' %}display:none;{% endif %} margin-top:10px; border:1px solid rgba(96,153,220,0.2); border-radius:8px; padding:10px; background:rgba(33,78,133,0.07);">
+              <div style="font-weight:700; margin-bottom:8px; font-size:0.9rem;">Answer Choices (mark one correct)</div>
+              <div class="mc-choices" style="display:grid; gap:6px;">
+                {% for choice in row.choices %}
+                  <div class="mc-choice-row" style="display:flex; align-items:center; gap:8px;">
+                    <input type="radio" name="correct_choice_{{ qidx }}" value="{{ loop.index0 }}" {% if choice.is_correct %}checked{% endif %} style="accent-color:var(--site-blue);">
+                    <input type="text" name="choice_text_{{ qidx }}" value="{{ choice.choice_text }}" placeholder="Choice text…" required class="theme-input" style="flex:1;">
+                    <button type="button" class="remove-choice" style="padding:4px 8px; border:0; border-radius:6px; background:var(--site-accent); color:#fff; font-size:0.82rem;">✕</button>
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="button" class="add-choice" style="margin-top:8px; padding:5px 10px; border:1px solid rgba(96,153,220,0.3); border-radius:6px; background:rgba(33,78,133,0.15); color:var(--site-blue); font-weight:700; cursor:pointer; font-size:0.85rem;">+ Add Choice</button>
+            </div>
+
+            <div class="non-mc-answer" style="{% if row.question_type == 'multiple_choice' %}display:none;{% endif %}">
+              <label style="display:block; margin-top:8px;">
+                <div style="font-weight:700; margin-bottom:4px;">Instructor Answer / Key Guidance (optional)</div>
+                <textarea name="instructor_answer" rows="2" class="theme-textarea">{{ row.instructor_answer }}</textarea>
+              </label>
+            </div>
+            {% if row.question_type == 'multiple_choice' %}
+              <textarea name="instructor_answer" rows="1" class="theme-textarea" style="display:none;"></textarea>
+            {% endif %}
           </article>
         {% endfor %}
       </div>
@@ -162,12 +182,60 @@
         .join("");
     }
 
+    function getRowIndex(row) {
+      return Array.from(rows.querySelectorAll(".question-row")).indexOf(row);
+    }
+
+    function buildChoiceRow(qIdx, choiceIdx) {
+      const div = document.createElement("div");
+      div.className = "mc-choice-row";
+      div.style.cssText = "display:flex; align-items:center; gap:8px;";
+      div.innerHTML = `
+        <input type="radio" name="correct_choice_${qIdx}" value="${choiceIdx}" style="accent-color:var(--site-blue);">
+        <input type="text" name="choice_text_${qIdx}" placeholder="Choice text…" required class="theme-input" style="flex:1;">
+        <button type="button" class="remove-choice" style="padding:4px 8px; border:0; border-radius:6px; background:var(--site-accent); color:#fff; font-size:0.82rem;">✕</button>
+      `;
+      return div;
+    }
+
+    function renumberChoices(mcBuilder, qIdx) {
+      const choiceRows = mcBuilder.querySelectorAll(".mc-choice-row");
+      choiceRows.forEach((row, cIdx) => {
+        const radio = row.querySelector("input[type=radio]");
+        if (radio) { radio.name = `correct_choice_${qIdx}`; radio.value = String(cIdx); }
+        const text = row.querySelector("input[type=text]");
+        if (text) text.name = `choice_text_${qIdx}`;
+      });
+    }
+
+    function updateMcSection(questionRow) {
+      const qIdx = getRowIndex(questionRow);
+      const select = questionRow.querySelector(".question-type-select");
+      const mcBuilder = questionRow.querySelector(".mc-builder");
+      const nonMcAnswer = questionRow.querySelector(".non-mc-answer");
+      const hiddenAnswerTA = questionRow.querySelector("textarea[name=instructor_answer][style*='display:none']");
+      if (!select || !mcBuilder || !nonMcAnswer) return;
+      const isMC = select.value === "multiple_choice";
+      mcBuilder.style.display = isMC ? "" : "none";
+      nonMcAnswer.style.display = isMC ? "none" : "";
+      if (hiddenAnswerTA) hiddenAnswerTA.style.display = isMC ? "none" : "";
+      renumberChoices(mcBuilder, qIdx);
+      // Ensure mc names use current row index
+      mcBuilder.querySelector("button.add-choice")?.addEventListener("click", () => {
+        const choiceContainer = mcBuilder.querySelector(".mc-choices");
+        const cIdx = choiceContainer.querySelectorAll(".mc-choice-row").length;
+        choiceContainer.appendChild(buildChoiceRow(qIdx, cIdx));
+        renumberChoices(mcBuilder, qIdx);
+      });
+    }
+
     function renumberRows() {
       rows.querySelectorAll(".question-row").forEach((row, idx) => {
         const title = row.querySelector("strong");
-        if (title) {
-          title.textContent = `Question ${idx + 1}`;
-        }
+        if (title) title.textContent = `Question ${idx + 1}`;
+        // Re-bind MC section with new index
+        const mcBuilder = row.querySelector(".mc-builder");
+        if (mcBuilder) renumberChoices(mcBuilder, idx);
       });
       const removeButtons = rows.querySelectorAll(".remove-question");
       removeButtons.forEach((btn) => {
@@ -177,37 +245,78 @@
       });
     }
 
+    function wireRow(row) {
+      const select = row.querySelector(".question-type-select");
+      if (select) {
+        select.addEventListener("change", () => updateMcSection(row));
+        updateMcSection(row);
+      }
+      const mcBuilder = row.querySelector(".mc-builder");
+      if (mcBuilder) {
+        const addChoiceBtn = mcBuilder.querySelector(".add-choice");
+        if (addChoiceBtn) {
+          addChoiceBtn.addEventListener("click", () => {
+            const qIdx = getRowIndex(row);
+            const choiceContainer = mcBuilder.querySelector(".mc-choices");
+            const cIdx = choiceContainer.querySelectorAll(".mc-choice-row").length;
+            choiceContainer.appendChild(buildChoiceRow(qIdx, cIdx));
+            renumberChoices(mcBuilder, qIdx);
+          });
+        }
+        mcBuilder.addEventListener("click", (e) => {
+          if (!(e.target instanceof HTMLButtonElement) || !e.target.classList.contains("remove-choice")) return;
+          const choiceRow = e.target.closest(".mc-choice-row");
+          const container = mcBuilder.querySelector(".mc-choices");
+          if (container.querySelectorAll(".mc-choice-row").length <= 2) return; // min 2
+          choiceRow?.remove();
+          renumberChoices(mcBuilder, getRowIndex(row));
+        });
+      }
+    }
+
     function addRow() {
       const row = document.createElement("article");
       row.className = "question-row";
-      row.style.border = "1px solid var(--site-line)";
-      row.style.borderRadius = "12px";
-      row.style.padding = "10px";
-      row.style.background = "rgba(255,255,255,0.58)";
+      row.style.cssText = "border:1px solid var(--site-line); border-radius:12px; padding:10px; background:rgba(255,255,255,0.58);";
+      const qIdx = rows.querySelectorAll(".question-row").length;
       row.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
           <strong>Question</strong>
           <button type="button" class="remove-question" style="padding:6px 10px; border:0; border-radius:999px; background:var(--site-accent); color:#fff;">Remove</button>
         </div>
-
         <label style="display:block; margin-top:8px;">
           <div style="font-weight:700; margin-bottom:4px;">Prompt</div>
           <textarea name="question_prompt" rows="3" required class="theme-textarea"></textarea>
         </label>
-
         <label style="display:block; margin-top:8px;">
           <div style="font-weight:700; margin-bottom:4px;">Question Type</div>
-          <select name="question_type" class="theme-select">
+          <select name="question_type" class="theme-select question-type-select">
             ${buildOptionsHtml()}
           </select>
         </label>
-
-        <label style="display:block; margin-top:8px;">
-          <div style="font-weight:700; margin-bottom:4px;">Instructor Answer / Key Guidance (optional)</div>
-          <textarea name="instructor_answer" rows="2" class="theme-textarea"></textarea>
-        </label>
+        <div class="mc-builder" style="display:none; margin-top:10px; border:1px solid rgba(96,153,220,0.2); border-radius:8px; padding:10px; background:rgba(33,78,133,0.07);">
+          <div style="font-weight:700; margin-bottom:8px; font-size:0.9rem;">Answer Choices (mark one correct)</div>
+          <div class="mc-choices" style="display:grid; gap:6px;">
+          </div>
+          <button type="button" class="add-choice" style="margin-top:8px; padding:5px 10px; border:1px solid rgba(96,153,220,0.3); border-radius:6px; background:rgba(33,78,133,0.15); color:var(--site-blue); font-weight:700; cursor:pointer; font-size:0.85rem;">+ Add Choice</button>
+        </div>
+        <div class="non-mc-answer">
+          <label style="display:block; margin-top:8px;">
+            <div style="font-weight:700; margin-bottom:4px;">Instructor Answer / Key Guidance (optional)</div>
+            <textarea name="instructor_answer" rows="2" class="theme-textarea"></textarea>
+          </label>
+        </div>
       `;
       rows.appendChild(row);
+      wireRow(row);
+      // Add 2 default choices for MC if selected
+      const mcBuilder = row.querySelector(".mc-builder");
+      const choiceContainer = mcBuilder?.querySelector(".mc-choices");
+      if (mcBuilder && choiceContainer) {
+        for (let i = 0; i < 2; i++) {
+          choiceContainer.appendChild(buildChoiceRow(qIdx, i));
+        }
+      }
       renumberRows();
     }
 
@@ -219,6 +328,9 @@
       target.closest(".question-row")?.remove();
       renumberRows();
     });
+
+    // Wire existing rows
+    rows.querySelectorAll(".question-row").forEach(wireRow);
 
     addBtn.addEventListener("click", addRow);
     renumberRows();
