@@ -360,7 +360,8 @@ def submit():
                 f"Drill attempt #{drill.attempt_number} saved."
             )
         else:
-            submission_message = "Sign in to save your drill attempts and track your progress."
+            # Guest: show instructor answers as payoff even without saving
+            show_instructor_answers = True
             submission_message_level = "info"
     elif submission_error is None:
         saved_submission, submission_error = persist_submission(
@@ -396,6 +397,68 @@ def submit():
             else None
         ),
     )
+
+
+@scenarios_bp.post("/save-guest-drill")
+@requires_permission(PERM_SUBMIT_ANSWERS)
+def save_guest_drill():
+    """Auto-save a drill attempt from localStorage after a guest creates an account."""
+    import json
+    validate_csrf_or_abort()
+    db_user = get_current_db_user()
+    if db_user is None:
+        from flask import abort as _abort
+        _abort(401)
+
+    raw_scenario_id = request.form.get("scenario_id", "").strip()
+    answers_json = request.form.get("answers_json", "").strip()
+    if not raw_scenario_id.isdigit() or not answers_json:
+        from flask import abort as _abort
+        _abort(400)
+
+    scenario_id = int(raw_scenario_id)
+    scenario_row = Scenario.query.filter_by(id=scenario_id, is_active=True).first()
+    if scenario_row is None:
+        from flask import abort as _abort
+        _abort(404)
+
+    try:
+        raw_answers = json.loads(answers_json)
+        if not isinstance(raw_answers, dict):
+            from flask import abort as _abort
+            _abort(400)
+    except (json.JSONDecodeError, ValueError):
+        from flask import abort as _abort
+        _abort(400)
+
+    # Build answer map from {str(question_id): answer_text}
+    answers: dict[str, str] = {}
+    selected_choice_ids: dict[str, int | None] = {}
+    for key, value in raw_answers.items():
+        if key.startswith("_choice_"):
+            qid = key[len("_choice_"):]
+            selected_choice_ids[qid] = int(value) if str(value).isdigit() else None
+        else:
+            answers[key] = str(value)[:2000]
+
+    # Avoid duplicate saves
+    from models import DrillAttempt as _DrillAttempt
+    existing = _DrillAttempt.query.filter_by(
+        user_id=db_user.id, scenario_id=scenario_id
+    ).first()
+    if existing is not None:
+        # 409 tells the client to clear localStorage (already saved)
+        from flask import jsonify
+        return jsonify({"status": "already_saved"}), 409
+
+    try:
+        persist_drill_attempt(db_user, scenario_row, answers, selected_choice_ids=selected_choice_ids)
+    except Exception:
+        from flask import abort as _abort
+        _abort(500)
+
+    from flask import jsonify
+    return jsonify({"status": "saved"}), 200
 
 
 @scenarios_bp.post("/scenario/submit-review")

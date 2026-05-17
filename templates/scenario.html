@@ -685,6 +685,19 @@
       <div class="msg msg-{{ submission_message_level | default('success') }}">{{ submission_message }}</div>
     {% endif %}
 
+    {# Guest save-attempt banner (shown after guest submits) #}
+    {% if submitted and current_user.user_id == 'guest' %}
+      <div id="guestSaveBanner" class="msg msg-info" style="display:flex; flex-direction:column; gap:8px;">
+        <div style="font-weight:700;">Save this attempt?</div>
+        <div style="font-size:0.9rem;">Create a free account to keep your answers and track your progress.</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:4px;">
+          <button type="button" id="guestSaveToAccount" class="btn-primary" style="padding:8px 14px; font-size:0.88rem;">Create Account to Save</button>
+          <span style="font-size:0.85rem; color:rgba(255,210,218,0.6);">or</span>
+          <button type="button" id="guestDismissSave" class="btn-muted" style="padding:8px 14px; font-size:0.88rem;">Continue without saving</button>
+        </div>
+      </div>
+    {% endif %}
+
     {# Questions #}
     {% for q in scenario.questions %}
       <div id="participant-question-{{ q.id }}" style="padding-bottom:18px; {% if not loop.last %}border-bottom:1px solid rgba(255,180,195,0.07); margin-bottom:18px;{% endif %}">
@@ -1008,6 +1021,124 @@
 
     window.addEventListener("resize", update);
     update();
+  })();
+
+  // ── Guest drill localStorage preservation (Issue #7) ──────────────────────
+  (function () {
+    const SCENARIO_ID = {{ scenario.id | tojson }};
+    const IS_GUEST = {{ ('true' if current_user.user_id == 'guest' else 'false') }};
+    const SUBMITTED = {{ ('true' if submitted else 'false') }};
+    const STORAGE_KEY = `guest_drill_${SCENARIO_ID}`;
+
+    // Auto-save pending localStorage attempt for signed-in users
+    function maybeAutoSavePending() {
+      if (IS_GUEST) return;
+      try {
+        const pending = localStorage.getItem(STORAGE_KEY);
+        if (!pending) return;
+        const data = JSON.parse(pending);
+        if (!data || typeof data !== "object") { localStorage.removeItem(STORAGE_KEY); return; }
+        // POST to auto-save endpoint
+        const csrfToken = document.querySelector("input[name=csrf_token]")?.value;
+        if (!csrfToken) return;
+        const form = new FormData();
+        form.set("csrf_token", csrfToken);
+        form.set("scenario_id", String(SCENARIO_ID));
+        form.set("answers_json", JSON.stringify(data));
+        fetch("/save-guest-drill", { method: "POST", body: form }).then(res => {
+          if (res.ok || res.status === 409) localStorage.removeItem(STORAGE_KEY);
+        }).catch(() => {});
+      } catch (_) {}
+    }
+    maybeAutoSavePending();
+
+    if (!IS_GUEST || !SUBMITTED) return;
+
+    // Collect current answers from the form
+    function collectAnswers() {
+      const form = document.querySelector("form.questions-card");
+      if (!form) return {};
+      const data = {};
+      form.querySelectorAll("textarea[name^='q_']").forEach(ta => {
+        const qid = ta.name.replace("q_", "");
+        data[qid] = ta.value;
+      });
+      form.querySelectorAll("input[type=radio][name^='qc_']:checked").forEach(r => {
+        const qid = r.name.replace("qc_", "");
+        data[`_choice_${qid}`] = r.value;
+      });
+      return data;
+    }
+
+    let attemptSaved = false;
+
+    const saveBtn = document.getElementById("guestSaveToAccount");
+    const dismissBtn = document.getElementById("guestDismissSave");
+    const banner = document.getElementById("guestSaveBanner");
+
+    if (saveBtn) {
+      saveBtn.addEventListener("click", () => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(collectAnswers()));
+        } catch (_) {}
+        attemptSaved = true;
+        window.location.href = "{{ url_for('auth.create_account_page') }}?next={{ url_for('main.board') | urlencode }}";
+      });
+    }
+
+    if (dismissBtn && banner) {
+      dismissBtn.addEventListener("click", () => {
+        banner.style.display = "none";
+        attemptSaved = true;
+      });
+    }
+
+    // Link-click interception modal for guests with unsaved attempts
+    let modalActive = false;
+    function showLeaveModal(destinationHref) {
+      if (modalActive) return;
+      modalActive = true;
+      const overlay = document.createElement("div");
+      overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;";
+      overlay.innerHTML = `
+        <div style="background:#2a1820; border:1px solid rgba(255,180,195,0.15); border-radius:14px; padding:24px; max-width:400px; width:100%; text-align:center;">
+          <div style="font-weight:800; font-size:1.1rem; margin-bottom:10px;">Your attempt won't be saved.</div>
+          <p style="margin:0 0 16px; color:rgba(255,210,218,0.8); font-size:0.93rem;">Create an account to keep your drill attempt and track progress.</p>
+          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <button id="leaveModalCreateAccount" class="btn-primary" style="padding:10px 16px;">Create Account</button>
+            <button id="leaveModalLeave" class="btn-muted" style="padding:10px 16px;">Leave without saving</button>
+            <button id="leaveModalStay" class="btn-muted" style="padding:10px 14px;">Stay</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.querySelector("#leaveModalCreateAccount").addEventListener("click", () => {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectAnswers())); } catch (_) {}
+        window.location.href = "{{ url_for('auth.create_account_page') }}?next={{ url_for('main.board') | urlencode }}";
+      });
+      overlay.querySelector("#leaveModalLeave").addEventListener("click", () => {
+        attemptSaved = true;
+        document.body.removeChild(overlay);
+        modalActive = false;
+        window.location.href = destinationHref;
+      });
+      overlay.querySelector("#leaveModalStay").addEventListener("click", () => {
+        document.body.removeChild(overlay);
+        modalActive = false;
+      });
+    }
+
+    document.addEventListener("click", (e) => {
+      if (attemptSaved || modalActive) return;
+      const link = e.target.closest("a[href]");
+      if (!link) return;
+      const href = link.getAttribute("href");
+      if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+      // Skip external links and the create-account link itself
+      if (href.includes("//") && !href.startsWith(window.location.origin)) return;
+      if (href.includes("create-account")) return;
+      e.preventDefault();
+      showLeaveModal(link.href);
+    });
   })();
 </script>
 {% endblock %}

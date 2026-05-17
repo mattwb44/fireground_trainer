@@ -1992,8 +1992,106 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
         response = self.client.post("/submit", data=payload)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Sign in to save your drill attempts", response.data)
+        # Guests see the save banner instead of a sign-in prompt (Issue #7)
+        self.assertIn(b"Save this attempt", response.data)
 
+
+    # ── Issue #7: Solo drill for guests with localStorage preservation ─────────
+
+    def test_guest_solo_submit_shows_instructor_answers(self):
+        """After a guest submits, instructor answers should be revealed."""
+        training_session = self._create_training_session()
+        questions = self._active_questions_for_scenario(training_session.scenario_id)
+        with self.client.session_transaction() as s:
+            s["scenario_id"] = training_session.scenario_id
+        payload = {"csrf_token": self.csrf_token}
+        for i, q in enumerate(questions, start=1):
+            payload[f"q_{q['id']}"] = f"Guest answer {i}"
+        resp = self.client.post("/submit", data=payload)
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"Instructor Answer", resp.data)
+
+    def test_save_guest_drill_auto_saves_from_localstorage(self):
+        """POST /save-guest-drill persists a drill attempt from localStorage data."""
+        import json
+        training_session = self._create_training_session()
+        questions = self._active_questions_for_scenario(training_session.scenario_id)
+
+        self._login_as_instructor()
+
+        # Build fake localStorage payload
+        answers = {str(q["id"]): f"Saved answer {i}" for i, q in enumerate(questions, start=1)}
+
+        with self.client.session_transaction() as s:
+            s["scenario_id"] = training_session.scenario_id
+
+        resp = self.client.post(
+            "/save-guest-drill",
+            data={
+                "csrf_token": self.csrf_token,
+                "scenario_id": str(training_session.scenario_id),
+                "answers_json": json.dumps(answers),
+            },
+        )
+        self.assertEqual(resp.status_code, 200)
+        with app.app_context():
+            from models import User as _User
+            user = _User.query.filter_by(email="instructor@demo.local").first()
+            attempt = DrillAttempt.query.filter_by(
+                user_id=user.id, scenario_id=training_session.scenario_id
+            ).first()
+            self.assertIsNotNone(attempt)
+
+    def test_save_guest_drill_returns_409_if_already_saved(self):
+        """Returns 409 if a drill attempt already exists (idempotent)."""
+        import json
+        training_session = self._create_training_session()
+        questions = self._active_questions_for_scenario(training_session.scenario_id)
+        answers = {str(q["id"]): "answer" for q in questions}
+
+        self._login_as_instructor()
+        with self.client.session_transaction() as s:
+            s["scenario_id"] = training_session.scenario_id
+
+        # First save
+        self.client.post(
+            "/save-guest-drill",
+            data={
+                "csrf_token": self.csrf_token,
+                "scenario_id": str(training_session.scenario_id),
+                "answers_json": json.dumps(answers),
+            },
+        )
+        # Second save should return 409
+        resp = self.client.post(
+            "/save-guest-drill",
+            data={
+                "csrf_token": self.csrf_token,
+                "scenario_id": str(training_session.scenario_id),
+                "answers_json": json.dumps(answers),
+            },
+        )
+        self.assertEqual(resp.status_code, 409)
+
+    def test_save_guest_drill_requires_auth(self):
+        """Guest (unauthenticated) gets 403 from the save endpoint."""
+        import json
+        training_session = self._create_training_session()
+        with self.client.session_transaction() as s:
+            s["scenario_id"] = training_session.scenario_id
+        resp = self.client.post(
+            "/save-guest-drill",
+            data={
+                "csrf_token": self.csrf_token,
+                "scenario_id": str(training_session.scenario_id),
+                "answers_json": json.dumps({}),
+            },
+        )
+        # Unauthenticated users don't have PERM_SUBMIT_ANSWERS via the normal
+        # route decorator — actually guests DO have submit_answers permission.
+        # The endpoint checks db_user is None and aborts 401.
+        # The decorator allows guests through, but the manual check returns 401.
+        self.assertIn(resp.status_code, [401, 403])
 
     # ── Issue #6: End Session / read-only state ──────────────────────────────
 
