@@ -1,0 +1,244 @@
+{% extends "layout.html" %}
+
+{% block title %}Scenario Library | {{ site_name }}{% endblock %}
+
+{% block head_extra %}
+<style>
+  .library-shell {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+  }
+
+  .library-grid {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+    margin-top: 18px;
+  }
+
+  .filter-sidebar {
+    border: 1px solid var(--site-line);
+    border-radius: 16px;
+    padding: 16px;
+    background: var(--site-panel);
+    position: sticky;
+    top: 70px;
+  }
+
+  .scenario-results {
+    display: grid;
+    gap: 12px;
+  }
+
+  .scenario-card {
+    border: 1px solid var(--site-line);
+    border-radius: 16px;
+    padding: 16px;
+    background: var(--site-panel);
+    transition: border-color 0.15s;
+  }
+  .scenario-card:hover {
+    border-color: rgba(255, 200, 210, 0.25);
+  }
+
+  .filter-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--site-muted);
+    margin: 12px 0 6px;
+  }
+  .filter-label:first-child { margin-top: 0; }
+
+  .filter-option {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 0;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .tag-pill {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--site-blue-soft);
+    color: var(--site-blue);
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .tag-pill.selected {
+    background: var(--site-blue);
+    color: #fff;
+  }
+
+  .badge-official {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--site-success-soft);
+    color: #9fe6b0;
+    font-size: 0.76rem;
+    font-weight: 700;
+    border: 1px solid rgba(86,184,120,0.25);
+  }
+
+  .badge-completed {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--site-blue-soft);
+    color: var(--site-blue);
+    font-size: 0.76rem;
+    font-weight: 700;
+    border: 1px solid rgba(96,153,220,0.25);
+  }
+
+  @media (max-width: 760px) {
+    .library-grid {
+      grid-template-columns: 1fr;
+    }
+    .filter-sidebar {
+      position: static;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="library-shell">
+  <header>
+    <h1 style="margin:0 0 6px;">Scenario Library</h1>
+    <p style="margin:0; color:var(--site-muted);">
+      Browse {{ library.total_count }} public training scenario{{ '' if library.total_count == 1 else 's' }}.
+      Filter by category, tag, or keyword.
+    </p>
+    <p style="margin:8px 0 0; font-size:0.88rem;">
+      <a href="{{ url_for('main.home') }}">Home</a>
+      {% if current_user.user_id == 'guest' %}
+        | <a href="{{ url_for('auth.login_page') }}">Sign In</a>
+      {% endif %}
+      {% if current_user.has_permission(permission_keys.create_scenarios) %}
+        | <a href="{{ url_for('scenarios.new_scenario_page') }}">Create Scenario</a>
+        | <a href="{{ url_for('scenarios.scenario_library') }}">Staff Library</a>
+      {% endif %}
+    </p>
+  </header>
+
+  <div class="library-grid">
+    {# ── Filter sidebar ── #}
+    <aside class="filter-sidebar">
+      <form method="get" action="{{ url_for('scenarios.public_scenario_library') }}" id="filterForm">
+        <div class="filter-label">Search</div>
+        <input
+          type="text"
+          name="q"
+          value="{{ library.keyword }}"
+          placeholder="Keyword…"
+          style="width:100%; padding:7px 10px; border-radius:8px; border:1px solid var(--site-line); background:rgba(255,255,255,0.05); color:var(--site-ink); font-size:0.9rem; box-sizing:border-box;"
+        >
+
+        {% if library.available_categories %}
+          <div class="filter-label" style="margin-top:14px;">Category</div>
+          <label class="filter-option">
+            <input type="radio" name="category" value=""
+              {% if not library.selected_category %}checked{% endif %}
+              onchange="this.form.submit()">
+            All Categories
+          </label>
+          {% for cat_key in library.available_categories %}
+            <label class="filter-option">
+              <input type="radio" name="category" value="{{ cat_key }}"
+                {% if library.selected_category == cat_key %}checked{% endif %}
+                onchange="this.form.submit()">
+              {{ library.category_labels.get(cat_key, cat_key | title) }}
+            </label>
+          {% endfor %}
+        {% endif %}
+
+        {% if library.available_tags %}
+          <div class="filter-label" style="margin-top:14px;">Tags</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            {% for tag in library.available_tags %}
+              <label style="cursor:pointer;">
+                <input type="checkbox" name="tag" value="{{ tag.slug }}"
+                  {% if tag.slug in library.selected_tag_slugs %}checked{% endif %}
+                  style="display:none;" onchange="this.form.submit()">
+                <span class="tag-pill {% if tag.slug in library.selected_tag_slugs %}selected{% endif %}">
+                  {{ tag.name }}
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="submit" style="padding:7px 12px; border-radius:8px; border:0; background:var(--site-brand); color:#fff; font-weight:700; cursor:pointer; font-size:0.88rem;">Apply</button>
+          <a href="{{ url_for('scenarios.public_scenario_library') }}" style="padding:7px 12px; border-radius:8px; background:rgba(255,255,255,0.08); color:var(--site-ink); font-weight:700; text-decoration:none; font-size:0.88rem;">Clear</a>
+        </div>
+      </form>
+    </aside>
+
+    {# ── Results ── #}
+    <section class="scenario-results">
+      <div style="font-size:0.9rem; color:var(--site-muted); font-weight:700;">
+        {{ library.result_count }} result{{ '' if library.result_count == 1 else 's' }}
+        {% if library.result_count < library.total_count %} (filtered from {{ library.total_count }}){% endif %}
+      </div>
+
+      {% if library.scenarios %}
+        {% for scenario in library.scenarios %}
+          <article class="scenario-card">
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:4px;">
+                  <span style="font-weight:800; font-size:1rem;">{{ scenario.title }}</span>
+                  {% if scenario.is_official %}
+                    <span class="badge-official">Official</span>
+                  {% endif %}
+                  {% if scenario.is_completed %}
+                    <span class="badge-completed">Completed</span>
+                  {% endif %}
+                </div>
+                <p style="margin:0 0 8px; color:var(--site-muted); font-size:0.88rem; line-height:1.45;">
+                  {{ scenario.dispatch_summary }}{% if scenario.dispatch_summary|length >= 180 %}…{% endif %}
+                </p>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                  {% if scenario.category_label %}
+                    <span style="font-size:0.78rem; color:var(--site-muted); font-weight:600;">{{ scenario.category_label }}</span>
+                  {% endif %}
+                  {% for tag in scenario.tags %}
+                    <a href="{{ url_for('scenarios.public_scenario_library', tag=tag | lower | replace(' ', '-'), category=library.selected_category) }}" class="tag-pill" style="text-decoration:none; {% if tag.lower().replace(' ', '-') in library.selected_tag_slugs %}background:var(--site-blue); color:#fff;{% endif %}">{{ tag }}</a>
+                  {% endfor %}
+                  <span style="font-size:0.78rem; color:var(--site-muted);">{{ scenario.question_count }} question{{ '' if scenario.question_count == 1 else 's' }}</span>
+                  <span style="font-size:0.78rem; color:var(--site-muted);">{{ scenario.like_count }} like{{ '' if scenario.like_count == 1 else 's' }}</span>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end; flex-shrink:0;">
+                <form method="post" action="{{ url_for('scenarios.select_scenario') }}" style="margin:0;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+                  <input type="hidden" name="next" value="{{ url_for('main.board') }}">
+                  <button type="submit" style="padding:8px 14px; border-radius:8px; border:0; background:var(--site-brand); color:#fff; font-weight:700; cursor:pointer; font-size:0.88rem;">Practice</button>
+                </form>
+                {% if current_user.has_permission(permission_keys.create_sessions) %}
+                  <a href="{{ url_for('sessions.new_training_session_page', scenario_id=scenario.id) }}" style="padding:8px 14px; border-radius:8px; background:var(--site-blue-soft); color:var(--site-blue); font-weight:700; font-size:0.88rem; text-decoration:none; white-space:nowrap;">Start Session</a>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        <div style="text-align:center; padding:32px 20px; color:var(--site-muted); border:1px solid var(--site-line); border-radius:16px; background:var(--site-panel);">
+          No scenarios match your filters.
+          <br><a href="{{ url_for('scenarios.public_scenario_library') }}" style="color:var(--site-accent); font-weight:700;">Clear filters</a>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

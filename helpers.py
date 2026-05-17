@@ -2239,6 +2239,132 @@ def build_host_board_workspace_view_model(training_session: "TrainingSession") -
     }
 
 
+def get_drill_completed_scenario_ids_for_user(
+    db_user: User | None,
+    scenario_ids: list[int] | None = None,
+) -> set[int]:
+    """DrillAttempt-based completion check (solo drills, not live sessions)."""
+    from models import DrillAttempt
+    if db_user is None:
+        return set()
+    query = DrillAttempt.query.filter_by(user_id=db_user.id)
+    if scenario_ids:
+        query = query.filter(DrillAttempt.scenario_id.in_(scenario_ids))
+    return {row.scenario_id for row in query.all()}
+
+
+def get_all_completed_scenario_ids_for_user(
+    db_user: User | None,
+    scenario_ids: list[int] | None = None,
+) -> set[int]:
+    """Combined DrillAttempt + Submission completion check."""
+    return (
+        get_completed_submission_scenario_ids_for_user(db_user, scenario_ids)
+        | get_drill_completed_scenario_ids_for_user(db_user, scenario_ids)
+    )
+
+
+def build_public_library_view_model(
+    db_user: User | None,
+    category_filter: str | None,
+    tag_slugs: list[str],
+    keyword: str,
+) -> dict:
+    """Build view model for the public /library route."""
+    from models import Tag, ScenarioTag
+
+    # Fetch all public approved scenarios
+    query = (
+        Scenario.query.filter(
+            Scenario.is_active.is_(True),
+            Scenario.is_public.is_(True),
+            Scenario.status == SCENARIO_STATUS_APPROVED,
+        )
+        .order_by(
+            Scenario.is_official.desc(),
+            Scenario.like_count.desc(),
+            Scenario.updated_at.desc(),
+            Scenario.id.desc(),
+        )
+    )
+    all_scenarios = query.all()
+    scenario_ids = [s.id for s in all_scenarios]
+
+    # Build completed set
+    completed_ids = get_all_completed_scenario_ids_for_user(db_user, scenario_ids)
+
+    # Available tags (only those linked to visible scenarios)
+    linked_tag_ids = {
+        link.tag_id
+        for s in all_scenarios
+        for link in s.tag_links
+        if link.tag and link.tag.is_active
+    }
+    available_tags = Tag.query.filter(
+        Tag.is_active.is_(True),
+        Tag.id.in_(linked_tag_ids),
+    ).order_by(Tag.name.asc()).all() if linked_tag_ids else []
+
+    # Available categories
+    available_categories = sorted({
+        s.training_category
+        for s in all_scenarios
+        if s.training_category
+    })
+
+    # Resolve selected tag ids from slugs
+    selected_tag_ids: set[int] = set()
+    if tag_slugs:
+        selected_tags = Tag.query.filter(Tag.slug.in_(tag_slugs), Tag.is_active.is_(True)).all()
+        selected_tag_ids = {t.id for t in selected_tags}
+
+    # Apply filters
+    filtered = all_scenarios
+    if category_filter and category_filter in {CATEGORY_FIREGROUND, CATEGORY_MVA, CATEGORY_EMS}:
+        filtered = [s for s in filtered if s.training_category == category_filter]
+    if selected_tag_ids:
+        filtered = [
+            s for s in filtered
+            if selected_tag_ids.issubset({link.tag_id for link in s.tag_links})
+        ]
+    if keyword:
+        kw = keyword.strip().lower()
+        filtered = [
+            s for s in filtered
+            if kw in s.title.lower() or kw in (s.dispatch_text or "").lower()
+        ]
+
+    scenario_summaries = []
+    for s in filtered:
+        tags = [link.tag.name for link in s.tag_links if link.tag and link.tag.is_active]
+        creator = s.created_by
+        scenario_summaries.append({
+            "id": s.id,
+            "title": s.title,
+            "dispatch_summary": " ".join((s.dispatch_text or "").split())[:180],
+            "is_official": s.is_official,
+            "training_category": s.training_category,
+            "category_label": CATEGORY_LABELS.get(s.training_category or "", s.training_category or ""),
+            "tags": tags,
+            "like_count": s.like_count or 0,
+            "question_count": len([q for q in s.questions if q.is_active]),
+            "is_completed": s.id in completed_ids,
+            "author_name": (creator.full_name or creator.email) if creator else None,
+        })
+
+    return {
+        "scenarios": scenario_summaries,
+        "total_count": len(all_scenarios),
+        "result_count": len(filtered),
+        "available_categories": available_categories,
+        "category_labels": CATEGORY_LABELS,
+        "available_tags": [{"id": t.id, "name": t.name, "slug": t.slug} for t in available_tags],
+        "selected_category": category_filter or "",
+        "selected_tag_slugs": tag_slugs,
+        "keyword": keyword,
+    }
+
+
 def build_reports_index_view_model() -> list[dict]:
     training_sessions = TrainingSession.query.order_by(
         TrainingSession.created_at.desc(),

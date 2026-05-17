@@ -28,6 +28,7 @@ from helpers import (
     append_admin_audit_log,
     apply_scenario_transition_or_abort,
     build_host_board_workspace_view_model,
+    build_public_library_view_model,
     build_participant_submission_state,
     build_revealed_submission_view_model,
     build_scenario_vote_state_map,
@@ -538,6 +539,21 @@ def review_scenario_for_official():
 
     db.session.commit()
     return redirect(safe_redirect_target(request.form.get("next")))
+
+
+@scenarios_bp.get("/library")
+def public_scenario_library():
+    """Public scenario library — accessible to guests and account holders."""
+    db_user = get_current_db_user()
+    category = request.args.get("category", "").strip()
+    tag_slugs = [s.strip() for s in request.args.getlist("tag") if s.strip()]
+    keyword = request.args.get("q", "").strip()[:100]
+    library = build_public_library_view_model(db_user, category or None, tag_slugs, keyword)
+    return render_template(
+        "public_library.html",
+        library=library,
+        is_authenticated=(db_user is not None),
+    )
 
 
 @scenarios_bp.get("/scenarios/official-queue")

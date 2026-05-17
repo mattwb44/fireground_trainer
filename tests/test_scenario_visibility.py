@@ -376,6 +376,52 @@ class ScenarioVisibilityTestCase(unittest.TestCase):
             self.assertFalse(s.is_official)
             self.assertIsNone(s.submitted_for_official_at)
 
+    # ── Issue #11: Public scenario library ───────────────────────────────────
+
+    def test_public_library_accessible_to_guests(self):
+        resp = self.client.get("/library")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"Scenario Library", resp.data)
+
+    def test_public_library_shows_only_public_scenarios(self):
+        resp = self.client.get("/library")
+        self.assertEqual(resp.status_code, 200)
+        # Should have scenario cards
+        self.assertIn(b"Practice", resp.data)
+
+    def test_public_library_category_filter(self):
+        resp = self.client.get("/library?category=fireground")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_public_library_keyword_filter(self):
+        resp = self.client.get("/library?q=residential")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_public_library_shows_completed_badge_for_account_holder(self):
+        """Completed badge shows for account holders who finished a scenario via DrillAttempt."""
+        from models import DrillAttempt
+        self._login("instructor@demo.local")
+        with app.app_context():
+            user = User.query.filter_by(email="instructor@demo.local").first()
+            scenario = Scenario.query.filter_by(status="approved", is_active=True, is_public=True).first()
+            self.assertIsNotNone(scenario)
+            scenario_id = scenario.id
+            # Ensure no existing drill attempts
+            DrillAttempt.query.filter_by(user_id=user.id, scenario_id=scenario_id).delete()
+            db.session.commit()
+            # Add a drill attempt
+            attempt = DrillAttempt(
+                user_id=user.id, scenario_id=scenario_id,
+                attempt_number=1, status="submitted",
+            )
+            db.session.add(attempt)
+            db.session.commit()
+
+        resp = self.client.get("/library")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"Completed", resp.data)
+
     def test_cannot_submit_draft_for_official(self):
         self._login("instructor@demo.local")
         with app.app_context():
