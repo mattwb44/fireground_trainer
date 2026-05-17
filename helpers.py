@@ -40,6 +40,7 @@ from models import (
     MagicLoginToken,
     Participant,
     Question,
+    QuestionChoice,
     Role,
     Scenario,
     ScenarioLike,
@@ -620,6 +621,19 @@ def load_visible_scenarios_for_user(current_user: CurrentUser, db_user: User | N
     return query.filter(or_(*conditions)).all()
 
 
+def _get_forked_from_author(scenario: Scenario) -> str | None:
+    """Return the original creator's display name for a forked scenario."""
+    if scenario.forked_from_scenario_id is None:
+        return None
+    original = Scenario.query.filter_by(id=scenario.forked_from_scenario_id).first()
+    if original is None:
+        return None
+    creator = original.created_by
+    if creator is None:
+        return None
+    return creator.full_name or creator.email
+
+
 def build_scenario_view_model(scenario: Scenario) -> dict:
     return {
         "id": scenario.id,
@@ -656,6 +670,8 @@ def build_scenario_view_model(scenario: Scenario) -> dict:
         "workflow_status": scenario.status,
         "is_official": scenario.is_official,
         "submitted_for_official_at": getattr(scenario, "submitted_for_official_at", None),
+        "forked_from_scenario_id": scenario.forked_from_scenario_id,
+        "forked_from_author": _get_forked_from_author(scenario),
         "submitted_at": scenario.submitted_at,
         "approved_at": scenario.approved_at,
         "archived_at": scenario.archived_at,
@@ -2277,6 +2293,56 @@ def build_host_board_workspace_view_model(training_session: "TrainingSession") -
         "review_summary": build_host_review_summary(question_rows),
         "revealed_answers": build_revealed_submission_view_model(training_session),
     }
+
+
+def fork_scenario_for_department(
+    original: Scenario,
+    adopting_user: User,
+) -> Scenario:
+    """Clone a scenario into the adopting user's department as a new draft."""
+    forked = Scenario(
+        title=original.title,
+        dispatch_text=original.dispatch_text,
+        base_image_path=original.base_image_path,
+        overlay_image_path=original.overlay_image_path,
+        created_by_user_id=adopting_user.id,
+        status=SCENARIO_STATUS_DRAFT,
+        is_official=False,
+        is_active=True,
+        is_public=False,
+        training_category=original.training_category,
+        department_id=adopting_user.department_id,
+        forked_from_scenario_id=original.id,
+    )
+    db.session.add(forked)
+    db.session.flush()
+
+    for question in sorted(original.questions, key=lambda q: q.sort_order):
+        if not question.is_active:
+            continue
+        new_q = Question(
+            scenario_id=forked.id,
+            question_key=question.question_key,
+            prompt=question.prompt,
+            question_type=question.question_type,
+            instructor_answer=question.instructor_answer,
+            sort_order=question.sort_order,
+            is_active=True,
+        )
+        db.session.add(new_q)
+        db.session.flush()
+
+        # Copy MC choices
+        for choice in sorted(getattr(question, "choices", []), key=lambda c: c.sort_order):
+            db.session.add(QuestionChoice(
+                question_id=new_q.id,
+                choice_text=choice.choice_text,
+                is_correct=choice.is_correct,
+                sort_order=choice.sort_order,
+            ))
+
+    db.session.commit()
+    return forked
 
 
 def get_drill_completed_scenario_ids_for_user(

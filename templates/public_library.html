@@ -228,6 +228,14 @@
                 {% if current_user.has_permission(permission_keys.create_sessions) %}
                   <a href="{{ url_for('sessions.new_training_session_page', scenario_id=scenario.id) }}" style="padding:8px 14px; border-radius:8px; background:var(--site-blue-soft); color:var(--site-blue); font-weight:700; font-size:0.88rem; text-decoration:none; white-space:nowrap;">Start Session</a>
                 {% endif %}
+                {% if current_user.has_permission(permission_keys.create_scenarios) %}
+                  <form method="post" action="{{ url_for('scenarios.adopt_scenario_for_department') }}" style="margin:0;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+                    <input type="hidden" name="next" value="{{ url_for('scenarios.public_scenario_library') }}">
+                    <button type="submit" style="padding:8px 14px; border-radius:8px; border:0; background:rgba(255,255,255,0.08); color:var(--site-muted); font-weight:700; cursor:pointer; font-size:0.88rem;">Adopt for Dept</button>
+                  </form>
+                {% endif %}
               </div>
             </div>
           </article>

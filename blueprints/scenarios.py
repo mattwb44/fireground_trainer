@@ -29,6 +29,7 @@ from helpers import (
     apply_scenario_transition_or_abort,
     build_host_board_workspace_view_model,
     build_public_library_view_model,
+    fork_scenario_for_department,
     build_participant_submission_state,
     build_revealed_submission_view_model,
     build_scenario_vote_state_map,
@@ -625,6 +626,38 @@ def review_scenario_for_official():
 
     db.session.commit()
     return redirect(safe_redirect_target(request.form.get("next")))
+
+
+@scenarios_bp.post("/scenario/adopt")
+@requires_permission(PERM_CREATE_SCENARIOS)
+def adopt_scenario_for_department():
+    """Fork a public scenario into the instructor's department as a new draft."""
+    validate_csrf_or_abort()
+    scenario = get_posted_scenario_or_abort()
+    actor = get_current_db_user()
+    if actor is None:
+        abort(403)
+    if actor.department_id is None:
+        flash("You must be a member of a department to adopt scenarios.", "warning")
+        return redirect(safe_redirect_target(request.form.get("next")))
+
+    # Only public/approved scenarios can be adopted
+    if not scenario.is_public or scenario.status != "approved":
+        abort(409)
+
+    forked = fork_scenario_for_department(original=scenario, adopting_user=actor)
+    append_admin_audit_log(
+        actor=actor,
+        action="adopt_scenario",
+        target_type="scenario",
+        target_id=forked.id,
+        target_label=forked.title,
+        details=f"Forked from scenario #{scenario.id}.",
+    )
+    # Note: fork_scenario_for_department already committed
+    flash(f"Scenario adopted as a new draft in your department library.", "success")
+    session["scenario_id"] = forked.id
+    return redirect(url_for("main.board"))
 
 
 @scenarios_bp.get("/library")

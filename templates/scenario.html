@@ -507,6 +507,11 @@
 
     {# Title and dispatch #}
     <h1 style="margin:0 0 6px; font-size:1.4rem; line-height:1.2;">{{ scenario.title }}</h1>
+    {% if scenario.forked_from_author %}
+      <div style="font-size:0.82rem; color:rgba(255,210,218,0.55); margin-bottom:6px;">
+        Based on a scenario by <strong>{{ scenario.forked_from_author }}</strong>
+      </div>
+    {% endif %}
     <p style="margin:0 0 14px; line-height:1.5; color:rgba(255,210,218,0.85); font-size:0.97rem;">
       {{ scenario.dispatch }}
     </p>
@@ -595,6 +600,14 @@
             style="display:inline-block; padding:5px 12px; border-radius:8px; text-decoration:none; background:#1e3a5f; color:#bfdbfe; font-weight:800; font-size:0.82rem;">
             Start Session
           </a>
+        {% endif %}
+        {% if current_user.has_permission(permission_keys.create_scenarios) and scenario.workflow_status == 'approved' and not scenario.forked_from_scenario_id %}
+          <form method="post" action="{{ url_for('scenarios.adopt_scenario_for_department') }}" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+            <input type="hidden" name="next" value="{{ url_for('main.board') }}">
+            <button type="submit" class="btn-muted" style="margin:0; padding:5px 12px; font-size:0.82rem;">Adopt for My Department</button>
+          </form>
         {% endif %}
       </div>
     </div>

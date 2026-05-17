@@ -1998,6 +1998,84 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
     # ── Issue #7: Solo drill for guests with localStorage preservation ─────────
 
+    # ── Issue #12: Adopt for My Department ───────────────────────────────────
+
+    def test_instructor_with_department_can_adopt_scenario(self):
+        """Instructor in a department can fork a public scenario."""
+        with app.app_context():
+            from models import Department, User as _User, UserRole as _UserRole
+            # Ensure instructor has a department
+            dept = Department(name="Fork Test Dept", invite_code="FORKDEPT1")
+            db.session.add(dept)
+            db.session.flush()
+            instructor = _User.query.filter_by(email="instructor@demo.local").first()
+            instructor.department_id = dept.id
+            db.session.commit()
+            scenario = Scenario.query.filter_by(status="approved", is_active=True, is_public=True).first()
+            self.assertIsNotNone(scenario)
+            scenario_id = scenario.id
+            dept_id = dept.id
+            instructor_id = instructor.id
+
+        self._login_as_instructor()
+        resp = self.client.post(
+            "/scenario/adopt",
+            data={
+                "csrf_token": self.csrf_token,
+                "scenario_id": str(scenario_id),
+                "next": "/board",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 302)
+
+        with app.app_context():
+            forked = Scenario.query.filter_by(forked_from_scenario_id=scenario_id).first()
+            self.assertIsNotNone(forked)
+            self.assertEqual(forked.status, "draft")
+            self.assertEqual(forked.created_by_user_id, instructor_id)
+            self.assertEqual(forked.department_id, dept_id)
+            self.assertFalse(forked.is_official)
+            # Questions should be copied
+            original = Scenario.query.get(scenario_id)
+            self.assertEqual(
+                len([q for q in forked.questions if q.is_active]),
+                len([q for q in original.questions if q.is_active]),
+            )
+
+    def test_instructor_without_department_cannot_adopt(self):
+        """Instructor without a department gets a warning flash, not an error."""
+        with app.app_context():
+            from models import Scenario as _Scenario
+            instructor = User.query.filter_by(email="instructor@demo.local").first()
+            instructor.department_id = None
+            db.session.commit()
+            # Create a fresh scenario that hasn't been forked yet
+            base_scenario = _Scenario(
+                title="No-Fork Test Scenario", dispatch_text="Test dispatch.",
+                base_image_path="images/house1.jpg", status="approved",
+                is_active=True, is_public=True, is_official=False,
+            )
+            db.session.add(base_scenario)
+            db.session.commit()
+            scenario_id = base_scenario.id
+
+        self._login_as_instructor()
+        resp = self.client.post(
+            "/scenario/adopt",
+            data={
+                "csrf_token": self.csrf_token,
+                "scenario_id": str(scenario_id),
+                "next": "/board",
+            },
+            follow_redirects=False,
+        )
+        # Should redirect with a flash message, not a hard error
+        self.assertEqual(resp.status_code, 302)
+        with app.app_context():
+            forked = Scenario.query.filter_by(forked_from_scenario_id=scenario_id).first()
+            self.assertIsNone(forked)
+
     def test_guest_solo_submit_shows_instructor_answers(self):
         """After a guest submits, instructor answers should be revealed."""
         training_session = self._create_training_session()
