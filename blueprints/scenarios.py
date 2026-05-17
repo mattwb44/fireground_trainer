@@ -55,7 +55,7 @@ from helpers import (
     validate_csrf_or_abort,
     validate_submission_context,
 )
-from models import Question, Scenario
+from models import Question, Scenario, ScenarioTag, Tag
 
 scenarios_bp = Blueprint("scenarios", __name__)
 
@@ -251,6 +251,14 @@ def create_scenario():
                 is_active=True,
             )
         )
+
+    raw_tag_ids = [int(v) for v in request.form.getlist("tag_ids") if v.isdigit()]
+    if raw_tag_ids:
+        valid_tag_ids = {
+            t.id for t in Tag.query.filter(Tag.id.in_(raw_tag_ids), Tag.is_active.is_(True)).all()
+        }
+        for tag_id in valid_tag_ids:
+            db.session.add(ScenarioTag(scenario_id=scenario.id, tag_id=tag_id))
 
     append_admin_audit_log(
         actor=current_db_user,

@@ -1,10 +1,10 @@
-from flask import Blueprint, redirect, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from werkzeug.security import generate_password_hash
 
 from authz import PERM_MANAGE_USERS, ROLE_PARTICIPANT, normalize_roles, requires_permission
 from extensions import db
-from helpers import append_admin_audit_log, get_current_db_user, render_admin_users, validate_csrf_or_abort
-from models import Role, User, UserRole
+from helpers import append_admin_audit_log, get_current_db_user, render_admin_users, slugify_tag, validate_csrf_or_abort
+from models import Role, Tag, User, UserRole
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -134,3 +134,68 @@ def admin_reset_user_password(user_id: int):
     )
     db.session.commit()
     return redirect(url_for("admin.admin_users"))
+
+
+# ── Tag management ───────────────────────────────────────────────────────────
+
+@admin_bp.get("/admin/tags")
+@requires_permission(PERM_MANAGE_USERS)
+def admin_tags():
+    tags = Tag.query.order_by(Tag.name).all()
+    return render_template("admin_tags.html", tags=tags, error=None)
+
+
+@admin_bp.post("/admin/tags/create")
+@requires_permission(PERM_MANAGE_USERS)
+def admin_create_tag():
+    validate_csrf_or_abort()
+    name = request.form.get("name", "").strip()
+    if not name:
+        tags = Tag.query.order_by(Tag.name).all()
+        return render_template("admin_tags.html", tags=tags, error="Tag name is required."), 400
+
+    slug = slugify_tag(name)
+    if not slug:
+        tags = Tag.query.order_by(Tag.name).all()
+        return render_template("admin_tags.html", tags=tags, error="Tag name produced an empty slug."), 400
+    if Tag.query.filter_by(slug=slug).first():
+        tags = Tag.query.order_by(Tag.name).all()
+        return render_template("admin_tags.html", tags=tags, error=f"A tag with slug '{slug}' already exists."), 409
+
+    db.session.add(Tag(name=name, slug=slug, is_active=True))
+    db.session.commit()
+    flash(f"Tag '{name}' created.", "success")
+    return redirect(url_for("admin.admin_tags"))
+
+
+@admin_bp.post("/admin/tags/<int:tag_id>/toggle")
+@requires_permission(PERM_MANAGE_USERS)
+def admin_toggle_tag(tag_id: int):
+    validate_csrf_or_abort()
+    tag = Tag.query.get_or_404(tag_id)
+    tag.is_active = not tag.is_active
+    db.session.commit()
+    state = "activated" if tag.is_active else "deactivated"
+    flash(f"Tag '{tag.name}' {state}.", "success")
+    return redirect(url_for("admin.admin_tags"))
+
+
+@admin_bp.post("/admin/tags/<int:tag_id>/rename")
+@requires_permission(PERM_MANAGE_USERS)
+def admin_rename_tag(tag_id: int):
+    validate_csrf_or_abort()
+    tag = Tag.query.get_or_404(tag_id)
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("Tag name is required.", "warning")
+        return redirect(url_for("admin.admin_tags"))
+    slug = slugify_tag(name)
+    existing = Tag.query.filter_by(slug=slug).first()
+    if existing and existing.id != tag.id:
+        flash(f"A tag with slug '{slug}' already exists.", "warning")
+        return redirect(url_for("admin.admin_tags"))
+    tag.name = name
+    tag.slug = slug
+    db.session.commit()
+    flash(f"Tag renamed to '{name}'.", "success")
+    return redirect(url_for("admin.admin_tags"))

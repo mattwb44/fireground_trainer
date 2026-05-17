@@ -448,6 +448,32 @@ def ensure_seed_scenarios() -> None:
     db.session.commit()
 
 
+_SEED_TAGS = [
+    ("Commercial Structure", "commercial-structure"),
+    ("Apartment Complex", "apartment-complex"),
+    ("Duplex", "duplex"),
+    ("Electric Vehicle", "electric-vehicle"),
+    ("Extrication", "extrication"),
+    ("Wildland Interface", "wildland-interface"),
+    ("High-Rise", "high-rise"),
+    ("Pediatric", "pediatric"),
+    ("Trauma", "trauma"),
+]
+
+
+def ensure_seed_tags() -> None:
+    from models import Tag
+    for name, slug in _SEED_TAGS:
+        if not Tag.query.filter_by(slug=slug).first():
+            db.session.add(Tag(name=name, slug=slug, is_active=True))
+    db.session.commit()
+
+
+def slugify_tag(name: str) -> str:
+    import re
+    return re.sub(r"[^a-z0-9-]", "", name.lower().replace(" ", "-").replace("/", "-"))
+
+
 def log_runtime_configuration_warnings() -> None:
     import sys
     from flask import current_app
@@ -746,6 +772,7 @@ def summarize_scenario_for_library(scenario: Scenario, vote_state: dict | None =
             if scenario.approved_by and scenario.approved_by.full_name
             else (scenario.approved_by.email if scenario.approved_by else None)
         ),
+        "tags": [link.tag.name for link in scenario.tag_links if link.tag.is_active],
     }
 
 
@@ -2526,6 +2553,7 @@ def update_submission_review_state(
 
 
 def render_create_scenario(error: str | None = None, status_code: int = 200):
+    from models import Tag
     form_data = {
         "title": request.form.get("title", "").strip() if request.method == "POST" else "",
         "dispatch": request.form.get("dispatch", "").strip() if request.method == "POST" else "",
@@ -2538,6 +2566,9 @@ def render_create_scenario(error: str | None = None, status_code: int = 200):
         "is_official": request.form.get("is_official") == "on"
         if request.method == "POST"
         else False,
+        "selected_tag_ids": [
+            int(v) for v in request.form.getlist("tag_ids") if v.isdigit()
+        ] if request.method == "POST" else [],
     }
     if request.method == "POST":
         prompts = request.form.getlist("question_prompt")
@@ -2560,6 +2591,7 @@ def render_create_scenario(error: str | None = None, status_code: int = 200):
             {"prompt": "", "question_type": DEFAULT_QUESTION_TYPE, "instructor_answer": ""}
             for _ in range(4)
         ]
+    available_tags = Tag.query.filter_by(is_active=True).order_by(Tag.name).all()
     return (
         render_template(
             "scenario_create.html",
@@ -2568,6 +2600,7 @@ def render_create_scenario(error: str | None = None, status_code: int = 200):
             question_rows=question_rows,
             question_type_labels=QUESTION_TYPE_LABELS,
             default_question_type=DEFAULT_QUESTION_TYPE,
+            available_tags=available_tags,
         ),
         status_code,
     )

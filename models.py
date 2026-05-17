@@ -138,6 +138,36 @@ class Scenario(TimestampMixin, db.Model):
     likes = db.relationship(
         "ScenarioLike", back_populates="scenario", cascade="all, delete-orphan"
     )
+    tag_links = db.relationship(
+        "ScenarioTag", back_populates="scenario", cascade="all, delete-orphan"
+    )
+
+
+class Tag(TimestampMixin, db.Model):
+    __tablename__ = "tags"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False, unique=True)
+    slug = db.Column(db.String(80), nullable=False, unique=True, index=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True, index=True)
+
+    scenario_links = db.relationship(
+        "ScenarioTag", back_populates="tag", cascade="all, delete-orphan"
+    )
+
+
+class ScenarioTag(db.Model):
+    __tablename__ = "scenario_tags"
+
+    scenario_id = db.Column(
+        db.Integer, db.ForeignKey("scenarios.id", ondelete="CASCADE"), primary_key=True
+    )
+    tag_id = db.Column(
+        db.Integer, db.ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True
+    )
+
+    scenario = db.relationship("Scenario", back_populates="tag_links")
+    tag = db.relationship("Tag", back_populates="scenario_links")
 
 
 class ScenarioLike(TimestampMixin, db.Model):

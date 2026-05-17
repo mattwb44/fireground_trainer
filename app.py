@@ -36,7 +36,7 @@ from helpers import (  # noqa: F401
     normalize_static_asset_path,
     safe_redirect_target,
 )
-from helpers import build_runtime_config, ensure_seed_data, ensure_seed_scenarios, log_runtime_configuration_warnings
+from helpers import build_runtime_config, ensure_seed_data, ensure_seed_scenarios, ensure_seed_tags, log_runtime_configuration_warnings
 from models import (  # noqa: F401
     AccountActivationToken,
     AdminAuditLog,
@@ -49,10 +49,12 @@ from models import (  # noqa: F401
     Role,
     Scenario,
     ScenarioLike,
+    ScenarioTag,
     SessionQuestionReveal,
     Submission,
     SubmissionAnswer,
     SubmissionAuditLog,
+    Tag,
     TrainingSession,
     User,
     UserRole,
@@ -80,6 +82,7 @@ with app.app_context():
     db_upgrade()
     ensure_seed_data()
     ensure_seed_scenarios()
+    ensure_seed_tags()
     log_runtime_configuration_warnings()
 
 if __name__ == "__main__":

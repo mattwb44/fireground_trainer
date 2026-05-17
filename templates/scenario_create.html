@@ -49,6 +49,23 @@
           Mark as official scenario (still starts in Draft)
         </label>
       {% endif %}
+
+      {% if available_tags %}
+        <div>
+          <div style="font-weight:700; margin-bottom:6px;">Tags <span style="font-weight:400; color:var(--site-muted); font-size:0.88rem;">(optional — select all that apply)</span></div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            {% for tag in available_tags %}
+              <label style="display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:999px; border:1px solid var(--site-line); cursor:pointer;
+                {% if tag.id in form_data.selected_tag_ids %}background:var(--site-blue-soft); border-color:var(--site-blue);{% else %}background:rgba(255,255,255,0.04);{% endif %}">
+                <input type="checkbox" name="tag_ids" value="{{ tag.id }}"
+                  {% if tag.id in form_data.selected_tag_ids %}checked{% endif %}
+                  style="accent-color:var(--site-blue);">
+                {{ tag.name }}
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
     </section>
 
     <section class="theme-panel">

@@ -100,6 +100,13 @@
                 {% if scenario.approved_by %}
                   <div style="font-size:0.82rem; color:var(--site-muted);">Approved by {{ scenario.approved_by }}</div>
                 {% endif %}
+                {% if scenario.tags %}
+                  <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;">
+                    {% for tag in scenario.tags %}
+                      <span style="padding:2px 7px; border-radius:999px; background:var(--site-blue-soft); color:var(--site-blue-dark); font-size:0.78rem; font-weight:700;">{{ tag }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
               </td>
               <td style="padding:10px; border-bottom:1px solid var(--site-line);">{{ scenario.status_label }}</td>
               <td style="padding:10px; border-bottom:1px solid var(--site-line);">{{ scenario.question_label }}</td>
