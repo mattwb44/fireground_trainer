@@ -284,3 +284,115 @@ class ScenarioVisibilityTestCase(unittest.TestCase):
             s = Scenario.query.get(scenario_id)
             self.assertTrue(s.is_public)
             self.assertEqual(s.training_category, "fireground")
+
+    # ── Issue #10: Official designation workflow ──────────────────────────────
+
+    def _first_approved_scenario(self):
+        with app.app_context():
+            return Scenario.query.filter_by(status="approved", is_active=True).first()
+
+    def test_instructor_can_submit_approved_scenario_for_official(self):
+        self._login("instructor@demo.local")
+        with app.app_context():
+            scenario = Scenario.query.filter_by(status="approved", is_active=True).first()
+            self.assertIsNotNone(scenario, "Need at least one approved scenario")
+            scenario_id = scenario.id
+            # clear any existing official submission flag
+            scenario.submitted_for_official_at = None
+            scenario.is_official = False
+            db.session.commit()
+
+        resp = self.client.post(
+            "/scenario/submit-for-official",
+            data={"csrf_token": self.csrf, "scenario_id": str(scenario_id), "next": "/board"},
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 302)
+        with app.app_context():
+            s = Scenario.query.get(scenario_id)
+            self.assertIsNotNone(s.submitted_for_official_at)
+            self.assertFalse(s.is_official)
+
+    def test_tc_can_view_official_queue(self):
+        self._login("chief@demo.local")
+        resp = self.client.get("/scenarios/official-queue")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"Official Scenario Review Queue", resp.data)
+
+    def test_instructor_cannot_view_official_queue(self):
+        self._login("instructor@demo.local")
+        resp = self.client.get("/scenarios/official-queue")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_tc_can_approve_official_request(self):
+        with app.app_context():
+            from datetime import datetime
+            scenario = Scenario.query.filter_by(status="approved", is_active=True).first()
+            scenario.is_official = False
+            scenario.submitted_for_official_at = datetime.utcnow()
+            db.session.commit()
+            scenario_id = scenario.id
+
+        self._login("chief@demo.local")
+        resp = self.client.post(
+            "/scenario/official-review",
+            data={
+                "csrf_token": self.csrf,
+                "scenario_id": str(scenario_id),
+                "review_action": "approve",
+                "next": "/scenarios/official-queue",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 302)
+        with app.app_context():
+            s = Scenario.query.get(scenario_id)
+            self.assertTrue(s.is_official)
+            self.assertIsNone(s.submitted_for_official_at)
+
+    def test_tc_can_reject_official_request(self):
+        with app.app_context():
+            from datetime import datetime
+            scenario = Scenario.query.filter_by(status="approved", is_active=True).first()
+            scenario.is_official = False
+            scenario.submitted_for_official_at = datetime.utcnow()
+            db.session.commit()
+            scenario_id = scenario.id
+
+        self._login("chief@demo.local")
+        resp = self.client.post(
+            "/scenario/official-review",
+            data={
+                "csrf_token": self.csrf,
+                "scenario_id": str(scenario_id),
+                "review_action": "reject",
+                "next": "/scenarios/official-queue",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 302)
+        with app.app_context():
+            s = Scenario.query.get(scenario_id)
+            self.assertFalse(s.is_official)
+            self.assertIsNone(s.submitted_for_official_at)
+
+    def test_cannot_submit_draft_for_official(self):
+        self._login("instructor@demo.local")
+        with app.app_context():
+            scenario = Scenario.query.filter_by(status="draft", is_active=True).first()
+            if scenario is None:
+                # Create a draft scenario
+                scenario = Scenario(
+                    title="Draft Scenario", dispatch_text="Test", base_image_path="images/house1.jpg",
+                    status="draft", is_active=True,
+                )
+                db.session.add(scenario)
+                db.session.commit()
+            scenario_id = scenario.id
+
+        resp = self.client.post(
+            "/scenario/submit-for-official",
+            data={"csrf_token": self.csrf, "scenario_id": str(scenario_id)},
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 409)

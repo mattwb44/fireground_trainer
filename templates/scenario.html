@@ -571,6 +571,16 @@
             <button type="submit" class="btn-muted" style="margin:0; padding:5px 12px; font-size:0.82rem;">Make Official</button>
           </form>
         {% endif %}
+        {% if current_user.has_permission(permission_keys.create_scenarios) and not current_user.has_permission(permission_keys.approve_scenarios) and scenario.workflow_status == 'approved' and not scenario.is_official and not scenario.submitted_for_official_at %}
+          <form method="post" action="{{ url_for('scenarios.submit_scenario_for_official') }}" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+            <input type="hidden" name="next" value="{{ url_for('main.board') }}">
+            <button type="submit" class="btn-muted" style="margin:0; padding:5px 12px; font-size:0.82rem;">Submit for Official</button>
+          </form>
+        {% elif scenario.submitted_for_official_at and not scenario.is_official %}
+          <span class="pill blue" style="margin:0;">Pending Official Review</span>
+        {% endif %}
         {% if current_user.has_permission(permission_keys.approve_scenarios) and scenario.is_official %}
           <form method="post" action="{{ url_for('scenarios.set_scenario_official_status') }}" style="margin:0;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

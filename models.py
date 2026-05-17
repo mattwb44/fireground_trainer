@@ -119,6 +119,7 @@ class Scenario(TimestampMixin, db.Model):
     approved_at = db.Column(db.DateTime, nullable=True)
     archived_at = db.Column(db.DateTime, nullable=True)
     is_official = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    submitted_for_official_at = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     like_count = db.Column(db.Integer, nullable=False, default=0, index=True)
     is_public = db.Column(db.Boolean, nullable=False, default=False, index=True)

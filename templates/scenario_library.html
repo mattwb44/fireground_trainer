@@ -47,6 +47,9 @@
       {% if can_create_scenarios %}
         | <a href="{{ url_for('scenarios.new_scenario_page') }}">Create scenario</a>
       {% endif %}
+      {% if can_manage_official %}
+        | <a href="{{ url_for('scenarios.official_review_queue') }}">Official Review Queue</a>
+      {% endif %}
     </p>
   </section>
 

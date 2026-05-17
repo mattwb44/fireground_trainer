@@ -644,6 +644,7 @@ def build_scenario_view_model(scenario: Scenario) -> dict:
         ],
         "workflow_status": scenario.status,
         "is_official": scenario.is_official,
+        "submitted_for_official_at": getattr(scenario, "submitted_for_official_at", None),
         "submitted_at": scenario.submitted_at,
         "approved_at": scenario.approved_at,
         "archived_at": scenario.archived_at,
@@ -797,6 +798,7 @@ def summarize_scenario_for_library(scenario: Scenario, vote_state: dict | None =
         ),
         "tags": [link.tag.name for link in scenario.tag_links if link.tag.is_active],
         "is_public": scenario.is_public,
+        "submitted_for_official_at": getattr(scenario, "submitted_for_official_at", None),
         "visibility_label": (
             "Public" if scenario.is_public
             else ("Department" if scenario.department_id else "Private")

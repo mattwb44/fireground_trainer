@@ -446,6 +446,7 @@ def set_scenario_official_status():
         if scenario.status != "approved":
             abort(409)
         scenario.is_official = True
+        scenario.submitted_for_official_at = None
     elif action == "remove":
         scenario.is_official = False
     else:
@@ -462,6 +463,101 @@ def set_scenario_official_status():
     db.session.commit()
     session["scenario_id"] = scenario.id
     return redirect(safe_redirect_target(request.form.get("next")))
+
+
+@scenarios_bp.post("/scenario/submit-for-official")
+@requires_permission(PERM_CREATE_SCENARIOS)
+def submit_scenario_for_official():
+    """Instructor/TC submits a published scenario for official designation review."""
+    from datetime import datetime
+    validate_csrf_or_abort()
+    scenario = get_posted_scenario_or_abort()
+    actor = get_current_db_user()
+
+    if scenario.status != "approved":
+        abort(409)
+    if scenario.is_official:
+        abort(409)
+    if scenario.submitted_for_official_at is not None:
+        abort(409)
+
+    scenario.submitted_for_official_at = datetime.utcnow()
+    append_admin_audit_log(
+        actor=actor,
+        action="submit_scenario_for_official",
+        target_type="scenario",
+        target_id=scenario.id,
+        target_label=scenario.title,
+        details="Submitted for official designation review.",
+    )
+    db.session.commit()
+    flash("Scenario submitted for official review.", "success")
+    return redirect(safe_redirect_target(request.form.get("next")))
+
+
+@scenarios_bp.post("/scenario/official-review")
+@requires_permission(PERM_APPROVE_SCENARIOS)
+def review_scenario_for_official():
+    """TC approves or rejects a scenario's request for official designation."""
+    from datetime import datetime
+    validate_csrf_or_abort()
+    scenario = get_posted_scenario_or_abort()
+    action = request.form.get("review_action", "").strip()
+    actor = get_current_db_user()
+
+    if scenario.submitted_for_official_at is None:
+        abort(409)
+
+    if action == "approve":
+        if scenario.status != "approved":
+            abort(409)
+        scenario.is_official = True
+        scenario.submitted_for_official_at = None
+        append_admin_audit_log(
+            actor=actor,
+            action="approve_scenario_official",
+            target_type="scenario",
+            target_id=scenario.id,
+            target_label=scenario.title,
+            details="Official designation approved.",
+        )
+        flash("Scenario marked as official.", "success")
+    elif action == "reject":
+        scenario.submitted_for_official_at = None
+        append_admin_audit_log(
+            actor=actor,
+            action="reject_scenario_official",
+            target_type="scenario",
+            target_id=scenario.id,
+            target_label=scenario.title,
+            details="Official designation rejected.",
+        )
+        flash("Official designation request rejected.", "info")
+    else:
+        abort(400)
+
+    db.session.commit()
+    return redirect(safe_redirect_target(request.form.get("next")))
+
+
+@scenarios_bp.get("/scenarios/official-queue")
+@requires_permission(PERM_APPROVE_SCENARIOS)
+def official_review_queue():
+    """TC sees all scenarios pending official designation."""
+    pending = (
+        Scenario.query.filter(
+            Scenario.submitted_for_official_at.isnot(None),
+            Scenario.is_official.is_(False),
+            Scenario.status == "approved",
+            Scenario.is_active.is_(True),
+        )
+        .order_by(Scenario.submitted_for_official_at.asc())
+        .all()
+    )
+    return render_template(
+        "official_review_queue.html",
+        pending_scenarios=pending,
+    )
 
 
 @scenarios_bp.post("/scenario/visibility")
