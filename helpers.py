@@ -336,6 +336,7 @@ def role_label(role_name: str) -> str:
 def ensure_seed_data() -> None:
     from flask import current_app
 
+    # Roles are always seeded — the app cannot function without them.
     role_specs = [
         (ROLE_PARTICIPANT, "Can join training and submit answers."),
         (ROLE_INSTRUCTOR, "Can create sessions/scenarios and review answers."),
@@ -351,6 +352,11 @@ def ensure_seed_data() -> None:
             db.session.add(role)
             db.session.flush()
         role_by_name[role_name] = role
+
+    # Demo staff accounts are optional — skip when the flag is disabled.
+    if not current_app.config.get("ENABLE_DEMO_SEED_USERS"):
+        db.session.commit()
+        return
 
     default_password = current_app.config["DEMO_BOOTSTRAP_PASSWORD"]
     seeded_users = [
@@ -388,6 +394,12 @@ def ensure_seed_data() -> None:
 
 
 def ensure_seed_scenarios() -> None:
+    from flask import current_app
+
+    # Skip entirely when demo scenario seeding is disabled.
+    if not current_app.config.get("ENABLE_DEMO_SEED_SCENARIOS"):
+        return
+
     existing_count = Scenario.query.count()
     if existing_count > 0:
         # Mark legacy seeded scenarios as official.
@@ -437,7 +449,30 @@ def ensure_seed_scenarios() -> None:
 
 
 def log_runtime_configuration_warnings() -> None:
-    pass
+    import sys
+    from flask import current_app
+
+    warnings = []
+
+    if current_app.config.get("SECRET_KEY") == "dev-secret-change-me":
+        warnings.append("SECRET_KEY is set to the insecure default. Set a unique value before any real use.")
+    if current_app.config.get("RUN_DEBUG"):
+        warnings.append("RUN_DEBUG is enabled. Set RUN_DEBUG=0 before running a real session.")
+    if current_app.config.get("ENABLE_MAGIC_LINK_DEBUG"):
+        warnings.append("ENABLE_MAGIC_LINK_DEBUG is on — magic link tokens are visible in the UI.")
+    if current_app.config.get("ENABLE_ACCOUNT_ACTIVATION_DEBUG"):
+        warnings.append("ENABLE_ACCOUNT_ACTIVATION_DEBUG is on — activation links are visible in the UI.")
+
+    if not warnings:
+        return
+
+    border = "=" * 62
+    print(f"\n{border}", file=sys.stderr)
+    print("  Fireground Trainer — startup warnings", file=sys.stderr)
+    print(border, file=sys.stderr)
+    for msg in warnings:
+        print(f"  ⚠  {msg}", file=sys.stderr)
+    print(f"{border}\n", file=sys.stderr)
 
 
 TRUE_ENV_VALUES = frozenset({"1", "true", "yes", "on"})
@@ -480,7 +515,7 @@ def build_runtime_config(instance_path: str) -> dict:
         "SESSION_COOKIE_SECURE": env_flag("SESSION_COOKIE_SECURE", False),
         "RUN_HOST": os.getenv("RUN_HOST", "0.0.0.0").strip() or "0.0.0.0",
         "RUN_PORT": env_int("RUN_PORT", 5000),
-        "RUN_DEBUG": env_flag("RUN_DEBUG", True),
+        "RUN_DEBUG": env_flag("RUN_DEBUG", False),
     }
 
 
@@ -783,16 +818,27 @@ def summarize_scenario_for_catalog(scenario: Scenario, vote_state: dict | None =
     question_count = len([question for question in scenario.questions if question.is_active])
     dispatch_summary = " ".join((scenario.dispatch_text or "").split())
     like_count = vote_state.get("like_count", scenario.like_count or 0)
+    creator_filter_label = scenario_creator_filter_label(scenario)
+    creator = scenario.created_by
+    author_name = (
+        (creator.full_name or creator.email) if creator is not None else None
+    )
+    status_label = (scenario.status or "").replace("_", " ").title()
     return {
         "id": scenario.id,
         "title": scenario.title,
         "dispatch_summary": dispatch_summary[:180] + ("..." if len(dispatch_summary) > 180 else ""),
         "question_count": question_count,
+        "question_label": f"{question_count} question{'s' if question_count != 1 else ''}",
         "updated_at": scenario.updated_at,
+        "updated_at_label": format_relative_date(scenario.updated_at),
         "is_official": scenario.is_official,
         "creator_filter_key": scenario_creator_filter_key(scenario),
-        "creator_filter_label": scenario_creator_filter_label(scenario),
+        "creator_filter_label": creator_filter_label,
+        "author_label": creator_filter_label,
+        "author_name": author_name,
         "status": scenario.status,
+        "status_label": status_label,
         "like_count": like_count,
         "likes_label": f"{like_count} like{'s' if like_count != 1 else ''}",
         "popularity_label": format_scenario_popularity_label(like_count),
@@ -874,7 +920,7 @@ def build_participant_submission_state(scenario_row) -> dict:
         (submission.attempt_number for submission in participant.submissions),
         default=0,
     )
-    identity_label = "Anonymous" if participant.is_anonymous else (participant.display_name or "Named")
+    identity_label = "Anonymous" if participant.is_anonymous else (participant.display_name or "Participant")
     base_state = {
         "session_title": training_session.title or f"Session #{training_session.id}",
         "join_code": training_session.join_code,
@@ -960,23 +1006,37 @@ def build_training_category_page(
     selected_filter: str,
     db_user: User | None,
 ) -> dict:
-    scenarios = load_category_scenarios(category_key, selected_filter)
-    featured_source_scenarios = load_category_scenarios(category_key, CATEGORY_FILTER_ALL)
-    vote_state_map = build_scenario_vote_state_map(featured_source_scenarios, db_user)
-    filter_options = [
-        {"key": key, "label": label}
-        for key, label in CATEGORY_FILTER_LABELS.items()
-    ]
+    # Fetch once — filter in Python to avoid a second DB round-trip.
+    all_scenarios = load_category_scenarios(category_key, CATEGORY_FILTER_ALL)
+    if selected_filter == CATEGORY_FILTER_ALL:
+        scenarios = all_scenarios
+    else:
+        scenarios = [
+            s for s in all_scenarios
+            if scenario_creator_filter_key(s) == selected_filter
+        ]
+
+    vote_state_map = build_scenario_vote_state_map(all_scenarios, db_user)
+
+    # Build filter options with per-filter counts.
+    filter_options = []
+    for key, label in CATEGORY_FILTER_LABELS.items():
+        if key == CATEGORY_FILTER_ALL:
+            count = len(all_scenarios)
+        else:
+            count = sum(1 for s in all_scenarios if scenario_creator_filter_key(s) == key)
+        filter_options.append({"key": key, "label": label, "count": count})
+
     is_placeholder = category_key in {CATEGORY_MVA, CATEGORY_EMS}
-    category_label = CATEGORY_LABELS[category_key]
     featured_scenarios = [
-        summarize_scenario_for_catalog(scenario, vote_state_map.get(scenario.id))
-        for scenario in featured_source_scenarios
-        if (scenario.like_count or 0) > 0
+        summarize_scenario_for_catalog(s, vote_state_map.get(s.id))
+        for s in all_scenarios
+        if (s.like_count or 0) > 0
     ][:3]
+
     return {
         "key": category_key,
-        "label": category_label,
+        "label": CATEGORY_LABELS[category_key],
         "description": {
             CATEGORY_FIREGROUND: (
                 "Choose a fireground scenario, filter by who created it, and send the board live when you are ready."
@@ -989,11 +1049,14 @@ def build_training_category_page(
             ),
         }[category_key],
         "selected_filter": selected_filter,
+        "active_filter_label": CATEGORY_FILTER_LABELS[selected_filter],
         "filter_options": filter_options,
+        "total_count": len(all_scenarios),
+        "result_count": len(scenarios),
         "featured_scenarios": featured_scenarios,
         "scenarios": [
-            summarize_scenario_for_catalog(scenario, vote_state_map.get(scenario.id))
-            for scenario in scenarios
+            summarize_scenario_for_catalog(s, vote_state_map.get(s.id))
+            for s in scenarios
         ],
         "is_placeholder": is_placeholder,
     }
@@ -1669,6 +1732,29 @@ def persist_submission(
     return submission, None
 
 
+def format_relative_date(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    delta = datetime.utcnow() - value
+    days = delta.days
+    if days < 0:
+        return "just now"
+    if days == 0:
+        return "today"
+    if days == 1:
+        return "yesterday"
+    if days < 7:
+        return f"{days} days ago"
+    if days < 30:
+        weeks = days // 7
+        return f"{weeks} week{'s' if weeks != 1 else ''} ago"
+    if days < 365:
+        months = days // 30
+        return f"{months} month{'s' if months != 1 else ''} ago"
+    years = days // 365
+    return f"{years} year{'s' if years != 1 else ''} ago"
+
+
 def format_submission_timestamp(value: datetime | None) -> str | None:
     if value is None:
         return None
@@ -1755,16 +1841,17 @@ def build_session_question_review_view_model(training_session: TrainingSession) 
         for question in sorted(training_session.scenario.questions, key=lambda item: item.sort_order)
         if question.is_active
     ]
-    reveal_by_question_id = {
-        reveal.question_id: reveal
-        for reveal in training_session.revealed_question_answers
-        if reveal.submission_answer is not None
-    }
+    revealed_answer_ids_by_question: dict[int, set[int]] = {}
+    for reveal in training_session.revealed_question_answers:
+        if reveal.submission_answer is not None:
+            revealed_answer_ids_by_question.setdefault(reveal.question_id, set()).add(
+                reveal.submission_answer_id
+            )
 
     question_rows: list[dict] = []
     for question in active_questions:
         answer_rows = []
-        current_reveal = reveal_by_question_id.get(question.id)
+        revealed_ids = revealed_answer_ids_by_question.get(question.id, set())
         status_counts = {"approved": 0, "flagged": 0, "excluded": 0, "pending": 0}
         for submission in latest_submissions:
             answer = next(
@@ -1797,10 +1884,7 @@ def build_session_question_review_view_model(training_session: TrainingSession) 
                     "status_label": format_submission_status(submission.status),
                     "status_tone": tone,
                     "is_excluded": submission.status == SUBMISSION_STATUS_EXCLUDED,
-                    "is_revealed": (
-                        current_reveal is not None
-                        and current_reveal.submission_answer_id == answer.id
-                    ),
+                    "is_revealed": answer.id in revealed_ids,
                     "review_notes": submission.notes or "",
                     "review_notes_preview": summarize_review_notes(submission.notes),
                     "has_notes": bool(submission.notes),
@@ -1823,8 +1907,9 @@ def build_session_question_review_view_model(training_session: TrainingSession) 
                     question.question_type or DEFAULT_QUESTION_TYPE,
                     QUESTION_TYPE_LABELS[DEFAULT_QUESTION_TYPE],
                 ),
+                "instructor_answer": question.instructor_answer,
                 "answer_rows": answer_rows,
-                "revealed_answer_count": 1 if current_reveal is not None else 0,
+                "revealed_answer_count": len(revealed_ids),
                 "status_counts": status_counts,
             }
         )
@@ -1839,19 +1924,35 @@ def build_revealed_submission_view_model(training_session: TrainingSession) -> d
         for question in sorted(training_session.scenario.questions, key=lambda item: item.sort_order)
         if question.is_active
     ]
-    reveal_by_question_id = {
-        reveal.question_id: reveal
-        for reveal in training_session.revealed_question_answers
-        if reveal.submission_answer is not None
-    }
-    has_revealed_answers = bool(reveal_by_question_id)
+    reveals_by_question_id: dict[int, list] = {}
+    for reveal in training_session.revealed_question_answers:
+        if reveal.submission_answer is not None:
+            reveals_by_question_id.setdefault(reveal.question_id, []).append(reveal)
+    has_revealed_answers = bool(reveals_by_question_id)
 
     question_rows = []
     for question in active_questions:
-        reveal = reveal_by_question_id.get(question.id)
-        answer = reveal.submission_answer if reveal is not None else None
-        submission = answer.submission if answer is not None else None
-        participant = submission.participant if submission is not None else None
+        reveals = reveals_by_question_id.get(question.id, [])
+        revealed_answers = []
+        for reveal in reveals:
+            answer = reveal.submission_answer
+            submission = answer.submission
+            participant = submission.participant
+            revealed_answers.append(
+                {
+                    "answer_text": answer.answer_text,
+                    "participant_label": (
+                        participant_labels.get(participant.id) if participant is not None else None
+                    ),
+                    "shift_label": (
+                        participant.shift_label or "Unspecified" if participant is not None else None
+                    ),
+                    "attempt_number": submission.attempt_number,
+                    "revealed_at_label": format_submission_timestamp(
+                        reveal.updated_at or reveal.created_at
+                    ),
+                }
+            )
         question_rows.append(
             {
                 "question_id": question.id,
@@ -1860,24 +1961,8 @@ def build_revealed_submission_view_model(training_session: TrainingSession) -> d
                     question.question_type or DEFAULT_QUESTION_TYPE,
                     QUESTION_TYPE_LABELS[DEFAULT_QUESTION_TYPE],
                 ),
-                "is_revealed": answer is not None,
-                "answer_text": answer.answer_text if answer is not None else "",
-                "participant_label": (
-                    participant_labels.get(participant.id)
-                    if participant is not None
-                    else None
-                ),
-                "shift_label": (
-                    participant.shift_label or "Unspecified"
-                    if participant is not None
-                    else None
-                ),
-                "attempt_number": submission.attempt_number if submission is not None else None,
-                "revealed_at_label": (
-                    format_submission_timestamp(reveal.updated_at or reveal.created_at)
-                    if reveal is not None
-                    else None
-                ),
+                "is_revealed": bool(revealed_answers),
+                "revealed_answers": revealed_answers,
             }
         )
 
@@ -2330,10 +2415,6 @@ def make_report_filename(training_session: TrainingSession, shift_label: str | N
 def clear_all_revealed_answers(training_session: TrainingSession) -> None:
     for reveal in list(training_session.revealed_question_answers):
         db.session.delete(reveal)
-    training_session.revealed_submission = None
-    training_session.revealed_submission_id = None
-    training_session.reveal_mode = None
-    training_session.revealed_at = None
 
 
 def set_revealed_answer_for_question(
@@ -2341,21 +2422,17 @@ def set_revealed_answer_for_question(
     question: Question,
     submission_answer: SubmissionAnswer | None,
 ) -> None:
-    existing_reveal = next(
-        (
-            reveal
-            for reveal in training_session.revealed_question_answers
-            if reveal.question_id == question.id
-        ),
-        None,
-    )
-
     if submission_answer is None:
-        if existing_reveal is not None:
-            db.session.delete(existing_reveal)
+        for reveal in list(training_session.revealed_question_answers):
+            if reveal.question_id == question.id:
+                db.session.delete(reveal)
         return
 
-    if existing_reveal is None:
+    already_revealed = any(
+        reveal.submission_answer_id == submission_answer.id
+        for reveal in training_session.revealed_question_answers
+    )
+    if not already_revealed:
         db.session.add(
             SessionQuestionReveal(
                 training_session_id=training_session.id,
@@ -2363,14 +2440,16 @@ def set_revealed_answer_for_question(
                 submission_answer_id=submission_answer.id,
             )
         )
-    else:
-        existing_reveal.submission_answer_id = submission_answer.id
 
-    # Legacy whole-submission fields no longer represent the mixed reveal state.
-    training_session.revealed_submission = None
-    training_session.revealed_submission_id = None
-    training_session.reveal_mode = None
-    training_session.revealed_at = None
+
+def remove_revealed_answer_for_question(
+    training_session: TrainingSession,
+    submission_answer: SubmissionAnswer,
+) -> None:
+    for reveal in list(training_session.revealed_question_answers):
+        if reveal.submission_answer_id == submission_answer.id:
+            db.session.delete(reveal)
+            return
 
 
 def clear_revealed_answers_for_submission(
@@ -2382,45 +2461,6 @@ def clear_revealed_answers_for_submission(
         if answer is not None and answer.submission_id == submission.id:
             db.session.delete(reveal)
 
-
-def set_revealed_submission(
-    training_session: TrainingSession,
-    submission: Submission | None,
-    reveal_mode: str | None,
-) -> None:
-    clear_all_revealed_answers(training_session)
-    if submission is None:
-        return
-
-    active_answers = [
-        answer
-        for answer in submission.answers
-        if answer.question is not None and answer.question.is_active
-    ]
-    for answer in active_answers:
-        set_revealed_answer_for_question(training_session, answer.question, answer)
-
-    training_session.revealed_submission = submission
-    training_session.revealed_submission_id = submission.id
-    training_session.reveal_mode = reveal_mode
-    training_session.revealed_at = datetime.utcnow()
-
-
-def choose_random_submission(training_session: TrainingSession) -> Submission | None:
-    import random
-    submissions = [
-        submission
-        for submission in training_session.submissions
-        if submission.status != SUBMISSION_STATUS_EXCLUDED
-    ]
-    if not submissions:
-        return None
-
-    current_revealed_id = training_session.revealed_submission_id
-    candidates = [submission for submission in submissions if submission.id != current_revealed_id]
-    if not candidates:
-        candidates = submissions
-    return random.choice(candidates)
 
 
 def can_view_revealed_answers_for_session(training_session_id: int) -> bool:
@@ -2478,8 +2518,6 @@ def update_submission_review_state(
         submission.approved_by_user_id = None
         if training_session is not None:
             clear_revealed_answers_for_submission(training_session, submission)
-            if training_session.revealed_submission_id == submission.id:
-                set_revealed_submission(training_session, None, reveal_mode=None)
         return
     if action == "reinstate":
         submission.status = SUBMISSION_STATUS_SUBMITTED

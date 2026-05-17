@@ -1,49 +1,18 @@
-{% if revealed_submission and revealed_submission.has_revealed_answers %}
-  <section style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:12px; padding:14px; background:linear-gradient(180deg, rgba(40, 15, 21, 0.96), rgba(21, 9, 12, 0.96));">
-    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
-      <div>
-        <h2 style="margin:0 0 6px; color:#f8eef0;">Live Revealed Answers</h2>
-        <p style="margin:0; color:#f0d8dd;">Each question can reveal a different participant answer as the host facilitates.</p>
-        <p style="margin:8px 0 0; color:#e6c7ce; font-size:0.92rem; line-height:1.5;">Keep this panel open during the drill. It refreshes while the session is active, and each card only updates when the host reveals something for that question.</p>
-      </div>
-    </div>
-
-    <div style="display:grid; gap:12px; margin-top:14px;">
-      {% for row in revealed_submission.question_rows %}
-        <article style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:10px; padding:12px; background:rgba(60, 20, 28, 0.72);">
-          <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
-            <div>
-              <div style="font-size:0.82rem; color:#e6c7ce;">{{ loop.index }}. {{ row.question_type_label }}</div>
-              <div style="margin-top:6px; font-weight:700; color:#f8fafc;">{{ row.prompt }}</div>
-            </div>
-            <div style="display:inline-block; padding:4px 8px; border-radius:999px; background:{% if row.is_revealed %}#183756{% else %}rgba(255,255,255,0.14){% endif %}; color:{% if row.is_revealed %}#cfe0ff{% else %}#f0d8dd{% endif %}; font-size:0.78rem; font-weight:700;">
-              {{ "Revealed Now" if row.is_revealed else "Waiting For Reveal" }}
-            </div>
+{% if revealed_submission %}
+  {% for row in revealed_submission.question_rows %}
+    <div data-question-id="{{ row.question_id }}">
+      {% if row.is_revealed %}
+        <details class="discussion-reveal" open>
+          <summary>Discussion &mdash; {{ row.revealed_answers | length }} answer{{ '' if row.revealed_answers | length == 1 else 's' }} revealed</summary>
+          <div class="discussion-answers">
+            {% for revealed in row.revealed_answers %}
+              <div class="discussion-answer-item">
+                <div class="discussion-answer-text">{{ revealed.answer_text or "No answer submitted." }}</div>
+              </div>
+            {% endfor %}
           </div>
-          {% if row.is_revealed %}
-            <div style="display:grid; gap:8px; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); margin-top:10px;">
-              <div style="padding:10px; border:1px solid rgba(255, 226, 231, 0.12); border-radius:10px; background:rgba(34, 12, 17, 0.92);">
-                <div style="font-size:0.74rem; color:#e6c7ce; text-transform:uppercase; letter-spacing:0.08em;">Revealed Participant</div>
-                <div style="margin-top:5px; color:#ecfeff; font-weight:700;">{{ row.participant_label }}</div>
-              </div>
-              <div style="padding:10px; border:1px solid rgba(255, 226, 231, 0.12); border-radius:10px; background:rgba(34, 12, 17, 0.92);">
-                <div style="font-size:0.74rem; color:#e6c7ce; text-transform:uppercase; letter-spacing:0.08em;">Shift And Attempt</div>
-                <div style="margin-top:5px; color:#ecfeff; font-weight:700;">Shift {{ row.shift_label }} | Attempt #{{ row.attempt_number }}</div>
-              </div>
-            </div>
-            <div style="margin-top:8px; font-size:0.84rem; color:#e6c7ce;">Revealed {{ row.revealed_at_label }}</div>
-            <div style="margin-top:8px; white-space:pre-wrap; line-height:1.45; color:#fff7f8;">{{ row.answer_text or "No answer submitted." }}</div>
-          {% else %}
-            <div style="margin-top:8px; color:#e6c7ce;">The host has not revealed an answer for this question yet.</div>
-          {% endif %}
-        </article>
-      {% endfor %}
+        </details>
+      {% endif %}
     </div>
-  </section>
-{% elif active_training_session %}
-  <section style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:12px; padding:14px; background:linear-gradient(180deg, rgba(40, 15, 21, 0.96), rgba(21, 9, 12, 0.96));">
-    <h2 style="margin:0 0 6px;">Live Revealed Answers</h2>
-    <p style="margin:0; color:#e6c7ce;">No answers have been revealed for this session yet.</p>
-    <p style="margin:8px 0 0; color:#f0d8dd; line-height:1.5;">Keep this panel open during the session. When the host reveals an answer, it will appear here under the matching question.</p>
-  </section>
+  {% endfor %}
 {% endif %}

@@ -23,7 +23,6 @@ from helpers import (
     build_submission_detail_view_model,
     can_use_scenario_for_session,
     can_view_revealed_answers_for_session,
-    choose_random_submission,
     clear_all_revealed_answers,
     get_current_db_user,
     get_joined_participant_for_session,
@@ -36,8 +35,8 @@ from helpers import (
     safe_redirect_target,
     set_active_participant_context,
     set_host_training_session_context,
+    remove_revealed_answer_for_question,
     set_revealed_answer_for_question,
-    set_revealed_submission,
     update_submission_review_state,
     validate_csrf_or_abort,
 )
@@ -175,73 +174,6 @@ def training_session_workspace_partial(session_id: int):
     )
 
 
-@sessions_bp.post("/sessions/<int:session_id>/reveal")
-@requires_permission(PERM_SHARE_REVIEW_ANSWER)
-def reveal_submission_for_session(session_id: int):
-    validate_csrf_or_abort()
-    session_row = TrainingSession.query.filter_by(id=session_id).first()
-    if session_row is None:
-        abort(404)
-
-    raw_submission_id = request.form.get("submission_id", "").strip()
-    if not raw_submission_id.isdigit():
-        abort(400)
-
-    submission = Submission.query.filter_by(
-        id=int(raw_submission_id),
-        training_session_id=session_row.id,
-    ).first()
-    if submission is None:
-        abort(404)
-    if submission.status == SUBMISSION_STATUS_EXCLUDED:
-        abort(409)
-
-    set_revealed_submission(session_row, submission, reveal_mode="manual")
-    db.session.commit()
-    next_target = request.form.get("next")
-    if next_target:
-        return redirect(safe_redirect_target(next_target))
-    return redirect(url_for("sessions.training_session_detail", session_id=session_row.id))
-
-
-@sessions_bp.post("/sessions/<int:session_id>/reveal-random")
-@requires_permission(PERM_SHARE_REVIEW_ANSWER)
-def reveal_random_submission_for_session(session_id: int):
-    validate_csrf_or_abort()
-    session_row = TrainingSession.query.filter_by(id=session_id).first()
-    if session_row is None:
-        abort(404)
-
-    submission = choose_random_submission(session_row)
-    if submission is None:
-        next_target = request.form.get("next")
-        if next_target:
-            return redirect(safe_redirect_target(next_target))
-        return redirect(url_for("sessions.training_session_detail", session_id=session_row.id))
-
-    set_revealed_submission(session_row, submission, reveal_mode="random")
-    db.session.commit()
-    next_target = request.form.get("next")
-    if next_target:
-        return redirect(safe_redirect_target(next_target))
-    return redirect(url_for("sessions.training_session_detail", session_id=session_row.id))
-
-
-@sessions_bp.post("/sessions/<int:session_id>/reveal-clear")
-@requires_permission(PERM_SHARE_REVIEW_ANSWER)
-def clear_revealed_submission_for_session(session_id: int):
-    validate_csrf_or_abort()
-    session_row = TrainingSession.query.filter_by(id=session_id).first()
-    if session_row is None:
-        abort(404)
-
-    set_revealed_submission(session_row, None, reveal_mode=None)
-    db.session.commit()
-    next_target = request.form.get("next")
-    if next_target:
-        return redirect(safe_redirect_target(next_target))
-    return redirect(url_for("sessions.training_session_detail", session_id=session_row.id))
-
 
 @sessions_bp.post("/sessions/<int:session_id>/questions/<int:question_id>/reveal")
 @requires_permission(PERM_SHARE_REVIEW_ANSWER)
@@ -290,6 +222,34 @@ def clear_revealed_question_answer_for_session(session_id: int, question_id: int
         abort(404)
 
     set_revealed_answer_for_question(session_row, question, None)
+    db.session.commit()
+    next_target = request.form.get("next")
+    if next_target:
+        return redirect(safe_redirect_target(next_target))
+    return redirect(url_for("main.board", session_id=session_row.id))
+
+
+@sessions_bp.post("/sessions/<int:session_id>/questions/<int:question_id>/reveals/<int:submission_answer_id>/remove")
+@requires_permission(PERM_SHARE_REVIEW_ANSWER)
+def remove_revealed_question_answer_for_session(session_id: int, question_id: int, submission_answer_id: int):
+    validate_csrf_or_abort()
+    session_row = TrainingSession.query.filter_by(id=session_id).first()
+    if session_row is None:
+        abort(404)
+
+    question = Question.query.filter_by(id=question_id, scenario_id=session_row.scenario_id).first()
+    if question is None:
+        abort(404)
+
+    submission_answer = SubmissionAnswer.query.filter_by(id=submission_answer_id).first()
+    if submission_answer is None:
+        abort(404)
+    if submission_answer.question_id != question.id:
+        abort(409)
+    if submission_answer.submission.training_session_id != session_row.id:
+        abort(409)
+
+    remove_revealed_answer_for_question(session_row, submission_answer)
     db.session.commit()
     next_target = request.form.get("next")
     if next_target:
@@ -349,9 +309,10 @@ def review_submission_for_session(session_id: int, submission_id: int):
     if submission is None:
         abort(404)
 
-    review_notes = request.form.get("review_notes", "").strip()
+    if "review_notes" in request.form:
+        raw_notes = request.form.get("review_notes", "").strip()
+        submission.notes = raw_notes[:2000] or None
     action = request.form.get("review_action", "").strip()
-    submission.notes = review_notes[:2000] or None
     actor = get_current_db_user()
     update_submission_review_state(
         submission=submission,

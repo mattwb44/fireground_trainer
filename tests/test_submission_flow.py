@@ -1558,7 +1558,6 @@ class SubmissionFlowTestCase(unittest.TestCase):
                 row.action for row in SubmissionAuditLog.query.filter_by(submission_id=submission.id).all()
             ]
 
-            self.assertIsNone(refreshed_session.revealed_submission_id)
             self.assertEqual(refreshed_submission.status, app_module.SUBMISSION_STATUS_EXCLUDED)
             self.assertIn("exclude", audit_actions)
 

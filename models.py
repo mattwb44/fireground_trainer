@@ -181,11 +181,6 @@ class TrainingSession(TimestampMixin, db.Model):
     starts_at = db.Column(db.DateTime, nullable=True)
     ends_at = db.Column(db.DateTime, nullable=True)
     archived_at = db.Column(db.DateTime, nullable=True)
-    revealed_submission_id = db.Column(
-        db.Integer, db.ForeignKey("submissions.id", ondelete="SET NULL"), nullable=True
-    )
-    reveal_mode = db.Column(db.String(20), nullable=True)
-    revealed_at = db.Column(db.DateTime, nullable=True)
 
     scenario = db.relationship("Scenario", back_populates="training_sessions")
     created_by = db.relationship(
@@ -200,7 +195,6 @@ class TrainingSession(TimestampMixin, db.Model):
         cascade="all, delete-orphan",
         foreign_keys="Submission.training_session_id",
     )
-    revealed_submission = db.relationship("Submission", foreign_keys=[revealed_submission_id], post_update=True)
     revealed_question_answers = db.relationship(
         "SessionQuestionReveal",
         back_populates="training_session",
@@ -305,8 +299,8 @@ class SessionQuestionReveal(TimestampMixin, db.Model):
     __table_args__ = (
         db.UniqueConstraint(
             "training_session_id",
-            "question_id",
-            name="uq_session_question_reveals_session_question",
+            "submission_answer_id",
+            name="uq_session_question_reveals_session_answer",
         ),
         db.Index(
             "ix_session_question_reveals_session_question",

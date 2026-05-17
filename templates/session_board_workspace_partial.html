@@ -169,12 +169,29 @@
                   <span style="padding:4px 8px; border-radius:999px; background:#2b1a07; color:#fcd34d; font-size:0.78rem; font-weight:700;">Flagged {{ question.status_counts.flagged }}</span>
                   <span style="padding:4px 8px; border-radius:999px; background:#2a1414; color:#fca5a5; font-size:0.78rem; font-weight:700;">Excluded {{ question.status_counts.excluded }}</span>
                   {% if question.revealed_answer_count %}
-                    <span style="padding:4px 8px; border-radius:999px; background:#0f2f2f; color:#99f6e4; font-size:0.78rem; font-weight:700;">1 Live Reveal</span>
+                    <span style="padding:4px 8px; border-radius:999px; background:#0f2f2f; color:#99f6e4; font-size:0.78rem; font-weight:700;">{{ question.revealed_answer_count }} Live Reveal{{ '' if question.revealed_answer_count == 1 else 's' }}</span>
                   {% endif %}
                 </div>
               </div>
             </div>
           </summary>
+
+          {% if question.instructor_answer %}
+            <div style="margin-top:12px; padding:10px 12px; border:1px solid rgba(255, 226, 231, 0.1); border-radius:10px; background:rgba(20, 40, 20, 0.5);">
+              <div style="font-size:0.76rem; color:#86efac; text-transform:uppercase; letter-spacing:0.08em;">Instructor Reference Answer</div>
+              <div style="margin-top:5px; color:#d1fae5; white-space:pre-wrap; line-height:1.45;">{{ question.instructor_answer }}</div>
+            </div>
+          {% endif %}
+
+          {% if question.revealed_answer_count %}
+            <div style="display:flex; gap:8px; align-items:center; margin-top:12px;">
+              <form method="post" action="{{ url_for('sessions.clear_revealed_question_answer_for_session', session_id=workspace.session_id, question_id=question.question_id) }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="next" value="{{ url_for('main.board', session_id=workspace.session_id) }}">
+                <button type="submit" style="margin-top:0; background:#0f2f2f; color:#99f6e4; border:1px solid rgba(20,184,166,0.3);">Clear All {{ question.revealed_answer_count }} Reveal{{ '' if question.revealed_answer_count == 1 else 's' }} for This Question</button>
+              </form>
+            </div>
+          {% endif %}
 
           {% if question.answer_rows %}
             <div style="display:grid; gap:10px; margin-top:12px;">
@@ -244,49 +261,67 @@
                   {% endif %}
 
                   <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px;">
+                    {# ── Reveal toggle ── #}
                     {% if not answer.is_excluded %}
-                      <form method="post" action="{{ url_for('sessions.reveal_question_answer_for_session', session_id=workspace.session_id, question_id=question.question_id) }}" style="margin:0;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="submission_answer_id" value="{{ answer.submission_answer_id }}">
-                        <input type="hidden" name="next" value="{{ url_for('main.board', session_id=workspace.session_id) }}">
-                        <button type="submit" style="margin-top:0; background:{{ 'rgba(255,255,255,0.18)' if answer.is_revealed else 'var(--site-blue)' }}; color:#fff;">{{ 'Replace Reveal' if answer.is_revealed else 'Reveal This Answer' }}</button>
-                      </form>
+                      {% if not answer.is_revealed %}
+                        <form method="post" action="{{ url_for('sessions.reveal_question_answer_for_session', session_id=workspace.session_id, question_id=question.question_id) }}" style="margin:0;">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <input type="hidden" name="submission_answer_id" value="{{ answer.submission_answer_id }}">
+                          <input type="hidden" name="next" value="{{ url_for('main.board', session_id=workspace.session_id) }}">
+                          <button type="submit" style="margin-top:0; background:var(--site-blue); color:#fff; padding:7px 12px; font-size:0.88rem;">Reveal</button>
+                        </form>
+                      {% else %}
+                        <form method="post" action="{{ url_for('sessions.remove_revealed_question_answer_for_session', session_id=workspace.session_id, question_id=question.question_id, submission_answer_id=answer.submission_answer_id) }}" style="margin:0;">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <input type="hidden" name="next" value="{{ url_for('main.board', session_id=workspace.session_id) }}">
+                          <button type="submit" style="margin-top:0; background:rgba(255,255,255,0.14); color:#cfe0ff; padding:7px 12px; font-size:0.88rem;">Remove Reveal</button>
+                        </form>
+                      {% endif %}
                     {% endif %}
-                    {% if answer.is_revealed %}
-                      <form method="post" action="{{ url_for('sessions.clear_revealed_question_answer_for_session', session_id=workspace.session_id, question_id=question.question_id) }}" style="margin:0;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="next" value="{{ url_for('main.board', session_id=workspace.session_id) }}">
-                        <button type="submit" style="margin-top:0; background:rgba(255,255,255,0.18); color:#fff8f7;">Clear Question Reveal</button>
-                      </form>
-                    {% endif %}
-                    <a href="{{ url_for('sessions.training_session_submission_detail', session_id=workspace.session_id, submission_id=answer.submission_id) }}" style="display:inline-block; padding:9px 12px; border-radius:10px; text-decoration:none; background:var(--site-blue-soft); color:var(--site-blue-dark); font-weight:700;">Open Full Detail</a>
-                  </div>
 
-                  <details style="margin-top:12px; border:1px solid rgba(255, 226, 231, 0.12); border-radius:10px; padding:10px 12px; background:rgba(60, 20, 28, 0.72);">
-                    <summary style="cursor:pointer; font-weight:700; color:#fff7f8;">Review Actions & Notes</summary>
-                    <form method="post" action="{{ url_for('sessions.review_submission_for_session', session_id=workspace.session_id, submission_id=answer.submission_id) }}" style="margin-top:12px;">
+                    {# ── Quick status actions — no notes sent, existing notes preserved ── #}
+                    <form method="post" action="{{ url_for('sessions.review_submission_for_session', session_id=workspace.session_id, submission_id=answer.submission_id) }}" style="margin:0; display:flex; gap:6px; flex-wrap:wrap;">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <input type="hidden" name="next" value="{{ url_for('main.board', session_id=workspace.session_id) }}">
-                      <label for="review_notes_{{ answer.submission_id }}" style="display:block; font-weight:700; color:#fff7f8; margin-bottom:6px;">Review Notes</label>
-                      <textarea id="review_notes_{{ answer.submission_id }}" name="review_notes" rows="3" style="width:100%; border:1px solid rgba(255, 226, 231, 0.12); border-radius:10px; padding:10px; background:rgba(34, 12, 17, 0.92); color:#fff7f8;">{{ answer.review_notes }}</textarea>
-                      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px;">
-                        <button type="submit" name="review_action" value="save_notes" style="margin-top:0; background:rgba(255,255,255,0.18); color:#fff8f7;">Save Notes</button>
+                      {% if not answer.is_excluded %}
                         {% if answer.status != 'approved' %}
-                          <button type="submit" name="review_action" value="approve" style="margin-top:0; background:#166534; color:#fff;">Approve</button>
+                          <button type="submit" name="review_action" value="approve" style="margin-top:0; background:#166534; color:#d1fae5; padding:7px 12px; font-size:0.88rem;">Approve</button>
                         {% endif %}
                         {% if answer.status != 'flagged' %}
-                          <button type="submit" name="review_action" value="flag" style="margin-top:0; background:#b45309; color:#fff;">Flag</button>
-                        {% endif %}
-                        {% if not answer.is_excluded %}
-                          <button type="submit" name="review_action" value="exclude" style="margin-top:0; background:#991b1b; color:#fff;">Exclude</button>
-                        {% else %}
-                          <button type="submit" name="review_action" value="reinstate" style="margin-top:0; background:var(--site-blue); color:#fff;">Reinstate</button>
+                          <button type="submit" name="review_action" value="flag" style="margin-top:0; background:#b45309; color:#fef3c7; padding:7px 12px; font-size:0.88rem;">Flag</button>
                         {% endif %}
                         {% if answer.status in ['approved', 'flagged'] %}
-                          <button type="submit" name="review_action" value="reopen" style="margin-top:0; background:#92400e; color:#fff;">Return To Review</button>
+                          <button type="submit" name="review_action" value="reopen" style="margin-top:0; background:rgba(255,255,255,0.14); color:#f4dde1; padding:7px 12px; font-size:0.88rem;">Return To Review</button>
                         {% endif %}
-                      </div>
+                      {% else %}
+                        <button type="submit" name="review_action" value="reinstate" style="margin-top:0; background:var(--site-blue); color:#f0f8ff; padding:7px 12px; font-size:0.88rem;">Reinstate</button>
+                      {% endif %}
                     </form>
+                  </div>
+
+                  {# ── Notes & destructive actions ── #}
+                  <details style="margin-top:10px; border:1px solid rgba(255, 226, 231, 0.1); border-radius:10px; overflow:hidden;">
+                    <summary style="cursor:pointer; font-weight:700; color:#e6c7ce; font-size:0.85rem; padding:8px 12px; background:rgba(40, 15, 20, 0.6); list-style:none; display:flex; align-items:center; gap:6px;">
+                      <span style="font-size:0.6rem; transition:transform 0.15s;" class="details-arrow">▶</span>
+                      Notes &amp; More
+                      {% if answer.has_notes %}<span style="padding:2px 7px; border-radius:999px; background:#243e66; color:#dce8f7; font-size:0.75rem;">Notes saved</span>{% endif %}
+                    </summary>
+                    <div style="padding:12px; background:rgba(30, 10, 16, 0.7);">
+                      <form method="post" action="{{ url_for('sessions.review_submission_for_session', session_id=workspace.session_id, submission_id=answer.submission_id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="next" value="{{ url_for('main.board', session_id=workspace.session_id) }}">
+                        <textarea id="review_notes_{{ answer.submission_id }}" name="review_notes" rows="3" placeholder="Add review notes…" style="width:100%; border:1px solid rgba(255, 226, 231, 0.12); border-radius:8px; padding:9px 10px; background:rgba(20, 8, 12, 0.8); color:#fff7f8; font-size:0.9rem; resize:vertical; box-sizing:border-box;">{{ answer.review_notes }}</textarea>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px;">
+                          <button type="submit" name="review_action" value="save_notes" style="margin-top:0; background:rgba(255,255,255,0.14); color:#fff8f7; padding:7px 12px; font-size:0.88rem;">Save Notes</button>
+                          {% if not answer.is_excluded %}
+                            <button type="submit" name="review_action" value="exclude" style="margin-top:0; background:#991b1b; color:#fee2e2; padding:7px 12px; font-size:0.88rem;">Exclude</button>
+                          {% endif %}
+                        </div>
+                      </form>
+                      <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,226,231,0.08);">
+                        <a href="{{ url_for('sessions.training_session_submission_detail', session_id=workspace.session_id, submission_id=answer.submission_id) }}" style="font-size:0.85rem; color:#93c5fd; text-decoration:none; font-weight:700;">Open full submission detail →</a>
+                      </div>
+                    </div>
                   </details>
                 </article>
               {% endfor %}
