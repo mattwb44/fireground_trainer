@@ -121,6 +121,14 @@ class Scenario(TimestampMixin, db.Model):
     is_official = db.Column(db.Boolean, nullable=False, default=False, index=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     like_count = db.Column(db.Integer, nullable=False, default=0, index=True)
+    is_public = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    training_category = db.Column(db.String(20), nullable=True, index=True)
+    department_id = db.Column(
+        db.Integer, db.ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    forked_from_scenario_id = db.Column(
+        db.Integer, db.ForeignKey("scenarios.id", ondelete="SET NULL"), nullable=True
+    )
 
     created_by = db.relationship(
         "User", back_populates="created_scenarios", foreign_keys=[created_by_user_id]
@@ -128,6 +136,7 @@ class Scenario(TimestampMixin, db.Model):
     approved_by = db.relationship(
         "User", foreign_keys=[approved_by_user_id]
     )
+    department = db.relationship("Department", foreign_keys=[department_id])
     questions = db.relationship(
         "Question", back_populates="scenario", cascade="all, delete-orphan"
     )

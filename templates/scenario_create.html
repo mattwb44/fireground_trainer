@@ -50,9 +50,42 @@
         </label>
       {% endif %}
 
+      {# ── Visibility ── #}
+      <div>
+        <div style="font-weight:700; margin-bottom:6px;">Visibility</div>
+        <div style="display:grid; gap:6px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="radio" name="visibility" value="private" {% if form_data.visibility != 'department' and form_data.visibility != 'public' %}checked{% endif %}>
+            <span><strong>Private</strong> <span style="color:var(--site-muted); font-size:0.88rem;">— only you can see it</span></span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="radio" name="visibility" value="department" {% if form_data.visibility == 'department' %}checked{% endif %}>
+            <span><strong>Department Library</strong> <span style="color:var(--site-muted); font-size:0.88rem;">— visible to your department members</span></span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="radio" name="visibility" value="public" {% if form_data.visibility == 'public' %}checked{% endif %}>
+            <span><strong>Public</strong> <span style="color:var(--site-muted); font-size:0.88rem;">— visible to everyone (requires training category + tag)</span></span>
+          </label>
+        </div>
+      </div>
+
+      {# ── Training Category (required for public) ── #}
+      <div id="categoryWrap" style="{% if form_data.visibility != 'public' %}display:none;{% endif %}">
+        <label style="display:grid; gap:5px;">
+          <span style="font-weight:700;">Training Category</span>
+          <select name="training_category" class="theme-select">
+            <option value="">Select category…</option>
+            {% for key, label in category_labels.items() %}
+              <option value="{{ key }}" {% if form_data.training_category == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+
+      {# ── Tags ── #}
       {% if available_tags %}
         <div>
-          <div style="font-weight:700; margin-bottom:6px;">Tags <span style="font-weight:400; color:var(--site-muted); font-size:0.88rem;">(optional — select all that apply)</span></div>
+          <div style="font-weight:700; margin-bottom:6px;">Tags <span style="font-weight:400; color:var(--site-muted); font-size:0.88rem;">(required for public — select all that apply)</span></div>
           <div style="display:flex; flex-wrap:wrap; gap:8px;">
             {% for tag in available_tags %}
               <label style="display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:999px; border:1px solid var(--site-line); cursor:pointer;
@@ -189,6 +222,17 @@
 
     addBtn.addEventListener("click", addRow);
     renumberRows();
+  })();
+
+  (() => {
+    const radios = Array.from(document.querySelectorAll("input[name='visibility']"));
+    const categoryWrap = document.getElementById("categoryWrap");
+    function update() {
+      const val = radios.find(r => r.checked)?.value;
+      if (categoryWrap) categoryWrap.style.display = val === "public" ? "" : "none";
+    }
+    radios.forEach(r => r.addEventListener("change", update));
+    update();
   })();
 </script>
 {% endblock %}

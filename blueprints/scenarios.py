@@ -15,6 +15,7 @@ from helpers import (
     CATEGORY_EMS,
     CATEGORY_FILTER_ALL,
     CATEGORY_FIREGROUND,
+    CATEGORY_LABELS,
     CATEGORY_MVA,
     LIBRARY_TAB_LABELS,
     LIBRARY_TAB_MINE,
@@ -223,9 +224,25 @@ def create_scenario():
     if question_error:
         return render_create_scenario(error=question_error, status_code=400)
 
+    visibility = request.form.get("visibility", "private").strip()
+    training_category = request.form.get("training_category", "").strip() or None
+    raw_tag_ids_for_visibility = [int(v) for v in request.form.getlist("tag_ids") if v.isdigit()]
+
+    if visibility == "public":
+        if not training_category:
+            return render_create_scenario(error="Choose a training category to publish as public.", status_code=400)
+        if not raw_tag_ids_for_visibility:
+            return render_create_scenario(error="Select at least one tag to publish as public.", status_code=400)
+
     normalized_base_image_path = normalize_static_asset_path(base_image_path)
     normalized_overlay_image_path = normalize_static_asset_path(overlay_image_path, allow_empty=True)
     current_db_user = get_current_db_user()
+
+    is_public = visibility == "public"
+    dept_id = None
+    if visibility == "department" and current_db_user and current_db_user.department_id:
+        dept_id = current_db_user.department_id
+
     scenario = Scenario(
         title=title,
         dispatch_text=dispatch,
@@ -235,6 +252,9 @@ def create_scenario():
         status=SCENARIO_STATUS_DRAFT,
         is_official=is_official and g.current_user.has_permission(PERM_APPROVE_SCENARIOS),
         is_active=True,
+        is_public=is_public,
+        training_category=training_category,
+        department_id=dept_id,
     )
     db.session.add(scenario)
     db.session.flush()
@@ -441,4 +461,63 @@ def set_scenario_official_status():
     )
     db.session.commit()
     session["scenario_id"] = scenario.id
+    return redirect(safe_redirect_target(request.form.get("next")))
+
+
+@scenarios_bp.post("/scenario/visibility")
+@requires_permission(PERM_CREATE_SCENARIOS)
+def set_scenario_visibility():
+    validate_csrf_or_abort()
+    scenario = get_posted_scenario_or_abort()
+    actor = get_current_db_user()
+
+    # Only the creator (or TC+) may change visibility
+    if scenario.created_by_user_id != (actor.id if actor else None):
+        if not g.current_user.has_permission(PERM_APPROVE_SCENARIOS):
+            abort(403)
+
+    visibility = request.form.get("visibility", "").strip()
+    training_category = request.form.get("training_category", "").strip() or None
+    raw_tag_ids = [int(v) for v in request.form.getlist("tag_ids") if v.isdigit()]
+
+    if visibility not in {"private", "department", "public"}:
+        abort(400)
+
+    if visibility == "public":
+        if not training_category:
+            flash("Choose a training category to make this scenario public.", "warning")
+            return redirect(safe_redirect_target(request.form.get("next")))
+        if not raw_tag_ids:
+            flash("Select at least one tag to make this scenario public.", "warning")
+            return redirect(safe_redirect_target(request.form.get("next")))
+
+    scenario.is_public = visibility == "public"
+    scenario.training_category = training_category
+    if visibility == "department":
+        dept_user = actor or get_current_db_user()
+        scenario.department_id = dept_user.department_id if dept_user else None
+    elif visibility != "department":
+        scenario.department_id = None
+
+    # Sync tags if provided alongside visibility change
+    if raw_tag_ids:
+        from models import ScenarioTag, Tag
+        scenario.tag_links.clear()
+        valid_tag_ids = {
+            t.id for t in Tag.query.filter(Tag.id.in_(raw_tag_ids), Tag.is_active.is_(True)).all()
+        }
+        for tag_id in valid_tag_ids:
+            db.session.add(ScenarioTag(scenario_id=scenario.id, tag_id=tag_id))
+
+    append_admin_audit_log(
+        actor=actor,
+        action="set_scenario_visibility",
+        target_type="scenario",
+        target_id=scenario.id,
+        target_label=scenario.title,
+        details=f"Visibility set to {visibility}.",
+    )
+    db.session.commit()
+    session["scenario_id"] = scenario.id
+    flash("Scenario visibility updated.", "success")
     return redirect(safe_redirect_target(request.form.get("next")))

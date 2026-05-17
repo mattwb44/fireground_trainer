@@ -411,22 +411,25 @@ def ensure_seed_scenarios() -> None:
         return
 
     for scenario_seed in SCENARIO_SEED_DATA:
+        seed_status = scenario_seed.get("status", SCENARIO_STATUS_DRAFT)
         scenario = Scenario(
             title=scenario_seed["title"],
             dispatch_text=scenario_seed["dispatch"],
             base_image_path=scenario_seed["image"]["base"],
             overlay_image_path=scenario_seed["image"]["overlay"],
-            status=scenario_seed.get("status", SCENARIO_STATUS_DRAFT),
+            status=seed_status,
             is_official=True,
             is_active=True,
+            is_public=seed_status == SCENARIO_STATUS_APPROVED,
+            training_category=CATEGORY_FIREGROUND if seed_status == SCENARIO_STATUS_APPROVED else None,
             submitted_at=datetime.utcnow()
-            if scenario_seed.get("status") in {SCENARIO_STATUS_SUBMITTED, SCENARIO_STATUS_APPROVED}
+            if seed_status in {SCENARIO_STATUS_SUBMITTED, SCENARIO_STATUS_APPROVED}
             else None,
             approved_at=datetime.utcnow()
-            if scenario_seed.get("status") == SCENARIO_STATUS_APPROVED
+            if seed_status == SCENARIO_STATUS_APPROVED
             else None,
             archived_at=datetime.utcnow()
-            if scenario_seed.get("status") == SCENARIO_STATUS_ARCHIVED
+            if seed_status == SCENARIO_STATUS_ARCHIVED
             else None,
         )
         db.session.add(scenario)
@@ -588,11 +591,31 @@ def get_current_db_user() -> User | None:
     return User.query.filter_by(id=user_id, is_active=True).first()
 
 
-def load_visible_scenarios_for_user(current_user: CurrentUser) -> list[Scenario]:
-    query = Scenario.query.order_by(Scenario.id.asc())
+def load_visible_scenarios_for_user(current_user: CurrentUser, db_user: User | None = None) -> list[Scenario]:
+    from sqlalchemy import or_
+    query = Scenario.query.filter(Scenario.is_active.is_(True)).order_by(Scenario.id.asc())
+
+    # Staff see everything for workflow management
     if current_user.has_permission(PERM_CREATE_SCENARIOS) or current_user.has_permission(PERM_APPROVE_SCENARIOS):
         return query.all()
-    return query.filter(Scenario.status == SCENARIO_STATUS_APPROVED).all()
+
+    # Guests: public only
+    if current_user.user_id == "guest":
+        return query.filter(Scenario.is_public.is_(True)).all()
+
+    # Authenticated participant: own + their department's + public
+    if db_user is None:
+        try:
+            db_user = get_current_db_user()
+        except RuntimeError:
+            pass
+    if db_user is None:
+        return query.filter(Scenario.is_public.is_(True)).all()
+
+    conditions = [Scenario.is_public.is_(True), Scenario.created_by_user_id == db_user.id]
+    if db_user.department_id is not None:
+        conditions.append(Scenario.department_id == db_user.department_id)
+    return query.filter(or_(*conditions)).all()
 
 
 def build_scenario_view_model(scenario: Scenario) -> dict:
@@ -773,11 +796,17 @@ def summarize_scenario_for_library(scenario: Scenario, vote_state: dict | None =
             else (scenario.approved_by.email if scenario.approved_by else None)
         ),
         "tags": [link.tag.name for link in scenario.tag_links if link.tag.is_active],
+        "is_public": scenario.is_public,
+        "visibility_label": (
+            "Public" if scenario.is_public
+            else ("Department" if scenario.department_id else "Private")
+        ),
     }
 
 
 def scenario_category_key_for_scenario(scenario: Scenario) -> str:
-    # Categories are landing-page level for now. Existing seeded scenarios are all fireground.
+    if scenario.training_category in {CATEGORY_FIREGROUND, CATEGORY_MVA, CATEGORY_EMS}:
+        return scenario.training_category
     return CATEGORY_FIREGROUND
 
 
@@ -802,12 +831,13 @@ def resolve_category_filter(raw_filter: str | None) -> str:
 
 
 def load_category_scenarios(category_key: str, selected_filter: str) -> list[Scenario]:
-    if category_key != CATEGORY_FIREGROUND:
+    if category_key not in {CATEGORY_FIREGROUND, CATEGORY_MVA, CATEGORY_EMS}:
         return []
 
     scenarios = (
         Scenario.query.filter(
             Scenario.is_active.is_(True),
+            Scenario.is_public.is_(True),
             Scenario.status == SCENARIO_STATUS_APPROVED,
         )
         .order_by(
@@ -2592,6 +2622,8 @@ def render_create_scenario(error: str | None = None, status_code: int = 200):
             for _ in range(4)
         ]
     available_tags = Tag.query.filter_by(is_active=True).order_by(Tag.name).all()
+    form_data["visibility"] = request.form.get("visibility", "private") if request.method == "POST" else "private"
+    form_data["training_category"] = request.form.get("training_category", "") if request.method == "POST" else ""
     return (
         render_template(
             "scenario_create.html",
@@ -2601,6 +2633,7 @@ def render_create_scenario(error: str | None = None, status_code: int = 200):
             question_type_labels=QUESTION_TYPE_LABELS,
             default_question_type=DEFAULT_QUESTION_TYPE,
             available_tags=available_tags,
+            category_labels=CATEGORY_LABELS,
         ),
         status_code,
     )
