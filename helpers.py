@@ -1433,7 +1433,11 @@ def load_host_training_session() -> "TrainingSession | None":
         return None
 
     training_session = TrainingSession.query.filter_by(id=resolved_session_id).first()
-    if training_session is None or training_session.status != "active":
+    if training_session is None:
+        clear_host_training_session_context()
+        return None
+    # Allow host to view closed sessions on the board (read-only facilitation)
+    if training_session.status not in {"active", "closed"}:
         clear_host_training_session_context()
         return None
 

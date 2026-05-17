@@ -613,6 +613,13 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2 style="margin:0 0 14px; font-size:1.1rem;">Questions</h2>
 
+    {# Session ended banner #}
+    {% if active_training_session and active_training_session.status != 'active' %}
+      <div class="msg msg-warning" style="margin-bottom:14px; font-weight:700;">
+        This session has ended. New submissions are disabled. You can still view revealed answers below.
+      </div>
+    {% endif %}
+
     {# Session status strip #}
     {% if active_training_session and active_participant %}
       <div class="session-strip">

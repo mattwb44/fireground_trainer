@@ -1904,5 +1904,107 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertIn(b"Sign in to save your drill attempts", response.data)
 
 
+    # ── Issue #6: End Session / read-only state ──────────────────────────────
+
+    def test_host_can_close_active_session(self):
+        training_session = self._create_training_session()
+        self._login_as_instructor()
+
+        with self.client.session_transaction() as s:
+            s[app_module.HOST_TRAINING_SESSION_ID_KEY] = training_session.id
+
+        resp = self.client.post(
+            f"/sessions/{training_session.id}/close",
+            data={"csrf_token": self.csrf_token},
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 302)
+
+        with app.app_context():
+            updated = TrainingSession.query.get(training_session.id)
+            self.assertEqual(updated.status, "closed")
+            self.assertIsNotNone(updated.ends_at)
+
+    def test_close_nonexistent_session_returns_404(self):
+        self._login_as_instructor()
+        resp = self.client.post(
+            "/sessions/999999/close",
+            data={"csrf_token": self.csrf_token},
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 404)
+
+    def test_close_already_closed_session_returns_409(self):
+        training_session = self._create_training_session()
+        with app.app_context():
+            ts = TrainingSession.query.get(training_session.id)
+            ts.status = "closed"
+            db.session.commit()
+
+        self._login_as_instructor()
+        resp = self.client.post(
+            f"/sessions/{training_session.id}/close",
+            data={"csrf_token": self.csrf_token},
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 409)
+
+    def test_closed_session_blocks_new_submissions(self):
+        training_session = self._create_training_session()
+        instructor_client, instructor_csrf = self._build_instructor_client()
+
+        # Join the session as a participant
+        participant_client, participant_csrf = self._build_participant_client("participant-csrf")
+        resp = participant_client.post(
+            f"/join/{training_session.join_code}",
+            data={
+                "csrf_token": participant_csrf,
+                "shift_label": "A Shift",
+                "identity_mode": "anonymous",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 302)
+
+        # Close the session
+        resp = instructor_client.post(
+            f"/sessions/{training_session.id}/close",
+            data={"csrf_token": instructor_csrf},
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 302)
+
+        # Participant tries to submit — should be blocked
+        questions = self._active_questions_for_scenario(training_session.scenario_id)
+        payload = {"csrf_token": participant_csrf}
+        for i, q in enumerate(questions, start=1):
+            payload[f"q_{q['id']}"] = f"late answer {i}"
+
+        resp = self._submit_answers_for_session(participant_client, participant_csrf, training_session, "late")
+        # Submissions to a closed session should fail
+        with app.app_context():
+            count = Submission.query.filter_by(training_session_id=training_session.id).count()
+        self.assertEqual(count, 0, "No submissions should be saved for a closed session")
+
+    def test_closed_session_cannot_be_joined(self):
+        training_session = self._create_training_session()
+        with app.app_context():
+            ts = TrainingSession.query.get(training_session.id)
+            ts.status = "closed"
+            db.session.commit()
+
+        participant_client, participant_csrf = self._build_participant_client("join-csrf")
+        resp = participant_client.post(
+            f"/join/{training_session.join_code}",
+            data={
+                "csrf_token": participant_csrf,
+                "shift_label": "A Shift",
+                "identity_mode": "anonymous",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(resp.status_code, 409)
+
+
 if __name__ == "__main__":
     unittest.main()

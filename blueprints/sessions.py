@@ -24,6 +24,7 @@ from helpers import (
     can_use_scenario_for_session,
     can_view_revealed_answers_for_session,
     clear_all_revealed_answers,
+    clear_host_training_session_context,
     get_current_db_user,
     get_joined_participant_for_session,
     get_qr_image_url,
@@ -255,6 +256,34 @@ def remove_revealed_question_answer_for_session(session_id: int, question_id: in
     if next_target:
         return redirect(safe_redirect_target(next_target))
     return redirect(url_for("main.board", session_id=session_row.id))
+
+
+@sessions_bp.post("/sessions/<int:session_id>/close")
+@requires_permission(PERM_CREATE_SESSIONS)
+def close_training_session(session_id: int):
+    validate_csrf_or_abort()
+    session_row = TrainingSession.query.filter_by(id=session_id).first()
+    if session_row is None:
+        abort(404)
+    if session_row.status != "active":
+        abort(409)
+    session_row.status = "closed"
+    session_row.ends_at = datetime.utcnow()
+    actor = get_current_db_user()
+    append_admin_audit_log(
+        actor=actor,
+        action="close_training_session",
+        target_type="training_session",
+        target_id=session_row.id,
+        target_label=session_row.title or f"Session #{session_row.id}",
+        details=f"Session closed. Join code {session_row.join_code}",
+    )
+    db.session.commit()
+    clear_host_training_session_context()
+    next_target = request.form.get("next")
+    if next_target:
+        return redirect(safe_redirect_target(next_target))
+    return redirect(url_for("sessions.training_session_detail", session_id=session_row.id))
 
 
 @sessions_bp.post("/sessions/<int:session_id>/revealed-answers/clear")

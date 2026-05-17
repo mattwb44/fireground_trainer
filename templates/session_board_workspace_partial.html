@@ -13,6 +13,15 @@
           <input type="hidden" name="next" value="{{ url_for('main.board', session_id=workspace.session_id) }}">
           <button type="submit" style="margin-top:0; background:rgba(255,255,255,0.18); color:#fff8f7; border:1px solid rgba(255,226,231,0.12);">Clear All Reveals</button>
         </form>
+        {% if workspace.status == 'active' %}
+          <form method="post" action="{{ url_for('sessions.close_training_session', session_id=workspace.session_id) }}" style="margin:0;" onsubmit="return confirm('End this session? Participants will be locked out of submitting new answers. This cannot be undone.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ url_for('main.board') }}">
+            <button type="submit" style="margin-top:0; background:#7f1d1d; color:#fee2e2; border:1px solid rgba(255,100,100,0.2);">End Session</button>
+          </form>
+        {% else %}
+          <span style="display:inline-flex; align-items:center; padding:9px 12px; border-radius:10px; background:rgba(255,255,255,0.06); color:rgba(255,210,218,0.6); font-size:0.88rem; font-weight:700; border:1px solid rgba(255,180,195,0.1);">Session Closed</span>
+        {% endif %}
       </div>
     </div>
 
