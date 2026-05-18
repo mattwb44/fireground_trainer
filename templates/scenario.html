@@ -617,6 +617,12 @@
       <img class="base-img" src="{{ url_for('static', filename=scenario.image.base) }}" alt="{{ scenario.title }}" />
       <div class="token-layer" id="tokenLayer"></div>
     </div>
+
+    {# Print controls #}
+    <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,180,195,0.08);">
+      <button type="button" onclick="printScenario('blank')" class="btn-muted" style="font-size:0.82rem; padding:5px 12px;">Print — Blank Copy</button>
+      <button type="button" onclick="printScenario('answer-key')" class="btn-muted" style="font-size:0.82rem; padding:5px 12px;">Print — Answer Key</button>
+    </div>
   </section>
 
   {# ── Token tools panel ── #}
@@ -1153,5 +1159,13 @@
       showLeaveModal(link.href);
     });
   })();
+</script>
+<script>
+  function printScenario(mode) {
+    document.body.classList.remove('print-blank', 'print-answer-key');
+    document.body.classList.add(mode === 'answer-key' ? 'print-answer-key' : 'print-blank');
+    window.print();
+    document.body.classList.remove('print-blank', 'print-answer-key');
+  }
 </script>
 {% endblock %}

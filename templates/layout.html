@@ -503,6 +503,57 @@
       font-size: 1.1rem;
       line-height: 1;
     }
+
+    @media print {
+      .site-header,
+      .site-nav,
+      .site-actions,
+      .flash-shell,
+      .filter-sidebar,
+      .no-print,
+      button,
+      .site-button,
+      .site-button-secondary,
+      .theme-button-blue,
+      .theme-button-red,
+      .theme-button-muted,
+      .theme-button-soft,
+      nav,
+      form {
+        display: none !important;
+      }
+
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+
+      a {
+        color: #000 !important;
+        text-decoration: none !important;
+      }
+
+      .theme-panel,
+      .theme-panel-strong {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        background: #fff !important;
+      }
+
+      /* Scenario print modes */
+      body.print-blank .instructor-answer-block,
+      body.print-blank .instructor-reveal {
+        display: none !important;
+      }
+
+      body.print-answer-key .instructor-reveal {
+        display: block !important;
+      }
+
+      body.print-answer-key .instructor-reveal > div {
+        display: block !important;
+      }
+    }
   </style>
   {% block head_extra %}{% endblock %}
 </head>

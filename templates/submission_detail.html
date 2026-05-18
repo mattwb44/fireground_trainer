@@ -9,9 +9,9 @@
     <p style="margin:0; color:var(--site-muted);">
       {{ submission.participant_label }} | Shift {{ submission.shift_label }} | Attempt #{{ submission.attempt_number }}
     </p>
-    <p style="margin:8px 0 0; display:flex; gap:12px; flex-wrap:wrap;">
+    <p style="margin:8px 0 0; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
       <a href="{{ url_for('sessions.training_session_detail', session_id=training_session.id) }}">Back to Session Dashboard</a>
-      <a href="{{ url_for('main.board', session_id=training_session.id) }}">Open Board Workspace</a>
+      <button type="button" onclick="window.print()" class="no-print theme-button-muted" style="font-size:0.85rem; padding:6px 14px;">Print My Answers</button>
     </p>
   </section>
 
