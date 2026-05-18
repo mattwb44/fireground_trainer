@@ -146,6 +146,70 @@
       border-color: rgba(255, 100, 120, 0.2);
     }
 
+    .nav-join-form {
+      display: inline-flex;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 220, 225, 0.18);
+    }
+
+    .nav-join-input {
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 0;
+      color: rgba(255, 235, 238, 0.9);
+      font-weight: 700;
+      font-size: 0.88rem;
+      width: 100px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .nav-join-input::placeholder {
+      color: rgba(255, 235, 238, 0.35);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .nav-join-input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .nav-join-btn {
+      padding: 8px 12px;
+      background: rgba(176, 28, 46, 0.5);
+      border: 0;
+      color: rgba(255, 235, 238, 0.9);
+      font-weight: 800;
+      font-size: 0.88rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .nav-join-btn:hover {
+      background: rgba(176, 28, 46, 0.7);
+      color: #fff;
+    }
+
+    html[data-theme="light"] .nav-join-form {
+      border-color: rgba(0, 0, 0, 0.12);
+    }
+
+    html[data-theme="light"] .nav-join-input {
+      background: rgba(0, 0, 0, 0.04);
+      color: var(--site-ink);
+    }
+
+    html[data-theme="light"] .nav-join-btn {
+      background: rgba(176, 28, 46, 0.12);
+      color: var(--site-brand);
+    }
+
+    html[data-theme="light"] .nav-join-btn:hover {
+      background: rgba(176, 28, 46, 0.22);
+    }
+
     .site-actions {
       display: flex;
       gap: 10px;
@@ -485,6 +549,23 @@
             Users
           </a>
         {% endif %}
+
+        {% if current_user.user_id == 'guest' %}
+          <form class="nav-join-form" onsubmit="navJoin(event)">
+            <input
+              class="nav-join-input"
+              type="text"
+              maxlength="16"
+              placeholder="Join code"
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+              aria-label="Session join code"
+              id="nav-join-code"
+            >
+            <button class="nav-join-btn" type="submit">Join</button>
+          </form>
+        {% endif %}
       </nav>
 
       <div class="site-actions">
@@ -515,6 +596,15 @@
   {% block body %}{% endblock %}
 
   {% block page_scripts %}{% endblock %}
+  <script>
+    function navJoin(e) {
+      e.preventDefault();
+      var code = document.getElementById("nav-join-code").value.trim().toUpperCase();
+      if (code) {
+        window.location.href = "/join/" + encodeURIComponent(code);
+      }
+    }
+  </script>
   <script>
     (function () {
       var btn = document.getElementById("theme-toggle");
