@@ -99,6 +99,22 @@
           </div>
         </div>
       {% endif %}
+
+      {# ── Target Positions ── #}
+      <div>
+        <div style="font-weight:700; margin-bottom:6px;">Target Positions <span style="font-weight:400; color:var(--site-muted); font-size:0.88rem;">(optional — leave blank for all ranks)</span></div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          {% for pos_key in position_choices %}
+            <label style="display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:999px; border:1px solid var(--site-line); cursor:pointer;
+              {% if pos_key in form_data.selected_positions %}background:var(--site-blue-soft); border-color:var(--site-blue);{% else %}background:rgba(255,255,255,0.04);{% endif %}">
+              <input type="checkbox" name="positions" value="{{ pos_key }}"
+                {% if pos_key in form_data.selected_positions %}checked{% endif %}
+                style="accent-color:var(--site-blue);">
+              {{ position_labels[pos_key] }}
+            </label>
+          {% endfor %}
+        </div>
+      </div>
     </section>
 
     <section class="theme-panel">

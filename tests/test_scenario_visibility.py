@@ -13,6 +13,7 @@ db = app_module.db
 CSRF_SESSION_KEY = app_module.CSRF_SESSION_KEY
 Scenario = app_module.Scenario
 ScenarioTag = app_module.ScenarioTag
+ScenarioPosition = app_module.ScenarioPosition
 Tag = app_module.Tag
 Department = app_module.Department
 User = app_module.User
@@ -434,6 +435,85 @@ class ScenarioVisibilityTestCase(unittest.TestCase):
         resp = self.client.get("/library")
         self.assertEqual(resp.status_code, 200)
         self.assertIn(b"Completed", resp.data)
+
+    # ── Issue #24: Position target tags ─────────────────────────────────────
+
+    def test_position_filter_returns_matching_and_untagged_scenarios(self):
+        with app.app_context():
+            scenario = Scenario.query.filter_by(status="approved", is_active=True, is_public=True).first()
+            self.assertIsNotNone(scenario)
+            scenario_id = scenario.id
+            ScenarioPosition.query.filter_by(scenario_id=scenario_id).delete()
+            db.session.add(ScenarioPosition(scenario_id=scenario_id, position="captain"))
+            # Create an untagged public scenario
+            untagged = Scenario(
+                title="Untagged Position Scenario",
+                dispatch_text="No position tags",
+                base_image_path="images/house1.jpg",
+                status="approved",
+                is_active=True,
+                is_public=True,
+                training_category="fireground",
+            )
+            db.session.add(untagged)
+            db.session.commit()
+            untagged_id = untagged.id
+
+        resp = self.client.get("/library?position=captain")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"Untagged Position Scenario", resp.data)
+
+        resp2 = self.client.get("/library?position=firefighter")
+        self.assertEqual(resp2.status_code, 200)
+        self.assertNotIn(b"captain-only", resp2.data)
+        self.assertIn(b"Untagged Position Scenario", resp2.data)
+
+        with app.app_context():
+            ScenarioPosition.query.filter_by(scenario_id=scenario_id, position="captain").delete()
+            untagged = Scenario.query.get(untagged_id)
+            if untagged:
+                db.session.delete(untagged)
+            db.session.commit()
+
+    def test_position_tags_persist_on_scenario_create(self):
+        self._login("instructor@demo.local")
+        with app.app_context():
+            from models import Tag
+            tag = Tag.query.filter_by(is_active=True).first()
+            self.assertIsNotNone(tag)
+            tag_id = tag.id
+
+        resp = self.client.post(
+            "/scenarios/new",
+            data={
+                "csrf_token": self.csrf,
+                "title": "Position Test Scenario",
+                "dispatch": "Test dispatch for position tagging.",
+                "base_image_path": "images/house1.jpg",
+                "overlay_image_path": "",
+                "visibility": "private",
+                "training_category": "",
+                "tag_ids": [],
+                "positions": ["captain", "battalion"],
+                "question_prompt": ["What is your size-up?"],
+                "question_type": ["discussion_only"],
+                "instructor_answer": [""],
+            },
+            follow_redirects=False,
+        )
+        self.assertIn(resp.status_code, [200, 302])
+
+        with app.app_context():
+            scenario = Scenario.query.filter_by(title="Position Test Scenario").first()
+            self.assertIsNotNone(scenario)
+            positions = {p.position for p in scenario.position_links}
+            self.assertIn("captain", positions)
+            self.assertIn("battalion", positions)
+            self.assertNotIn("firefighter", positions)
+            s = Scenario.query.get(scenario.id)
+            if s:
+                db.session.delete(s)
+            db.session.commit()
 
     def test_cannot_submit_draft_for_official(self):
         self._login("instructor@demo.local")

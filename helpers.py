@@ -77,6 +77,12 @@ from constants import (  # noqa: F401 — re-exported for backward-compat
     SUBMISSION_STATUS_FLAGGED,
     SUBMISSION_STATUS_LABELS,
     SUBMISSION_STATUS_SUBMITTED,
+    POSITION_FIREFIGHTER,
+    POSITION_DRIVER_PUMP_OPERATOR,
+    POSITION_CAPTAIN,
+    POSITION_BATTALION,
+    POSITION_LABELS,
+    POSITION_CHOICES,
 )
 from extensions import db
 from models import (
@@ -87,6 +93,7 @@ from models import (
     Role,
     Scenario,
     ScenarioLike,
+    ScenarioPosition,
     SessionQuestionReveal,
     Submission,
     SubmissionAnswer,
@@ -1533,6 +1540,7 @@ def render_create_scenario(error: str | None = None, status_code: int = 200):
         "selected_tag_ids": [
             int(v) for v in request.form.getlist("tag_ids") if v.isdigit()
         ] if request.method == "POST" else [],
+        "selected_positions": request.form.getlist("positions") if request.method == "POST" else [],
     }
     if request.method == "POST":
         prompts = request.form.getlist("question_prompt")
@@ -1568,6 +1576,8 @@ def render_create_scenario(error: str | None = None, status_code: int = 200):
             default_question_type=DEFAULT_QUESTION_TYPE,
             available_tags=available_tags,
             category_labels=CATEGORY_LABELS,
+            position_choices=POSITION_CHOICES,
+            position_labels=POSITION_LABELS,
         ),
         status_code,
     )

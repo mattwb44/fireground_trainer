@@ -26,9 +26,11 @@ from helpers import (
     SCENARIO_STATUS_DRAFT,
     allowed_library_tabs_for_user,
     append_admin_audit_log,
+    ScenarioAction,
     apply_scenario_transition_or_abort,
     build_host_board_workspace_view_model,
     build_public_library_view_model,
+    can_use_scenario_for_session,
     fork_scenario_for_department,
     build_participant_submission_state,
     build_revealed_submission_view_model,
@@ -148,8 +150,7 @@ def vote_for_scenario():
     if scenario is None:
         abort(404)
 
-    visible_scenario_ids = {row.id for row in load_visible_scenarios_for_user(g.current_user)}
-    if scenario.id not in visible_scenario_ids:
+    if not can_use_scenario_for_session(scenario.id, g.current_user):
         abort(403)
 
     next_target = safe_redirect_target(request.form.get("next"))
@@ -185,8 +186,7 @@ def select_scenario():
         abort(400)
 
     scenario_id = int(raw_scenario_id)
-    visible_scenarios = load_visible_scenarios_for_user(g.current_user)
-    if scenario_id not in {scenario.id for scenario in visible_scenarios}:
+    if not can_use_scenario_for_session(scenario_id, g.current_user):
         abort(403)
 
     session["scenario_id"] = scenario_id
@@ -290,6 +290,12 @@ def create_scenario():
         for tag_id in valid_tag_ids:
             db.session.add(ScenarioTag(scenario_id=scenario.id, tag_id=tag_id))
 
+    from constants import POSITION_CHOICES
+    from models import ScenarioPosition
+    raw_positions = [p for p in request.form.getlist("positions") if p in POSITION_CHOICES]
+    for pos in raw_positions:
+        db.session.add(ScenarioPosition(scenario_id=scenario.id, position=pos))
+
     append_admin_audit_log(
         actor=current_db_user,
         action="create_scenario",
@@ -356,28 +362,31 @@ def submit():
         submission_error = None
         if db_user is not None:
             drill = persist_drill_attempt(db_user, scenario_row, answers, selected_choice_ids=selected_choice_ids)
+            db.session.commit()
             show_instructor_answers = True
-            submission_message = (
-                f"Drill attempt #{drill.attempt_number} saved."
-            )
+            submission_message = f"Drill attempt #{drill.attempt_number} saved."
         else:
             # Guest: show instructor answers as payoff even without saving
             show_instructor_answers = True
             submission_message_level = "info"
     elif submission_error is None:
-        saved_submission, submission_error = persist_submission(
-            scenario_row=scenario_row,
-            scenario=scenario,
-            participant=participant,
-            training_session=training_session,
-            answers=answers,
-            selected_choice_ids=selected_choice_ids,
-        )
-        if saved_submission is not None:
+        try:
+            saved_submission = persist_submission(
+                scenario_row=scenario_row,
+                scenario=scenario,
+                participant=participant,
+                training_session=training_session,
+                answers=answers,
+                selected_choice_ids=selected_choice_ids,
+            )
+            db.session.commit()
             submission_message = (
                 f"Attempt #{saved_submission.attempt_number} submitted. "
                 f"The host board is now using your latest answers."
             )
+        except IntegrityError:
+            db.session.rollback()
+            submission_error = "Your answers could not be saved. Please try submitting again."
 
     return render_template(
         "scenario.html",
@@ -454,7 +463,9 @@ def save_guest_drill():
 
     try:
         persist_drill_attempt(db_user, scenario_row, answers, selected_choice_ids=selected_choice_ids)
+        db.session.commit()
     except Exception:
+        db.session.rollback()
         from flask import abort as _abort
         _abort(500)
 
@@ -468,7 +479,7 @@ def submit_scenario_for_review():
     validate_csrf_or_abort()
     scenario = get_posted_scenario_or_abort()
     actor = get_current_db_user()
-    apply_scenario_transition_or_abort(scenario=scenario, action="submit_for_review", actor=actor)
+    apply_scenario_transition_or_abort(scenario=scenario, action=ScenarioAction.SUBMIT_FOR_REVIEW, actor=actor)
     append_admin_audit_log(
         actor=actor,
         action="submit_scenario_for_review",
@@ -488,7 +499,7 @@ def approve_scenario():
     validate_csrf_or_abort()
     scenario = get_posted_scenario_or_abort()
     actor = get_current_db_user()
-    apply_scenario_transition_or_abort(scenario=scenario, action="approve", actor=actor)
+    apply_scenario_transition_or_abort(scenario=scenario, action=ScenarioAction.APPROVE, actor=actor)
     append_admin_audit_log(
         actor=actor,
         action="approve_scenario",
@@ -508,7 +519,7 @@ def archive_scenario():
     validate_csrf_or_abort()
     scenario = get_posted_scenario_or_abort()
     actor = get_current_db_user()
-    apply_scenario_transition_or_abort(scenario=scenario, action="archive", actor=actor)
+    apply_scenario_transition_or_abort(scenario=scenario, action=ScenarioAction.ARCHIVE, actor=actor)
     append_admin_audit_log(
         actor=actor,
         action="archive_scenario",
@@ -667,7 +678,8 @@ def public_scenario_library():
     category = request.args.get("category", "").strip()
     tag_slugs = [s.strip() for s in request.args.getlist("tag") if s.strip()]
     keyword = request.args.get("q", "").strip()[:100]
-    library = build_public_library_view_model(db_user, category or None, tag_slugs, keyword)
+    position = request.args.get("position", "").strip()
+    library = build_public_library_view_model(db_user, category or None, tag_slugs, keyword, position or None)
     return render_template(
         "public_library.html",
         library=library,
@@ -739,6 +751,14 @@ def set_scenario_visibility():
         }
         for tag_id in valid_tag_ids:
             db.session.add(ScenarioTag(scenario_id=scenario.id, tag_id=tag_id))
+
+    # Sync positions
+    from constants import POSITION_CHOICES
+    from models import ScenarioPosition
+    raw_positions = [p for p in request.form.getlist("positions") if p in POSITION_CHOICES]
+    scenario.position_links.clear()
+    for pos in raw_positions:
+        db.session.add(ScenarioPosition(scenario_id=scenario.id, position=pos))
 
     append_admin_audit_log(
         actor=actor,

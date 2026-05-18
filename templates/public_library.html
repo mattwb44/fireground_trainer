@@ -176,6 +176,22 @@
           </div>
         {% endif %}
 
+        <div class="filter-label" style="margin-top:14px;">Position</div>
+        <label class="filter-option">
+          <input type="radio" name="position" value=""
+            {% if not library.selected_position %}checked{% endif %}
+            onchange="this.form.submit()">
+          All Positions
+        </label>
+        {% for pos_key in library.position_choices %}
+          <label class="filter-option">
+            <input type="radio" name="position" value="{{ pos_key }}"
+              {% if library.selected_position == pos_key %}checked{% endif %}
+              onchange="this.form.submit()">
+            {{ library.position_labels[pos_key] }}
+          </label>
+        {% endfor %}
+
         <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
           <button type="submit" style="padding:7px 12px; border-radius:8px; border:0; background:var(--site-brand); color:#fff; font-weight:700; cursor:pointer; font-size:0.88rem;">Apply</button>
           <a href="{{ url_for('scenarios.public_scenario_library') }}" style="padding:7px 12px; border-radius:8px; background:rgba(255,255,255,0.08); color:var(--site-ink); font-weight:700; text-decoration:none; font-size:0.88rem;">Clear</a>
@@ -213,6 +229,9 @@
                   {% endif %}
                   {% for tag in scenario.tags %}
                     <a href="{{ url_for('scenarios.public_scenario_library', tag=tag | lower | replace(' ', '-'), category=library.selected_category) }}" class="tag-pill" style="text-decoration:none; {% if tag.lower().replace(' ', '-') in library.selected_tag_slugs %}background:var(--site-blue); color:#fff;{% endif %}">{{ tag }}</a>
+                  {% endfor %}
+                  {% for pos in scenario.positions %}
+                    <span style="font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:999px; background:var(--site-blue-soft); color:var(--site-blue);">{{ pos }}</span>
                   {% endfor %}
                   <span style="font-size:0.78rem; color:var(--site-muted);">{{ scenario.question_count }} question{{ '' if scenario.question_count == 1 else 's' }}</span>
                   <span style="font-size:0.78rem; color:var(--site-muted);">{{ scenario.like_count }} like{{ '' if scenario.like_count == 1 else 's' }}</span>

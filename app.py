@@ -50,6 +50,7 @@ from models import (  # noqa: F401
     Role,
     Scenario,
     ScenarioLike,
+    ScenarioPosition,
     ScenarioTag,
     SessionQuestionReveal,
     Submission,

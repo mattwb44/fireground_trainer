@@ -22,6 +22,8 @@ from constants import (
     CATEGORY_LABELS,
     CATEGORY_MVA,
     DEFAULT_QUESTION_TYPE,
+    POSITION_CHOICES,
+    POSITION_LABELS,
     QUESTION_TYPE_DISCUSSION_ONLY,
     QUESTION_TYPE_AUTO_CHECKLIST,
     QUESTION_TYPE_LABELS,
@@ -583,6 +585,7 @@ def build_public_library_view_model(
     category_filter: str | None,
     tag_slugs: list[str],
     keyword: str,
+    position_filter: str | None = None,
 ) -> dict:
     from helpers import get_all_completed_scenario_ids_for_user
     from models import Scenario as _Scenario, Tag
@@ -639,10 +642,16 @@ def build_public_library_view_model(
             s for s in filtered
             if kw in s.title.lower() or kw in (s.dispatch_text or "").lower()
         ]
+    if position_filter and position_filter in POSITION_CHOICES:
+        filtered = [
+            s for s in filtered
+            if not s.position_links or any(p.position == position_filter for p in s.position_links)
+        ]
 
     scenario_summaries = []
     for s in filtered:
         tags = [link.tag.name for link in s.tag_links if link.tag and link.tag.is_active]
+        positions = [POSITION_LABELS.get(p.position, p.position) for p in s.position_links]
         creator = s.created_by
         scenario_summaries.append({
             "id": s.id,
@@ -652,6 +661,7 @@ def build_public_library_view_model(
             "training_category": s.training_category,
             "category_label": CATEGORY_LABELS.get(s.training_category or "", s.training_category or ""),
             "tags": tags,
+            "positions": positions,
             "like_count": s.like_count or 0,
             "question_count": len([q for q in s.questions if q.is_active]),
             "is_completed": s.id in completed_ids,
@@ -668,6 +678,9 @@ def build_public_library_view_model(
         "selected_category": category_filter or "",
         "selected_tag_slugs": tag_slugs,
         "keyword": keyword,
+        "position_choices": POSITION_CHOICES,
+        "position_labels": POSITION_LABELS,
+        "selected_position": position_filter or "",
     }
 
 

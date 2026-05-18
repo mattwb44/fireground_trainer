@@ -151,6 +151,9 @@ class Scenario(TimestampMixin, db.Model):
     tag_links = db.relationship(
         "ScenarioTag", back_populates="scenario", cascade="all, delete-orphan"
     )
+    position_links = db.relationship(
+        "ScenarioPosition", back_populates="scenario", cascade="all, delete-orphan"
+    )
 
 
 class Tag(TimestampMixin, db.Model):
@@ -178,6 +181,17 @@ class ScenarioTag(db.Model):
 
     scenario = db.relationship("Scenario", back_populates="tag_links")
     tag = db.relationship("Tag", back_populates="scenario_links")
+
+
+class ScenarioPosition(db.Model):
+    __tablename__ = "scenario_positions"
+
+    scenario_id = db.Column(
+        db.Integer, db.ForeignKey("scenarios.id", ondelete="CASCADE"), primary_key=True
+    )
+    position = db.Column(db.String(40), primary_key=True)
+
+    scenario = db.relationship("Scenario", back_populates="position_links")
 
 
 class ScenarioLike(TimestampMixin, db.Model):
