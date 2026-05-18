@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script>
+    (function () {
+      var t = localStorage.getItem("theme") || "dark";
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -10,26 +16,26 @@
   <title>{% block title %}{{ site_name }}{% endblock %}</title>
   <style>
     :root {
-      --site-ink: #22171a;
-      --site-muted: #6c5a60;
-      --site-line: rgba(57, 24, 31, 0.14);
-      --site-bg: #f2ece8;
-      --site-surface: rgba(255, 255, 255, 0.88);
-      --site-brand: #b01c2e;
-      --site-brand-dark: #7f1321;
-      --site-accent: #6f111d;
-      --site-accent-soft: #f5d9de;
-      --site-blue: #214e85;
-      --site-blue-dark: #173b67;
-      --site-blue-soft: #dce8f7;
-      --site-fire-soft: #f6dde1;
-      --site-success: #1f6a3b;
-      --site-success-soft: #e4f3e8;
-      --site-warning: #8a4b0f;
-      --site-warning-soft: #f8ead5;
-      --site-panel: rgba(255, 255, 255, 0.88);
-      --site-panel-strong: rgba(255, 255, 255, 0.94);
-      --site-shadow: 0 20px 45px rgba(57, 24, 31, 0.12);
+      --site-ink: #f0e8ea;
+      --site-muted: #be9ea6;
+      --site-line: rgba(255, 200, 210, 0.14);
+      --site-bg: #1c1214;
+      --site-surface: rgba(38, 22, 27, 0.88);
+      --site-brand: #c42438;
+      --site-brand-dark: #8f1624;
+      --site-accent: #e86878;
+      --site-accent-soft: rgba(176, 28, 46, 0.28);
+      --site-blue: #6099dc;
+      --site-blue-dark: #4878be;
+      --site-blue-soft: rgba(33, 78, 133, 0.3);
+      --site-fire-soft: rgba(176, 28, 46, 0.22);
+      --site-success: #56b878;
+      --site-success-soft: rgba(31, 106, 59, 0.28);
+      --site-warning: #d48a20;
+      --site-warning-soft: rgba(138, 75, 15, 0.3);
+      --site-panel: rgba(32, 16, 20, 0.94);
+      --site-panel-strong: rgba(40, 20, 26, 0.97);
+      --site-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
     }
 
     * {
@@ -40,9 +46,9 @@
       margin: 0;
       color: var(--site-ink);
       background:
-        radial-gradient(circle at top left, rgba(176, 28, 46, 0.18), transparent 28%),
-        radial-gradient(circle at top right, rgba(111, 17, 29, 0.14), transparent 32%),
-        linear-gradient(180deg, #faf4f2 0%, var(--site-bg) 100%);
+        radial-gradient(circle at top left, rgba(176, 28, 46, 0.1), transparent 28%),
+        radial-gradient(circle at top right, rgba(111, 17, 29, 0.07), transparent 32%),
+        linear-gradient(180deg, #1f1216 0%, #170d10 100%);
       font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
     }
 
@@ -114,7 +120,6 @@
     }
 
     .site-nav-link,
-    .site-dropdown-summary,
     .site-button,
     .site-button-secondary {
       border-radius: 999px;
@@ -124,15 +129,13 @@
       border: 1px solid var(--site-line);
     }
 
-    .site-nav-link,
-    .site-dropdown-summary {
+    .site-nav-link {
       color: rgba(255, 235, 238, 0.82);
       background: transparent;
       border-color: transparent;
     }
 
-    .site-nav-link:hover,
-    .site-dropdown-summary:hover {
+    .site-nav-link:hover {
       color: #fff;
       background: rgba(255, 255, 255, 0.08);
     }
@@ -141,45 +144,6 @@
       color: #fff;
       background: rgba(176, 28, 46, 0.5);
       border-color: rgba(255, 100, 120, 0.2);
-    }
-
-    .site-dropdown {
-      position: relative;
-    }
-
-    .site-dropdown summary {
-      list-style: none;
-      cursor: pointer;
-    }
-
-    .site-dropdown summary::-webkit-details-marker {
-      display: none;
-    }
-
-    .site-dropdown-panel {
-      position: absolute;
-      top: calc(100% + 8px);
-      left: 0;
-      min-width: 240px;
-      padding: 8px;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 220, 225, 0.1);
-      background: #261218;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-    }
-
-    .site-dropdown-panel a {
-      display: block;
-      padding: 10px 14px;
-      border-radius: 10px;
-      text-decoration: none;
-      color: rgba(255, 235, 238, 0.85);
-      font-weight: 700;
-    }
-
-    .site-dropdown-panel a:hover {
-      background: rgba(176, 28, 46, 0.35);
-      color: #fff;
     }
 
     .site-actions {
@@ -233,9 +197,10 @@
       padding: 12px 14px;
       border-radius: 16px;
       border: 1px solid var(--site-line);
-      background: rgba(255, 255, 255, 0.9);
-      box-shadow: 0 10px 24px rgba(24, 33, 47, 0.06);
+      background: rgba(40, 22, 28, 0.94);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
       font-weight: 700;
+      color: var(--site-ink);
     }
 
     .flash-message.success {
@@ -326,8 +291,8 @@
       width: 100%;
       padding: 10px 12px;
       border-radius: 12px;
-      border: 1px solid rgba(57, 24, 31, 0.18);
-      background: rgba(255, 252, 251, 0.96);
+      border: 1px solid rgba(255, 180, 190, 0.2);
+      background: rgba(44, 24, 30, 0.97);
       color: var(--site-ink);
     }
 
@@ -357,7 +322,7 @@
     }
 
     .theme-button-muted {
-      background: rgba(255, 255, 255, 0.78);
+      background: rgba(55, 30, 38, 0.9);
       color: var(--site-ink);
       border: 1px solid var(--site-line);
     }
@@ -415,10 +380,64 @@
         flex-wrap: wrap;
       }
 
-      .site-dropdown-panel {
-        position: static;
-        margin-top: 8px;
-      }
+    }
+
+    /* ── Light mode ───────────────────────────────────────────── */
+    html[data-theme="light"] {
+      --site-ink: #111111;
+      --site-muted: #505050;
+      --site-line: rgba(0, 0, 0, 0.1);
+      --site-bg: #f7f7f7;
+      --site-surface: #ffffff;
+      --site-brand: #b01c2e;
+      --site-brand-dark: #7f1321;
+      --site-accent: #8c0e20;
+      --site-accent-soft: #fce8eb;
+      --site-blue: #1a4e96;
+      --site-blue-dark: #123878;
+      --site-blue-soft: #ddeaff;
+      --site-fire-soft: #fce8eb;
+      --site-success: #155c30;
+      --site-success-soft: #e4f5ec;
+      --site-warning: #744010;
+      --site-warning-soft: #fef3e0;
+      --site-panel: #ffffff;
+      --site-panel-strong: #ffffff;
+      --site-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    html[data-theme="light"] body {
+      background: #f7f7f7;
+    }
+
+    html[data-theme="light"] .theme-input,
+    html[data-theme="light"] .theme-textarea,
+    html[data-theme="light"] .theme-select {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.16);
+      color: var(--site-ink);
+    }
+
+    html[data-theme="light"] .flash-message {
+      background: #ffffff;
+      color: var(--site-ink);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    html[data-theme="light"] .theme-button-muted {
+      background: #ebebeb;
+      color: var(--site-ink);
+    }
+
+    #theme-toggle {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      line-height: 1;
     }
   </style>
   {% block head_extra %}{% endblock %}
@@ -435,29 +454,19 @@
       </a>
 
       <nav class="site-nav" aria-label="Primary">
-        <details class="site-dropdown">
-          <summary class="site-dropdown-summary">Training Scenarios</summary>
-          <div class="site-dropdown-panel">
-            {% for category in training_categories %}
-              <a href="{{ category.href }}">{{ category.label }}</a>
-            {% endfor %}
-          </div>
-        </details>
+        <a
+          class="site-nav-link{% if request.endpoint == 'scenarios.public_scenario_library' %} is-active{% endif %}"
+          href="{{ url_for('scenarios.public_scenario_library') }}"
+        >
+          Training Scenarios
+        </a>
 
-        {% if current_user.has_permission(permission_keys.view_scenarios) %}
-          <a
-            class="site-nav-link{% if request.endpoint == 'main.board' %} is-active{% endif %}"
-            href="{{ url_for('main.board') }}"
-          >
-            Board
-          </a>
-        {% endif %}
         {% if current_user.has_permission(permission_keys.view_scenarios) %}
           <a
             class="site-nav-link{% if request.endpoint == 'scenarios.scenario_library' %} is-active{% endif %}"
             href="{{ url_for('scenarios.scenario_library') }}"
           >
-            Library
+            My Library
           </a>
         {% endif %}
         {% if current_user.has_permission(permission_keys.view_reports) %}
@@ -479,6 +488,8 @@
       </nav>
 
       <div class="site-actions">
+        <button id="theme-toggle" class="site-button-secondary" type="button" aria-label="Toggle light/dark mode"></button>
+
         {% if current_user.user_id == 'guest' %}
           <a class="site-button-secondary" href="{{ url_for('auth.login_page', next=url_for('main.board')) }}">Sign In</a>
           <a class="site-button" href="{{ url_for('auth.create_account_page') }}">Create Account</a>
@@ -504,6 +515,24 @@
   {% block body %}{% endblock %}
 
   {% block page_scripts %}{% endblock %}
+  <script>
+    (function () {
+      var btn = document.getElementById("theme-toggle");
+      if (!btn) return;
+      function sync() {
+        var dark = document.documentElement.dataset.theme === "dark";
+        btn.textContent = dark ? "☀" : "☽";
+        btn.title = dark ? "Switch to light mode" : "Switch to dark mode";
+      }
+      sync();
+      btn.addEventListener("click", function () {
+        var dark = document.documentElement.dataset.theme === "dark";
+        document.documentElement.dataset.theme = dark ? "light" : "dark";
+        localStorage.setItem("theme", document.documentElement.dataset.theme);
+        sync();
+      });
+    })();
+  </script>
   <script
     src="{{ url_for('static', filename='js/main.js') }}"
     data-sw-url="{{ url_for('static', filename='js/sw.js') }}"

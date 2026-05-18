@@ -2,10 +2,6 @@ from flask import Blueprint, Response, g, render_template, session, url_for
 
 from authz import PERM_VIEW_SCENARIOS, requires_permission
 from helpers import (
-    CATEGORY_EMS,
-    CATEGORY_FIREGROUND,
-    CATEGORY_LABELS,
-    CATEGORY_MVA,
     PERMISSION_KEYS,
     QUESTION_TYPE_LABELS,
     SHIFT_OPTIONS,
@@ -49,11 +45,6 @@ def inject_template_context():
         "active_participant": g.active_participant,
         "active_training_session": g.active_training_session,
         "site_name": SITE_NAME,
-        "training_categories": [
-            {"key": CATEGORY_FIREGROUND, "label": CATEGORY_LABELS[CATEGORY_FIREGROUND], "href": url_for("scenarios.fireground_training")},
-            {"key": CATEGORY_MVA, "label": CATEGORY_LABELS[CATEGORY_MVA], "href": url_for("scenarios.mva_training")},
-            {"key": CATEGORY_EMS, "label": CATEGORY_LABELS[CATEGORY_EMS], "href": url_for("scenarios.ems_training")},
-        ],
         "shift_options": SHIFT_OPTIONS,
         "role_label": role_label,
         "permission_keys": PERMISSION_KEYS,
