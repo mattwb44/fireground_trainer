@@ -395,8 +395,21 @@ class ScenarioVisibilityTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_public_library_keyword_filter(self):
-        resp = self.client.get("/library?q=residential")
+        with app.app_context():
+            scenario = Scenario.query.filter_by(status="approved", is_active=True, is_public=True).first()
+            self.assertIsNotNone(scenario)
+            unique_word = scenario.title.split()[0]
+
+        resp = self.client.get(f"/library?q={unique_word}")
         self.assertEqual(resp.status_code, 200)
+        self.assertIn(unique_word.encode(), resp.data)
+
+    def test_public_library_empty_keyword_returns_all(self):
+        resp_all = self.client.get("/library")
+        resp_empty = self.client.get("/library?q=")
+        self.assertEqual(resp_all.status_code, 200)
+        self.assertEqual(resp_empty.status_code, 200)
+        self.assertIn(b"Scenario Library", resp_empty.data)
 
     def test_public_library_shows_completed_badge_for_account_holder(self):
         """Completed badge shows for account holders who finished a scenario via DrillAttempt."""
