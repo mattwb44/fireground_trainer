@@ -105,6 +105,8 @@ from models import (
 from view_models import (  # noqa: F401 — re-exported for backward-compat
     build_home_category_cards,
     build_home_stats,
+    get_user_lists,
+    get_saved_scenario_ids_for_user,
     build_host_board_workspace_view_model,
     build_host_review_summary,
     build_latest_submission_map,

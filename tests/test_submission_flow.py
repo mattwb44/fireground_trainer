@@ -310,7 +310,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
                 text("SELECT version_num FROM alembic_version")
             ).fetchall()
             self.assertEqual(len(rows), 1)
-            self.assertEqual(rows[0][0], "c8ced6e97bb2")
+            self.assertEqual(rows[0][0], "d9e0f1a2b3c4")
 
     def test_schema_migrations_table_removed_by_initial_migration(self):
         with app.app_context():

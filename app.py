@@ -6,6 +6,7 @@ from flask_migrate import upgrade as db_upgrade
 from blueprints.admin import admin_bp
 from blueprints.auth import auth_bp
 from blueprints.departments import departments_bp
+from blueprints.lists import lists_bp
 from blueprints.main import main_bp
 from blueprints.reports import reports_bp
 from blueprints.scenarios import scenarios_bp
@@ -52,6 +53,8 @@ from models import (  # noqa: F401
     ScenarioLike,
     ScenarioPosition,
     ScenarioTag,
+    UserList,
+    UserListScenario,
     SessionQuestionReveal,
     Submission,
     SubmissionAnswer,
@@ -73,6 +76,7 @@ migrate.init_app(app, db)
 app.register_blueprint(admin_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(departments_bp)
+app.register_blueprint(lists_bp)
 app.register_blueprint(main_bp)
 app.register_blueprint(reports_bp)
 app.register_blueprint(scenarios_bp)

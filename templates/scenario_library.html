@@ -43,7 +43,7 @@
     <h1 style="margin: 0 0 6px;">Scenario Library</h1>
     <p style="margin: 0; color:var(--site-muted);">Internal library for selecting, reviewing, and managing scenarios.</p>
     <p style="margin: 8px 0 0;">
-      <a href="{{ url_for('main.board') }}">Back to board</a>
+      <a href="{{ url_for('scenarios.public_scenario_library') }}">Training Scenarios</a>
       {% if can_create_scenarios %}
         | <a href="{{ url_for('scenarios.new_scenario_page') }}">Create scenario</a>
       {% endif %}
@@ -179,5 +179,20 @@
       </tbody>
     </table>
   </section>
+
+  {% if user_lists %}
+    <section style="margin-top:28px;">
+      <h2 style="margin:0 0 12px; font-size:1.2rem;">Saved Lists</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px;">
+        {% for ul in user_lists %}
+          <a href="{{ url_for('lists.view_list', list_id=ul.id) }}"
+             style="display:block; padding:16px; border-radius:14px; border:1px solid var(--site-line); background:var(--site-panel); text-decoration:none; color:var(--site-ink);">
+            <div style="font-weight:800; font-size:1rem; margin-bottom:4px;">{{ ul.name }}</div>
+            <div style="font-size:0.85rem; color:var(--site-muted);">{{ ul.count }} scenario{{ '' if ul.count == 1 else 's' }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
 </main>
 {% endblock %}

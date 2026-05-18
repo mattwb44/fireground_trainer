@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ user_list.name }} | {{ site_name }}{% endblock %}
+
+{% block body %}
+<main class="page-shell page-shell-narrow">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
+    <div>
+      <h1 style="margin:0 0 4px;">{{ user_list.name }}</h1>
+      <p style="margin:0; color:var(--site-muted);">
+        {{ scenarios | length }} scenario{{ '' if scenarios | length == 1 else 's' }} saved
+        · <a href="{{ url_for('scenarios.scenario_library') }}">My Library</a>
+      </p>
+    </div>
+    <form method="post" action="{{ url_for('lists.delete_list', list_id=user_list.id) }}" style="margin:0;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="theme-button-muted no-print" style="font-size:0.85rem;"
+        onclick="return confirm('Delete this list?')">Delete List</button>
+    </form>
+  </div>
+
+  {% if scenarios %}
+    <div style="display:grid; gap:12px;">
+      {% for scenario in scenarios %}
+        <article class="theme-panel" style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:800; font-size:1rem; margin-bottom:4px;">{{ scenario.title }}</div>
+            <p style="margin:0; color:var(--site-muted); font-size:0.88rem; line-height:1.45;">
+              {{ " ".join(scenario.dispatch_text.split())[:160] }}{% if scenario.dispatch_text | length > 160 %}…{% endif %}
+            </p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0; align-items:flex-end;">
+            <a href="{{ url_for('scenarios.public_scenario_library') }}?q={{ scenario.title | urlencode }}"
+               class="theme-button-blue" style="font-size:0.82rem; padding:6px 12px; text-decoration:none;">
+              View
+            </a>
+            <form method="post" action="{{ url_for('lists.remove_from_list', list_id=user_list.id) }}" style="margin:0;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+              <input type="hidden" name="next" value="{{ url_for('lists.view_list', list_id=user_list.id) }}">
+              <button type="submit" class="theme-button-muted no-print" style="font-size:0.82rem; padding:5px 10px;">Remove</button>
+            </form>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="theme-panel" style="text-align:center; color:var(--site-muted); padding:32px;">
+      No scenarios saved to this list yet.
+      <a href="{{ url_for('scenarios.public_scenario_library') }}" style="display:block; margin-top:10px;">Browse Training Scenarios</a>
+    </div>
+  {% endif %}
+</main>
+{% endblock %}

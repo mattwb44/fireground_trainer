@@ -59,6 +59,7 @@ from helpers import (
     user_can_like_scenario,
     validate_csrf_or_abort,
     validate_submission_context,
+    get_user_lists,
 )
 from models import Question, Scenario, ScenarioTag, Tag
 
@@ -134,6 +135,7 @@ def scenario_library():
         empty_state_message=empty_state_message,
         can_create_scenarios=g.current_user.has_permission(PERM_CREATE_SCENARIOS),
         can_manage_official=g.current_user.has_permission(PERM_APPROVE_SCENARIOS),
+        user_lists=get_user_lists(db_user),
     )
 
 
@@ -680,10 +682,16 @@ def public_scenario_library():
     keyword = request.args.get("q", "").strip()[:100]
     position = request.args.get("position", "").strip()
     library = build_public_library_view_model(db_user, category or None, tag_slugs, keyword, position or None)
+    from helpers import get_saved_scenario_ids_for_user
+    scenario_ids = [s["id"] for s in library["scenarios"]]
+    user_lists = get_user_lists(db_user)
+    saved_ids = get_saved_scenario_ids_for_user(db_user, scenario_ids)
     return render_template(
         "public_library.html",
         library=library,
         is_authenticated=(db_user is not None),
+        user_lists=user_lists,
+        saved_scenario_ids=saved_ids,
     )
 
 

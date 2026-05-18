@@ -98,12 +98,150 @@
     border: 1px solid rgba(96,153,220,0.25);
   }
 
+  /* ── Save to List ── */
+  .save-dropdown {
+    position: relative;
+  }
+
+  .save-dropdown summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--site-muted);
+    border: 1px solid var(--site-line);
+    white-space: nowrap;
+  }
+
+  .save-dropdown summary::-webkit-details-marker { display: none; }
+
+  .save-dropdown summary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--site-ink);
+  }
+
+  .save-dropdown-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    min-width: 200px;
+    z-index: 30;
+    background: var(--site-panel-strong);
+    border: 1px solid var(--site-line);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+  }
+
+  .save-dropdown-panel form {
+    margin: 0;
+  }
+
+  .save-list-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--site-ink);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .save-list-btn:hover {
+    background: var(--site-fire-soft);
+    color: var(--site-accent);
+  }
+
+  .save-list-create {
+    border-top: 1px solid var(--site-line);
+    margin-top: 4px;
+    padding-top: 6px;
+    display: flex;
+    gap: 4px;
+  }
+
+  .save-list-create input {
+    flex: 1;
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--site-line);
+    background: rgba(255,255,255,0.06);
+    color: var(--site-ink);
+    font-size: 0.82rem;
+    min-width: 0;
+  }
+
+  .save-list-create button {
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 0;
+    background: var(--site-brand);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* Guest tooltip */
+  .guest-save-wrap {
+    position: relative;
+    display: inline-block;
+  }
+
+  .guest-save-wrap .guest-tooltip {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    min-width: 190px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--site-panel-strong);
+    border: 1px solid var(--site-line);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--site-muted);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    z-index: 30;
+    white-space: normal;
+  }
+
+  .guest-save-wrap:hover .guest-tooltip {
+    display: block;
+  }
+
+  .guest-save-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.06);
+    color: var(--site-muted);
+    border: 1px solid var(--site-line);
+    cursor: default;
+    white-space: nowrap;
+  }
+
   @media (max-width: 760px) {
     .library-grid {
       grid-template-columns: 1fr;
     }
     .filter-sidebar {
       position: static;
+    }
+
+    .save-dropdown-panel,
+    .guest-save-wrap .guest-tooltip {
+      position: static;
+      margin-top: 4px;
     }
   }
 </style>
@@ -254,6 +392,37 @@
                     <input type="hidden" name="next" value="{{ url_for('scenarios.public_scenario_library') }}">
                     <button type="submit" style="padding:8px 14px; border-radius:8px; border:0; background:rgba(255,255,255,0.08); color:var(--site-muted); font-weight:700; cursor:pointer; font-size:0.88rem;">Adopt for Dept</button>
                   </form>
+                {% endif %}
+
+                {# Save to List #}
+                {% if current_user.user_id == 'guest' %}
+                  <div class="guest-save-wrap">
+                    <button class="guest-save-btn" type="button">Save to List</button>
+                    <div class="guest-tooltip">Create an account to save scenarios to a list.</div>
+                  </div>
+                {% else %}
+                  <details class="save-dropdown">
+                    <summary>{% if scenario.id in saved_scenario_ids %}✓ Saved{% else %}Save to List{% endif %}</summary>
+                    <div class="save-dropdown-panel">
+                      {% for ul in user_lists %}
+                        <form method="post" action="{{ url_for('lists.add_to_list', list_id=ul.id) }}">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+                          <input type="hidden" name="next" value="{{ url_for('scenarios.public_scenario_library') }}">
+                          <button type="submit" class="save-list-btn">{{ ul.name }}</button>
+                        </form>
+                      {% endfor %}
+                      <div class="save-list-create">
+                        <form method="post" action="{{ url_for('lists.create_list') }}" style="display:flex; gap:4px; flex:1;">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+                          <input type="hidden" name="next" value="{{ url_for('scenarios.public_scenario_library') }}">
+                          <input type="text" name="list_name" placeholder="{% if user_lists %}New list name…{% else %}Name your first list…{% endif %}" maxlength="100" required>
+                          <button type="submit">+ Create</button>
+                        </form>
+                      </div>
+                    </div>
+                  </details>
                 {% endif %}
               </div>
             </div>

@@ -479,6 +479,33 @@ def build_participant_submission_state(scenario_row: Scenario | None) -> dict:
     }
 
 
+def get_user_lists(db_user) -> list[dict]:
+    """Return a user's named lists with scenario counts for template use."""
+    if db_user is None:
+        return []
+    from models import UserList
+    lists = UserList.query.filter_by(user_id=db_user.id).order_by(UserList.created_at.asc()).all()
+    return [{"id": ul.id, "name": ul.name, "count": len(ul.scenario_links)} for ul in lists]
+
+
+def get_saved_scenario_ids_for_user(db_user, scenario_ids: list[int]) -> set[int]:
+    """Return set of scenario IDs the user has saved to any list."""
+    if db_user is None or not scenario_ids:
+        return set()
+    from models import UserListScenario, UserList
+    rows = (
+        UserListScenario.query
+        .join(UserList, UserListScenario.list_id == UserList.id)
+        .filter(
+            UserList.user_id == db_user.id,
+            UserListScenario.scenario_id.in_(scenario_ids),
+        )
+        .with_entities(UserListScenario.scenario_id)
+        .all()
+    )
+    return {r[0] for r in rows}
+
+
 def build_home_stats() -> dict:
     from models import Department, Scenario, TrainingSession
     from constants import SCENARIO_STATUS_APPROVED

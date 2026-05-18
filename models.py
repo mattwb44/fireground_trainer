@@ -81,6 +81,9 @@ class User(TimestampMixin, db.Model):
     scenario_likes = db.relationship(
         "ScenarioLike", back_populates="user", cascade="all, delete-orphan"
     )
+    scenario_lists = db.relationship(
+        "UserList", back_populates="user", cascade="all, delete-orphan"
+    )
     admin_audit_entries = db.relationship(
         "AdminAuditLog",
         back_populates="actor",
@@ -181,6 +184,42 @@ class ScenarioTag(db.Model):
 
     scenario = db.relationship("Scenario", back_populates="tag_links")
     tag = db.relationship("Tag", back_populates="scenario_links")
+
+
+class UserList(TimestampMixin, db.Model):
+    __tablename__ = "user_lists"
+    __table_args__ = (
+        db.Index("ix_user_lists_user_created", "user_id", "created_at"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name = db.Column(db.String(100), nullable=False)
+
+    user = db.relationship("User", back_populates="scenario_lists")
+    scenario_links = db.relationship(
+        "UserListScenario", back_populates="user_list", cascade="all, delete-orphan"
+    )
+
+
+class UserListScenario(db.Model):
+    __tablename__ = "user_list_scenarios"
+    __table_args__ = (
+        db.UniqueConstraint("list_id", "scenario_id", name="uq_user_list_scenarios"),
+    )
+
+    list_id = db.Column(
+        db.Integer, db.ForeignKey("user_lists.id", ondelete="CASCADE"), primary_key=True
+    )
+    scenario_id = db.Column(
+        db.Integer, db.ForeignKey("scenarios.id", ondelete="CASCADE"), primary_key=True
+    )
+    added_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user_list = db.relationship("UserList", back_populates="scenario_links")
+    scenario = db.relationship("Scenario")
 
 
 class ScenarioPosition(db.Model):
