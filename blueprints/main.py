@@ -6,7 +6,7 @@ from helpers import (
     QUESTION_TYPE_LABELS,
     SHIFT_OPTIONS,
     SITE_NAME,
-    build_home_category_cards,
+    build_home_stats,
     build_host_board_workspace_view_model,
     build_participant_submission_state,
     build_revealed_submission_view_model,
@@ -84,7 +84,7 @@ def conflict(_err):
 def home():
     return render_template(
         "home.html",
-        category_cards=build_home_category_cards(),
+        home_stats=build_home_stats(),
     )
 
 

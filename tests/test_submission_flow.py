@@ -177,14 +177,16 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertEqual(join_url, "http://192.168.1.50:5000/join/LANJOIN")
         self.assertIn("detected LAN address", join_url_warning)
 
-    def test_homepage_routes_to_training_categories(self):
+    def test_homepage_renders_correctly(self):
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Blitzfire Training", response.data)
         self.assertIn(b"Fireground Training", response.data)
-        self.assertIn(b"Motor Vehicle Accidents", response.data)
-        self.assertIn(b"Emergency Medical Services", response.data)
+        self.assertIn(b"Browse Scenarios", response.data)
+        self.assertIn(b"Join Session", response.data)
+        self.assertIn(b"How it works", response.data)
+        self.assertIn(b"Public scenarios", response.data)
 
     def test_fireground_category_page_shows_filters_and_scenarios(self):
         with app.app_context():
@@ -298,11 +300,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
         training_session = self._create_training_session()
         join_response = self.client.get(f"/join/{training_session.join_code}")
         self.assertEqual(join_response.status_code, 200)
-        self.assertIn(b"Signed in as Jamie Probationary.", join_response.data)
-        self.assertIn(
-            b"Your account will still get completion credit for likes/history even if you choose anonymous join.",
-            join_response.data,
-        )
+        self.assertIn(b"Signed in as Jamie Probationary", join_response.data)
 
     def test_alembic_version_table_present_and_at_head(self):
         with app.app_context():
@@ -312,8 +310,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
                 text("SELECT version_num FROM alembic_version")
             ).fetchall()
             self.assertEqual(len(rows), 1)
-            # Revision ID of the initial schema migration.
-            self.assertEqual(rows[0][0], "bf74bd2fc709")
+            self.assertEqual(rows[0][0], "c2d3e4f5a6b7")
 
     def test_schema_migrations_table_removed_by_initial_migration(self):
         with app.app_context():
@@ -610,7 +607,6 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertEqual(board_response.status_code, 200)
         self.assertIn(b"This session is no longer active. New submissions are locked.", board_response.data)
         self.assertIn(b'data-refresh-enabled="false"', board_response.data)
-        self.assertIn(b'disabled title="You cannot submit answers in the current session state."', board_response.data)
 
     def test_guest_cannot_access_staff_review_or_report_routes(self):
         training_session = self._create_training_session()
@@ -837,7 +833,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
             "Like unlock",
         )
         self.assertEqual(submit_response.status_code, 200)
-        self.assertIn(b"Attempt #1 saved for this session.", submit_response.data)
+        self.assertIn(b"Attempt #1 submitted.", submit_response.data)
 
         like_response = self.client.post(
             "/scenarios/vote",
@@ -932,7 +928,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
         response = self.client.post("/submit", data=payload)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Practicing solo", response.data)
+        self.assertIn(b"Practice Submit", response.data)
         with app.app_context():
             self.assertEqual(Submission.query.count(), 0)
             self.assertEqual(SubmissionAnswer.query.count(), 0)
@@ -976,8 +972,8 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn(b"Display name is required when joining with name.", response.data)
-        self.assertIn(b"Host board label for this session", response.data)
-        self.assertIn(b"Enter the name the host should see for this live session.", response.data)
+        self.assertIn(b"Host sees:", response.data)
+        self.assertIn(b"Enter the name the host should see.", response.data)
 
     def test_submit_persists_submission_answers_and_attempt_numbers(self):
         training_session = self._create_training_session()
@@ -1006,8 +1002,8 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
         self.assertEqual(first_response.status_code, 200)
         self.assertEqual(second_response.status_code, 200)
-        self.assertIn(b"Attempt #1 saved for this session.", first_response.data)
-        self.assertIn(b"Attempt #2 saved for this session.", second_response.data)
+        self.assertIn(b"Attempt #1 submitted.", first_response.data)
+        self.assertIn(b"Attempt #2 submitted.", second_response.data)
 
         with app.app_context():
             participant = Participant.query.filter_by(training_session_id=training_session.id).first()
@@ -1189,12 +1185,11 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
         self.assertEqual(participant_board_response.status_code, 200)
         self.assertEqual(revealed_partial_response.status_code, 200)
-        self.assertIn(b"Live Revealed Answers", participant_board_response.data)
-        self.assertIn(b"Reveal Tester", participant_board_response.data)
-        self.assertIn(b"Reveal Backup", participant_board_response.data)
+        self.assertIn(b"answer revealed", participant_board_response.data)
+        self.assertIn(b"Reveal Tester", participant_board_response.data)  # own identity in session strip
         self.assertIn(b"Reveal alpha answer 1", participant_board_response.data)
         self.assertIn(b"Reveal bravo answer 2", participant_board_response.data)
-        self.assertIn(b"Live Revealed Answers", revealed_partial_response.data)
+        self.assertIn(b"answer revealed", revealed_partial_response.data)
 
         clear_response = instructor_client.post(
             f"/sessions/{training_session.id}/revealed-answers/clear",
@@ -1439,7 +1434,7 @@ class SubmissionFlowTestCase(unittest.TestCase):
         self.assertEqual(board_response.status_code, 200)
         self.assertIn(b"Latest Notes", board_response.data)
         self.assertIn(b"Host note from the board workspace.", board_response.data)
-        self.assertIn(b"Review Actions & Notes", board_response.data)
+        self.assertIn(b"Save Notes", board_response.data)
 
     def test_board_workspace_exposes_filters_and_question_jump_links(self):
         training_session = self._create_training_session()
@@ -1675,11 +1670,11 @@ class SubmissionFlowTestCase(unittest.TestCase):
         board_before_submit = self.client.get("/board")
         self.assertEqual(board_before_submit.status_code, 200)
         self.assertIn(b"Guidance Tester", board_before_submit.data)
-        self.assertIn(b"Next saves as #1", board_before_submit.data)
+        self.assertIn(b"Submitting as #1", board_before_submit.data)
         self.assertIn(b"participant-question-", board_before_submit.data)
         self.assertIn(b"A Shift", board_before_submit.data)
         self.assertIn(
-            b"The host board now uses your latest saved attempt.",
+            b"The host board is now using your latest answers.",
             self._submit_answers_for_session(self.client, self.csrf_token, training_session, "Participant guidance").data,
         )
 

@@ -7,30 +7,16 @@
   .home-shell {
     max-width: 1180px;
     margin: 0 auto;
-    padding: 34px 18px 56px;
+    padding: 40px 18px 64px;
   }
 
+  /* ── Hero ── */
   .hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-    gap: 22px;
-    align-items: stretch;
-  }
-
-  .hero-panel,
-  .hero-side,
-  .category-card {
-    border: 1px solid rgba(24, 33, 47, 0.12);
+    border: 1px solid rgba(255, 220, 225, 0.1);
     border-radius: 28px;
-    background: var(--site-panel);
-    box-shadow: 0 18px 40px rgba(24, 33, 47, 0.08);
-  }
-
-  .hero-panel {
-    padding: 36px;
+    padding: 48px 42px;
     background:
-      linear-gradient(135deg, rgba(176, 28, 46, 0.96), rgba(127, 19, 33, 0.94)),
-      linear-gradient(160deg, rgba(255, 255, 255, 0.18), transparent);
+      linear-gradient(135deg, rgba(176, 28, 46, 0.96), rgba(127, 19, 33, 0.94));
     color: #fff8f7;
   }
 
@@ -39,224 +25,289 @@
     padding: 7px 12px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.16);
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
+    margin-bottom: 18px;
   }
 
-  .hero-panel h1 {
-    margin: 16px 0 12px;
-    font-size: clamp(2.6rem, 5vw, 4.4rem);
-    line-height: 0.96;
+  .hero h1 {
+    margin: 0 0 14px;
+    font-size: clamp(2.2rem, 4.5vw, 3.8rem);
+    line-height: 1.0;
+    max-width: 18ch;
   }
 
-  .hero-panel p {
-    max-width: 48rem;
-    font-size: 1.05rem;
+  .hero p {
+    margin: 0 0 28px;
+    font-size: 1.08rem;
     line-height: 1.65;
+    max-width: 54ch;
+    color: rgba(255, 248, 247, 0.82);
   }
 
   .hero-actions {
     display: flex;
-    gap: 12px;
+    gap: 14px;
     flex-wrap: wrap;
-    margin-top: 22px;
+    align-items: center;
   }
 
-  .hero-button,
-  .hero-button-secondary {
+  .hero-btn-primary {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    padding: 13px 18px;
+    padding: 13px 22px;
     border-radius: 999px;
+    font-weight: 800;
     text-decoration: none;
-    font-weight: 800;
+    background: #fff;
+    color: var(--site-brand);
+    white-space: nowrap;
   }
 
-  .hero-button {
-    background: var(--site-blue);
-    color: #f8fbff;
-  }
-
-  .hero-button-secondary {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff8f7;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-  }
-
-  .hero-side {
-    padding: 28px;
-    display: grid;
-    gap: 14px;
-    background:
-      radial-gradient(circle at top right, rgba(176, 28, 46, 0.14), transparent 40%),
-      var(--site-panel);
-  }
-
-  .hero-side h2 {
-    margin: 0;
-    font-size: 1.18rem;
-  }
-
-  .stat-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 14px;
-    align-items: baseline;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(24, 33, 47, 0.08);
-  }
-
-  .stat-row:last-child {
-    border-bottom: 0;
-    padding-bottom: 0;
-  }
-
-  .stat-value {
-    font-size: 1.8rem;
-    font-weight: 900;
-    color: var(--site-accent);
-  }
-
-  .section-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 18px;
-    align-items: end;
-    margin: 34px 0 16px;
-  }
-
-  .section-head h2 {
-    margin: 0 0 6px;
-    font-size: 2rem;
-  }
-
-  .category-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
-  }
-
-  .category-card {
-    padding: 24px;
-    display: grid;
-    gap: 14px;
-  }
-
-  .category-card h3 {
-    margin: 0;
-    font-size: 1.25rem;
-  }
-
-  .category-chip {
-    width: fit-content;
-    padding: 6px 10px;
+  .hero-join-form {
+    display: inline-flex;
+    gap: 0;
     border-radius: 999px;
-    background: var(--site-fire-soft);
-    color: var(--site-accent);
-    font-size: 0.82rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+  }
+
+  .hero-join-input {
+    padding: 11px 16px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 0;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    width: 130px;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
 
-  .category-link {
-    width: fit-content;
-    padding: 11px 15px;
-    border-radius: 999px;
-    text-decoration: none;
+  .hero-join-input::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .hero-join-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .hero-join-btn {
+    padding: 11px 18px;
+    background: rgba(255, 255, 255, 0.22);
+    border: 0;
+    color: #fff;
     font-weight: 800;
-    color: #f8fbff;
-    background: linear-gradient(135deg, var(--site-blue), var(--site-blue-dark));
+    cursor: pointer;
+    white-space: nowrap;
   }
 
-  .category-link.muted {
-    background: linear-gradient(135deg, #59697d, #748496);
+  .hero-join-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
   }
 
-  @media (max-width: 920px) {
-    .hero,
-    .category-grid {
-      grid-template-columns: 1fr;
+  /* ── Stats strip ── */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 22px;
+  }
+
+  .stat-card {
+    border: 1px solid var(--site-line);
+    border-radius: 20px;
+    padding: 22px 24px;
+    background: var(--site-panel);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .stat-number {
+    font-size: 2.4rem;
+    font-weight: 900;
+    color: var(--site-accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    color: var(--site-muted);
+    font-weight: 700;
+  }
+
+  /* ── How it works ── */
+  .how-section {
+    margin-top: 48px;
+  }
+
+  .how-section h2 {
+    margin: 0 0 22px;
+    font-size: 1.6rem;
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .how-card {
+    border: 1px solid var(--site-line);
+    border-radius: 20px;
+    padding: 22px 20px;
+    background: var(--site-panel);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .how-step {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--site-fire-soft);
+    color: var(--site-accent);
+    font-weight: 900;
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .how-card h3 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  .how-card p {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--site-muted);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 860px) {
+    .stats-strip,
+    .how-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .hero {
+      padding: 34px 24px;
     }
   }
 
-  /* ── Dark mode fixes ── */
-  html[data-theme="dark"] .hero-panel,
-  html[data-theme="dark"] .hero-side,
-  html[data-theme="dark"] .category-card {
-    border-color: var(--site-line);
+  @media (max-width: 520px) {
+    .stats-strip,
+    .how-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-join-input {
+      width: 100px;
+    }
   }
 
-  html[data-theme="dark"] .stat-row {
-    border-bottom-color: var(--site-line);
+  html[data-theme="light"] .hero {
+    border-color: rgba(176, 28, 46, 0.2);
+  }
+
+  html[data-theme="light"] .stat-card,
+  html[data-theme="light"] .how-card {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
   }
 </style>
 {% endblock %}
 
 {% block body %}
 <main class="home-shell">
+
   <section class="hero">
-    <article class="hero-panel">
-      <span class="hero-kicker">Scenario Routing</span>
-      <h1>Train by category. Run the board when the room is ready.</h1>
-      <p>
-        {{ site_name }} is the front door for fireground drills now, with category pages ready
-        for MVA and EMS next. Pick the lane you want, browse the available scenarios, and
-        move into the board only when you are ready to facilitate.
-      </p>
-      <div class="hero-actions">
-        <a class="hero-button" href="{{ url_for('scenarios.public_scenario_library') }}">Browse Scenarios</a>
-      </div>
-    </article>
+    <span class="hero-kicker">Fireground Training</span>
+    <h1>Scenario training for your crew.</h1>
+    <p>
+      Browse drills by category, run a live session with your department, and review results together.
+      Built for fire service, not generic training platforms.
+    </p>
+    <div class="hero-actions">
+      <a class="hero-btn-primary" href="{{ url_for('scenarios.public_scenario_library') }}">Browse Scenarios</a>
 
-    <aside class="hero-side">
-      <div>
-        <h2>Built For The Next Phase</h2>
-        <p style="margin:8px 0 0; color:var(--site-muted); line-height:1.55;">
-          The homepage now routes into category pages so we can expand without turning the board into the whole product.
-        </p>
-      </div>
-      <div class="stat-row">
-        <span>Fireground scenarios live now</span>
-        <strong class="stat-value">{{ category_cards[0].count_label.split(' ')[0] }}</strong>
-      </div>
-      <div class="stat-row">
-        <span>Additional categories staged</span>
-        <strong class="stat-value">2</strong>
-      </div>
-      <div class="stat-row">
-        <span>Current focus</span>
-        <strong style="color:var(--site-brand);">Professional browsing flow</strong>
-      </div>
-    </aside>
-  </section>
-
-  <section>
-    <div class="section-head">
-      <div>
-        <h2>Training Categories</h2>
-        <p style="margin:0; color:var(--site-muted);">Each category has its own page, while the top navigation stays consistent.</p>
-      </div>
-    </div>
-
-    <div class="category-grid">
-      {% for category in category_cards %}
-        <article class="category-card">
-          <span class="category-chip">{{ category.count_label }}</span>
-          <h3>{{ category.label }}</h3>
-          <p style="margin:0; color:var(--site-muted); line-height:1.6;">{{ category.description }}</p>
-          <a
-            class="category-link{% if not category.is_available %} muted{% endif %}"
-            href="{{ category.href }}"
-          >
-            {% if category.is_available %}Open Category{% else %}View Placeholder{% endif %}
-          </a>
-        </article>
-      {% endfor %}
+      <form class="hero-join-form" id="hero-join-form" onsubmit="heroJoin(event)">
+        <input
+          class="hero-join-input"
+          id="hero-join-code"
+          type="text"
+          maxlength="16"
+          placeholder="Join code"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+          aria-label="Session join code"
+        >
+        <button class="hero-join-btn" type="submit">Join Session</button>
+      </form>
     </div>
   </section>
+
+  <div class="stats-strip">
+    <div class="stat-card">
+      <span class="stat-number">{{ home_stats.scenario_count }}</span>
+      <span class="stat-label">Public scenarios</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number">{{ home_stats.session_count }}</span>
+      <span class="stat-label">Sessions run</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number">{{ home_stats.department_count }}</span>
+      <span class="stat-label">Departments</span>
+    </div>
+  </div>
+
+  <section class="how-section">
+    <h2>How it works</h2>
+    <div class="how-grid">
+      <div class="how-card">
+        <span class="how-step">1</span>
+        <h3>Browse a Scenario</h3>
+        <p>Search the public library by category, tag, or keyword. Filter by rank to find drills that match your crew.</p>
+      </div>
+      <div class="how-card">
+        <span class="how-step">2</span>
+        <h3>Create Your Own</h3>
+        <p>Build a custom scenario with your own dispatch text, images, and questions. Publish it for your department or the whole library.</p>
+      </div>
+      <div class="how-card">
+        <span class="how-step">3</span>
+        <h3>Start a Session</h3>
+        <p>Generate a join code, share it with your crew, and facilitate a live drill. Participants join on any device.</p>
+      </div>
+      <div class="how-card">
+        <span class="how-step">4</span>
+        <h3>Review Results</h3>
+        <p>See every submission, reveal answers, and debrief as a group. Reports track who completed what.</p>
+      </div>
+    </div>
+  </section>
+
 </main>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  function heroJoin(e) {
+    e.preventDefault();
+    var code = document.getElementById("hero-join-code").value.trim().toUpperCase();
+    if (code) {
+      window.location.href = "/join/" + encodeURIComponent(code);
+    }
+  }
+</script>
 {% endblock %}
