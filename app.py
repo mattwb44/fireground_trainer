@@ -66,9 +66,11 @@ from models import (  # noqa: F401
 )
 
 # For tests that reference app_module.generate_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash  # noqa: F401
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.config.update(build_runtime_config(app.instance_path))
 db.init_app(app)
 migrate.init_app(app, db)
