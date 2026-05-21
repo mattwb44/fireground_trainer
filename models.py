@@ -257,8 +257,8 @@ class ScenarioLike(TimestampMixin, db.Model):
 class Question(TimestampMixin, db.Model):
     __tablename__ = "questions"
     __table_args__ = (
-        db.UniqueConstraint("scenario_id", "question_key"),
-        db.UniqueConstraint("scenario_id", "sort_order"),
+        db.UniqueConstraint("scenario_id", "question_key", name="uq_questions_scenario_key"),
+        db.UniqueConstraint("scenario_id", "sort_order", name="uq_questions_scenario_sort"),
         db.Index("ix_questions_scenario_sort", "scenario_id", "sort_order"),
     )
 
