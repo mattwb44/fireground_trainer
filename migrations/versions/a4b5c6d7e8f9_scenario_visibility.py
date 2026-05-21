@@ -15,8 +15,10 @@ depends_on = None
 
 
 def _column_exists(bind, table: str, column: str) -> bool:
-    result = bind.execute(sa.text(f"PRAGMA table_info({table})")).fetchall()
-    return any(row[1] == column for row in result)
+    inspector = sa.inspect(bind)
+    if not inspector.has_table(table):
+        return False
+    return any(col['name'] == column for col in inspector.get_columns(table))
 
 
 def upgrade():

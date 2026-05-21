@@ -29,11 +29,7 @@ SEED_TAGS = [
 
 
 def _table_exists(bind, name: str) -> bool:
-    result = bind.execute(
-        sa.text("SELECT name FROM sqlite_master WHERE type='table' AND name=:n"),
-        {"n": name},
-    ).fetchone()
-    return result is not None
+    return sa.inspect(bind).has_table(name)
 
 
 def upgrade():

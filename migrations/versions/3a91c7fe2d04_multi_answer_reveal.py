@@ -14,19 +14,18 @@ branch_labels = None
 depends_on = None
 
 
-def _table_sql(bind, table_name: str) -> str:
-    row = bind.execute(
-        sa.text("SELECT sql FROM sqlite_master WHERE type='table' AND name=:name"),
-        {"name": table_name},
-    ).fetchone()
-    return (row[0] or "") if row else ""
+def _constraint_names(bind, table_name: str) -> set:
+    inspector = sa.inspect(bind)
+    if not inspector.has_table(table_name):
+        return set()
+    return {uc['name'] for uc in inspector.get_unique_constraints(table_name)}
 
 
 def upgrade():
     bind = op.get_bind()
-    sql = _table_sql(bind, "session_question_reveals")
-    has_old = "uq_session_question_reveals_session_question" in sql
-    has_new = "uq_session_question_reveals_session_answer" in sql
+    names = _constraint_names(bind, "session_question_reveals")
+    has_old = "uq_session_question_reveals_session_question" in names
+    has_new = "uq_session_question_reveals_session_answer" in names
     if has_new and not has_old:
         return
 
@@ -45,9 +44,9 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    sql = _table_sql(bind, "session_question_reveals")
-    has_old = "uq_session_question_reveals_session_question" in sql
-    has_new = "uq_session_question_reveals_session_answer" in sql
+    names = _constraint_names(bind, "session_question_reveals")
+    has_old = "uq_session_question_reveals_session_question" in names
+    has_new = "uq_session_question_reveals_session_answer" in names
     if has_old and not has_new:
         return
 

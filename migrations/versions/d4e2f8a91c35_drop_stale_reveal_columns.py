@@ -15,8 +15,7 @@ depends_on = None
 
 
 def _column_names(bind, table_name: str) -> set:
-    result = bind.execute(sa.text(f"PRAGMA table_info({table_name})"))
-    return {row[1] for row in result}
+    return {col['name'] for col in sa.inspect(bind).get_columns(table_name)}
 
 
 def upgrade():
