@@ -54,7 +54,7 @@ def upgrade():
 
     # Always run: existing approved scenarios become public so they stay visible
     bind.execute(
-        sa.text("UPDATE scenarios SET is_public = 1, training_category = 'fireground' WHERE status = 'approved'")
+        sa.text("UPDATE scenarios SET is_public = TRUE, training_category = 'fireground' WHERE status = 'approved'")
     )
 
 
