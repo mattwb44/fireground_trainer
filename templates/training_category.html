@@ -184,15 +184,42 @@
       position: static;
     }
   }
+
+  /* ── Dark mode fixes ── */
+  html[data-theme="dark"] .category-hero {
+    background:
+      radial-gradient(circle at top right, rgba(182, 65, 35, 0.1), transparent 28%),
+      linear-gradient(160deg, rgba(44, 22, 28, 0.97), rgba(28, 14, 18, 0.95));
+    border-color: rgba(255, 200, 210, 0.1);
+  }
+
+  html[data-theme="dark"] .filter-link {
+    color: var(--site-ink);
+    background: rgba(50, 24, 32, 0.7);
+  }
+
+  html[data-theme="dark"] .filter-count {
+    background: rgba(255, 200, 210, 0.12);
+    color: var(--site-muted);
+  }
+
+  html[data-theme="dark"] .ghost-button {
+    background: rgba(50, 24, 32, 0.7);
+    color: var(--site-ink);
+  }
+
+  html[data-theme="dark"] .vote-panel {
+    border-top-color: var(--site-line);
+  }
 </style>
 {% endblock %}
 
 {% block body %}
 <main class="category-shell">
   <section class="category-hero">
-    <p style="margin:0; color:#5d6b7d; font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">Training Category</p>
+    <p style="margin:0; color:var(--site-muted); font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">Training Category</p>
     <h1>{{ category.label }}</h1>
-    <p style="margin:0; max-width:54rem; color:#5d6b7d; line-height:1.65;">{{ category.description }}</p>
+    <p style="margin:0; max-width:54rem; color:var(--site-muted); line-height:1.65;">{{ category.description }}</p>
     {% if not category.is_placeholder %}
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;">
         <span class="meta-pill">{{ category.total_count }} live scenario{{ '' if category.total_count == 1 else 's' }}</span>
@@ -210,13 +237,13 @@
                 {% if loop.index == 1 %}Most Liked Right Now{% else %}Popular Pick{% endif %}
               </p>
               <h2 style="margin:0 0 6px; font-size:1.15rem;">{{ scenario.title }}</h2>
-              <p style="margin:0; color:#5d6b7d;">{{ scenario.likes_label }} | {{ scenario.question_label }}</p>
-              <p style="margin:8px 0 0; color:#5d6b7d; font-size:0.92rem;">{{ scenario.author_label }}{% if scenario.author_name %} | {{ scenario.author_name }}{% endif %}</p>
+              <p style="margin:0; color:var(--site-muted);">{{ scenario.likes_label }} | {{ scenario.question_label }}</p>
+              <p style="margin:8px 0 0; color:var(--site-muted); font-size:0.92rem;">{{ scenario.author_label }}{% if scenario.author_name %} | {{ scenario.author_name }}{% endif %}</p>
             </article>
           {% endfor %}
         </div>
       {% else %}
-        <p style="margin:16px 0 0; color:#5d6b7d;">
+        <p style="margin:16px 0 0; color:var(--site-muted);">
           Popularity tracking is live. Completed signed-in participants can now like scenarios, and the most liked ones will rise here first.
         </p>
       {% endif %}
@@ -226,7 +253,7 @@
   <section class="category-grid">
     <aside class="filter-panel">
       <h2 style="margin-top:0;">Filters</h2>
-      <p style="margin:0 0 12px; color:#5d6b7d;">{{ category.result_count }} result{{ '' if category.result_count == 1 else 's' }} in {{ category.active_filter_label }}. We can add more later like New, Top Rated, and Top of the Month.</p>
+      <p style="margin:0 0 12px; color:var(--site-muted);">{{ category.result_count }} result{{ '' if category.result_count == 1 else 's' }} in {{ category.active_filter_label }}. We can add more later like New, Top Rated, and Top of the Month.</p>
       {% for filter_option in category.filter_options %}
         <a
           class="filter-link{% if category.selected_filter == filter_option.key %} active{% endif %}"
@@ -242,7 +269,7 @@
       {% if category.is_placeholder %}
         <article class="placeholder-card">
           <h2 style="margin-top:0;">Placeholder Page</h2>
-          <p style="margin:0; color:#5d6b7d; line-height:1.65;">
+          <p style="margin:0; color:var(--site-muted); line-height:1.65;">
             This category is routed and styled so the site structure is ready, but we do not have live
             scenarios in this track yet.
           </p>
@@ -262,8 +289,8 @@
               </div>
 
               <h2 style="margin:14px 0 8px;">{{ scenario.title }}</h2>
-              <p style="margin:0; color:#5d6b7d; line-height:1.6;">{{ scenario.dispatch_summary }}</p>
-              <p style="margin:10px 0 0; color:#5d6b7d; font-size:0.92rem;">
+              <p style="margin:0; color:var(--site-muted); line-height:1.6;">{{ scenario.dispatch_summary }}</p>
+              <p style="margin:10px 0 0; color:var(--site-muted); font-size:0.92rem;">
                 {{ scenario.creator_filter_label }}{% if scenario.author_name %} | {{ scenario.author_name }}{% endif %} | {{ scenario.status_label }}
               </p>
 
@@ -310,7 +337,7 @@
       {% else %}
         <article class="placeholder-card">
           <h2 style="margin-top:0;">No Scenarios Match This Filter</h2>
-          <p style="margin:0; color:#5d6b7d; line-height:1.65;">
+          <p style="margin:0; color:var(--site-muted); line-height:1.65;">
             There are no {{ category.active_filter_label|lower }} scenarios to show right now. Try another creator bucket or return to All Scenarios to keep browsing.
           </p>
           <p style="margin:12px 0 0;">

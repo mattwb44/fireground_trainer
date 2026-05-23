@@ -2,133 +2,205 @@
 
 {% block title %}Join Session | Fireground Trainer{% endblock %}
 
-{% block body %}
-<main class="page-shell page-shell-narrow" style="margin-top:32px;">
-  <section class="theme-panel">
-    <h1 style="margin-top:0;">Join Session</h1>
-    <p><strong>Join Code:</strong> {{ training_session.join_code }}</p>
-    <p><strong>Session:</strong> {{ training_session.title or ("Session #" ~ training_session.id) }}</p>
-    <p><strong>Status:</strong> {{ training_session.status | title }}</p>
-    <p><strong>Scenario:</strong> {{ training_session.scenario.title }}</p>
-  </section>
+{% block head_extra %}
+<style>
+  .join-shell {
+    max-width: 520px;
+    margin: 28px auto 52px;
+    padding: 0 16px;
+  }
 
-  <section class="theme-panel" style="margin-top:12px;">
-    <h2 style="margin-top:0;">Before You Join</h2>
-    <div style="display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
-      <div style="padding:12px; border:1px solid var(--site-line); border-radius:12px; background:rgba(255,255,255,0.58);">
-        <div style="font-weight:700; color:#0f172a;">1. Pick Your Shift</div>
-        <div style="margin-top:6px; color:var(--site-muted); line-height:1.5;">Choose the shift or group the host wants this attempt counted under.</div>
-      </div>
-      <div style="padding:12px; border:1px solid var(--site-line); border-radius:12px; background:rgba(255,255,255,0.58);">
-        <div style="font-weight:700; color:#0f172a;">2. Choose Identity Mode</div>
-        <div style="margin-top:6px; color:var(--site-muted); line-height:1.5;">Anonymous keeps your session label private to the host board. Named join shows the display name you enter below.</div>
-      </div>
-      <div style="padding:12px; border:1px solid var(--site-line); border-radius:12px; background:rgba(255,255,255,0.58);">
-        <div style="font-weight:700; color:#0f172a;">3. Submit During The Drill</div>
-        <div style="margin-top:6px; color:var(--site-muted); line-height:1.5;">You can submit more than once while the session is active. The host review board uses your latest saved attempt.</div>
-      </div>
+  .join-info-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 14px;
+    align-items: baseline;
+  }
+
+  .join-info-label {
+    font-weight: 800;
+    color: var(--site-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .join-info-value {
+    font-weight: 700;
+    color: var(--site-ink);
+  }
+
+  .join-fieldset {
+    border: 1px solid var(--site-line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: var(--site-panel);
+    margin: 0;
+  }
+
+  .join-fieldset legend {
+    font-weight: 800;
+    padding: 0 6px;
+    color: var(--site-ink);
+    font-size: 0.92rem;
+  }
+
+  .join-radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    cursor: pointer;
+    color: var(--site-ink);
+    font-weight: 600;
+  }
+
+  .join-radio-label + .join-radio-label {
+    border-top: 1px solid var(--site-line);
+  }
+
+  .join-helper {
+    font-size: 0.85rem;
+    color: var(--site-muted);
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+
+  .join-preview {
+    padding: 10px 14px;
+    border: 1px solid var(--site-line);
+    border-radius: 10px;
+    background: var(--site-blue-soft);
+    color: var(--site-blue-dark);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .join-submit {
+    width: 100%;
+    padding: 13px;
+    border: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--site-blue), var(--site-blue-dark));
+    color: #fff;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  @media (max-width: 480px) {
+    .join-shell {
+      margin-top: 16px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<main class="join-shell">
+
+  {# ── Session summary ── #}
+  <section class="theme-panel" style="margin-bottom:12px;">
+    <h1 style="margin:0 0 14px; font-size:1.4rem;">Join Session</h1>
+    <div class="join-info-grid">
+      <span class="join-info-label">Code</span>
+      <span class="join-info-value">{{ training_session.join_code }}</span>
+      <span class="join-info-label">Session</span>
+      <span class="join-info-value">{{ training_session.title or ("Session #" ~ training_session.id) }}</span>
+      <span class="join-info-label">Status</span>
+      <span class="join-info-value">{{ training_session.status | title }}</span>
+      <span class="join-info-label">Scenario</span>
+      <span class="join-info-value">{{ training_session.scenario.title }}</span>
     </div>
   </section>
 
+  {# ── Error ── #}
   {% if error %}
-    <section class="theme-alert-error" style="margin-top:12px;">
+    <section class="theme-alert-error" style="margin-bottom:12px;">
       {{ error }}
     </section>
   {% endif %}
 
-  <section class="theme-panel" style="margin-top:12px;">
-    <h2 style="margin-top:0;">Participant Details</h2>
+  {# ── Form ── #}
+  <section class="theme-panel">
+    <h2 style="margin:0 0 14px; font-size:1.1rem;">Participant Details</h2>
+
     {% if joining_user %}
-      <div style="margin-bottom:14px; padding:12px 14px; border-radius:12px; background:var(--site-fire-soft); color:var(--site-accent); line-height:1.6;">
-        <strong>Signed in as {{ joining_user.full_name or joining_user.email }}.</strong>
-        Your account will still get completion credit for likes/history even if you choose anonymous join.
-      </div>
-    {% else %}
-      <div class="theme-alert-warning" style="margin-bottom:14px; line-height:1.6;">
-        You can join as a guest. If you want likes and completion history tied to an account later, create one before joining.
+      <div style="margin-bottom:14px; padding:10px 12px; border-radius:10px; background:var(--site-fire-soft); color:var(--site-accent); font-weight:700; font-size:0.92rem;">
+        Signed in as {{ joining_user.full_name or joining_user.email }}
       </div>
     {% endif %}
-    <form method="post" action="{{ url_for('sessions.join_by_code', join_code=training_session.join_code) }}" style="display:grid; gap:12px;">
+
+    <form method="post" action="{{ url_for('sessions.join_by_code', join_code=training_session.join_code) }}" style="display:grid; gap:14px;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-      <label>
-        <div style="font-weight:700; margin-bottom:4px;">Shift</div>
-        <select id="shift_label" name="shift_label" required style="width:100%; padding:8px; border:1px solid {{ 'var(--site-brand)' if error_field == 'shift_label' else 'rgba(57, 24, 31, 0.18)' }}; border-radius:12px; background:rgba(255,252,251,0.96);">
-          <option value="">Select shift...</option>
+      {# Shift #}
+      <label style="display:grid; gap:5px;">
+        <span style="font-weight:800; color:var(--site-ink);">Shift</span>
+        <select id="shift_label" name="shift_label" required
+          class="theme-select"
+          style="{% if error_field == 'shift_label' %}border-color:var(--site-brand);{% endif %}">
+          <option value="">Select shift…</option>
           {% for shift in shift_options %}
             <option value="{{ shift }}" {% if form_values.shift_label == shift %}selected{% endif %}>{{ shift }}</option>
           {% endfor %}
         </select>
-        <div style="margin-top:6px; color:{{ 'var(--site-brand)' if error_field == 'shift_label' else 'var(--site-muted)' }}; font-size:0.9rem; line-height:1.45;">
-          {% if error_field == 'shift_label' %}
-            Choose the shift or group the host wants this attempt counted under.
-          {% else %}
-            This is how the host will group your attempt in review and reporting.
-          {% endif %}
-        </div>
+        {% if error_field == 'shift_label' %}
+          <span class="join-helper" style="color:var(--site-brand);">Please choose a shift before joining.</span>
+        {% endif %}
       </label>
 
-      <label id="customShiftWrap" style="{% if form_values.shift_label != 'Other' %}display:none;{% endif %}">
-        <div style="font-weight:700; margin-bottom:4px;">Custom Shift Label</div>
-        <input name="custom_shift_label" value="{{ form_values.custom_shift_label }}" maxlength="50" placeholder="Example: Recruit Academy" style="width:100%; padding:8px; border:1px solid {{ 'var(--site-brand)' if error_field == 'custom_shift_label' else 'rgba(57, 24, 31, 0.18)' }}; border-radius:12px; background:rgba(255,252,251,0.96);">
-        <div style="margin-top:6px; color:{{ 'var(--site-brand)' if error_field == 'custom_shift_label' else 'var(--site-muted)' }}; font-size:0.9rem; line-height:1.45;">
-          {% if error_field == 'custom_shift_label' %}
-            Add the custom shift or group label before joining.
-          {% else %}
-            Use this when the host wants a custom crew, academy, or special assignment label.
-          {% endif %}
-        </div>
+      {# Custom shift #}
+      <label id="customShiftWrap" style="display:grid; gap:5px; {% if form_values.shift_label != 'Other' %}display:none;{% endif %}">
+        <span style="font-weight:800; color:var(--site-ink);">Custom Shift Label</span>
+        <input name="custom_shift_label" value="{{ form_values.custom_shift_label }}" maxlength="50"
+          placeholder="e.g. Recruit Academy"
+          class="theme-input"
+          style="{% if error_field == 'custom_shift_label' %}border-color:var(--site-brand);{% endif %}">
+        {% if error_field == 'custom_shift_label' %}
+          <span class="join-helper" style="color:var(--site-brand);">Enter a custom shift label before joining.</span>
+        {% endif %}
       </label>
 
-      <fieldset style="border:1px solid {{ 'var(--site-brand)' if error_field == 'identity_mode' else 'var(--site-line)' }}; border-radius:12px; padding:10px; background:rgba(255,255,255,0.42);">
-        <legend style="font-weight:700; padding:0 6px;">Identity</legend>
-        <label style="display:block; margin-bottom:6px;">
+      {# Identity #}
+      <fieldset class="join-fieldset" style="{% if error_field == 'identity_mode' %}border-color:var(--site-brand);{% endif %}">
+        <legend>Identity</legend>
+        <label class="join-radio-label">
           <input type="radio" name="identity_mode" value="anonymous" {% if form_values.identity_mode != 'named' %}checked{% endif %}>
           Join anonymously
         </label>
-        <label style="display:block;">
+        <label class="join-radio-label">
           <input type="radio" name="identity_mode" value="named" {% if form_values.identity_mode == 'named' %}checked{% endif %}>
           Join with name
         </label>
-        <div style="margin-top:8px; color:var(--site-muted); font-size:0.92rem;">
-          Anonymous hides your display name from the facilitation view. Named join shows the display name below to the host.
-        </div>
       </fieldset>
 
-      <div id="identityPreview" style="padding:12px 14px; border:1px solid var(--site-line); border-radius:12px; background:var(--site-blue-soft); color:var(--site-blue-dark); line-height:1.6;">
-        {% if form_values.identity_mode == 'named' %}
-          Host board label for this session: <strong>{{ form_values.display_name or 'Your display name' }}</strong>
-        {% else %}
-          Host board label for this session: <strong>Anonymous Person</strong>
+      {# Display name #}
+      <label id="displayNameWrap" style="display:grid; gap:5px; {% if form_values.identity_mode != 'named' %}display:none;{% endif %}">
+        <span style="font-weight:800; color:var(--site-ink);">Display Name</span>
+        <input id="display_name" name="display_name" value="{{ form_values.display_name }}" maxlength="120"
+          placeholder="e.g. Chris – Engine 2"
+          class="theme-input"
+          style="{% if error_field == 'display_name' %}border-color:var(--site-brand);{% endif %}">
+        {% if error_field == 'display_name' %}
+          <span class="join-helper" style="color:var(--site-brand);">Enter the name the host should see.</span>
         {% endif %}
-      </div>
-
-      <div style="padding:12px 14px; border:1px solid var(--site-line); border-radius:12px; background:rgba(255,255,255,0.58); color:var(--site-muted); line-height:1.6;">
-        Your choice here affects only this live session label.
-        {% if joining_user %}
-          Your signed-in account still keeps the completion history behind the scenes.
-        {% else %}
-          Guest join works fine, but completion history and likes will not attach to an account unless you sign in first.
-        {% endif %}
-      </div>
-
-      <label id="displayNameWrap" style="{% if form_values.identity_mode != 'named' %}display:none;{% endif %}">
-        <div style="font-weight:700; margin-bottom:4px;">Display Name</div>
-        <input id="display_name" name="display_name" value="{{ form_values.display_name }}" maxlength="120" placeholder="Example: Chris - Engine 2" style="width:100%; padding:8px; border:1px solid {{ 'var(--site-brand)' if error_field == 'display_name' else 'rgba(57, 24, 31, 0.18)' }}; border-radius:12px; background:rgba(255,252,251,0.96);">
-        <div style="margin-top:6px; color:{{ 'var(--site-brand)' if error_field == 'display_name' else 'var(--site-muted)' }}; font-size:0.9rem; line-height:1.45;">
-          {% if error_field == 'display_name' %}
-            Enter the name the host should see for this live session.
-          {% else %}
-            This is the exact label the host sees if you join with name.
-          {% endif %}
-        </div>
       </label>
 
-      <div>
-        <button type="submit" style="padding:9px 14px; border:0; border-radius:999px; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#fff; font-weight:800;">Join Session</button>
+      {# Live preview #}
+      <div id="identityPreview" class="join-preview">
+        {% if form_values.identity_mode == 'named' %}
+          Host sees: <strong>{{ form_values.display_name or 'Your display name' }}</strong>
+        {% else %}
+          Host sees: <strong>Anonymous Person</strong>
+        {% endif %}
       </div>
+
+      <button type="submit" class="join-submit">Join Session</button>
     </form>
   </section>
+
 </main>
 {% endblock %}
 
@@ -146,27 +218,24 @@
     function updateShiftVisibility() {
       if (!shiftSelect || !customShiftWrap) return;
       const isOther = shiftSelect.value === "Other";
-      customShiftWrap.style.display = isOther ? "block" : "none";
-      if (customShiftInput) {
-        customShiftInput.required = isOther;
-      }
+      customShiftWrap.style.display = isOther ? "grid" : "none";
+      if (customShiftInput) customShiftInput.required = isOther;
     }
 
     function updateIdentityVisibility() {
       if (!nameWrap || !nameInput) return;
-      const selected = identityRadios.find((radio) => radio.checked)?.value;
-      const isNamed = selected === "named";
-      nameWrap.style.display = isNamed ? "block" : "none";
+      const isNamed = identityRadios.find((r) => r.checked)?.value === "named";
+      nameWrap.style.display = isNamed ? "grid" : "none";
       nameInput.required = isNamed;
       if (identityPreview) {
         identityPreview.innerHTML = isNamed
-          ? `Host board label for this session: <strong>${nameInput.value.trim() || "Your display name"}</strong>`
-          : `Host board label for this session: <strong>Anonymous Person</strong>`;
+          ? `Host sees: <strong>${nameInput.value.trim() || "Your display name"}</strong>`
+          : `Host sees: <strong>Anonymous Person</strong>`;
       }
     }
 
     shiftSelect?.addEventListener("change", updateShiftVisibility);
-    identityRadios.forEach((radio) => radio.addEventListener("change", updateIdentityVisibility));
+    identityRadios.forEach((r) => r.addEventListener("change", updateIdentityVisibility));
     nameInput?.addEventListener("input", updateIdentityVisibility);
     updateShiftVisibility();
     updateIdentityVisibility();

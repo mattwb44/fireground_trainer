@@ -173,3 +173,5 @@ Priority order. Each item is a prerequisite for the ones below it.
 - Add contributor badges such as Top Rated Submitter, Certified Instructor, Certified Firefighter
 - Certified badges should be manually admin-verified
 - Consider reputation and trust systems tied to scenario quality and engagement
+- Support multiple correct answers on MC questions (UI + parse layer; DB schema already supports it)
+- Token toolbar should scroll with the image, not with the full page

@@ -68,7 +68,7 @@
           text-decoration:none;
           border:1px solid var(--site-line);
           color:var(--site-ink);
-          {% if selected_tab == tab.key %}background:var(--site-accent); color:#fff8f7; border-color:var(--site-accent);{% else %}background:rgba(255,255,255,0.64);{% endif %}
+          {% if selected_tab == tab.key %}background:var(--site-accent); color:#fff8f7; border-color:var(--site-accent);{% else %}background:var(--site-panel);{% endif %}
         "
       >
         {{ tab.label }}
@@ -83,7 +83,7 @@
       {% for sf_key, sf_label in sf_options %}
         <a href="{{ url_for('scenarios.scenario_library', tab='mine', status=sf_key) }}"
            style="padding:5px 10px; border-radius:999px; text-decoration:none; font-size:0.85rem; border:1px solid var(--site-line);
-             {% if mine_status_filter == sf_key %}background:var(--site-blue); color:#fff; border-color:var(--site-blue);{% else %}background:rgba(255,255,255,0.55); color:var(--site-ink);{% endif %}">
+             {% if mine_status_filter == sf_key %}background:var(--site-blue); color:#fff; border-color:var(--site-blue);{% else %}background:var(--site-panel); color:var(--site-ink);{% endif %}">
           {{ sf_label }}
         </a>
       {% endfor %}
@@ -159,14 +159,14 @@
                   <a href="{{ url_for('sessions.new_training_session_page', scenario_id=scenario.id) }}" style="display:inline-block; margin:0 0 6px; padding:6px 10px; border-radius:999px; text-decoration:none; background:var(--site-accent); color:#fff; font-weight:800;">Create Session</a>
                 {% endif %}
                 {% if current_user.user_id == 'guest' %}
-                  <a href="{{ url_for('auth.login_page', next=request.full_path) }}" style="display:inline-block; margin:0 0 6px; padding:6px 10px; border-radius:8px; text-decoration:none; background:#e5e7eb; color:#111827; font-weight:700;">Sign In To Like</a>
+                  <a href="{{ url_for('auth.login_page', next=request.full_path) }}" style="display:inline-block; margin:0 0 6px; padding:6px 10px; border-radius:8px; text-decoration:none; background:var(--site-panel); color:var(--site-ink); font-weight:700; border:1px solid var(--site-line);">Sign In To Like</a>
                 {% elif scenario.can_like %}
                   <form method="post" action="{{ url_for('scenarios.vote_for_scenario') }}" style="margin:0 0 6px;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
                     <input type="hidden" name="vote_action" value="{{ 'clear' if scenario.has_liked else 'like' }}">
                     <input type="hidden" name="next" value="{{ request.full_path }}">
-                    <button type="submit" style="padding:6px 10px; border:0; border-radius:8px; background:{{ '#e5e7eb' if scenario.has_liked else 'var(--site-blue)' }}; color:{{ '#111827' if scenario.has_liked else '#fff' }}; font-weight:700;">{{ 'Remove Like' if scenario.has_liked else 'Like' }}</button>
+                    <button type="submit" style="padding:6px 10px; border:0; border-radius:8px; background:{{ 'var(--site-panel)' if scenario.has_liked else 'var(--site-blue)' }}; color:{{ 'var(--site-ink)' if scenario.has_liked else '#fff' }}; font-weight:700; {% if scenario.has_liked %}border:1px solid var(--site-line);{% endif %}">{{ 'Remove Like' if scenario.has_liked else 'Like' }}</button>
                   </form>
                 {% else %}
                   <div style="margin:0 0 6px; font-size:0.82rem; color:var(--site-muted);">{{ scenario.eligibility_note }}</div>
@@ -195,7 +195,7 @@
         {% else %}
           <tr>
             <td colspan="6" style="padding:16px; color:var(--site-muted);">
-              <div style="font-weight:700; color:#111827;">Nothing To Show Yet</div>
+              <div style="font-weight:700; color:var(--site-ink);">Nothing To Show Yet</div>
               <div style="margin-top:6px;">{{ empty_state_message }}</div>
             </td>
           </tr>

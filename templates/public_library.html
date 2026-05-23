@@ -250,7 +250,7 @@
 {% block body %}
 <div class="library-shell">
   <header>
-    <h1 style="margin:0 0 6px;">Scenario Library</h1>
+    <h1 style="margin:0 0 6px;">Training Scenarios</h1>
     <p style="margin:0; color:var(--site-muted);">
       Browse {{ library.total_count }} public training scenario{{ '' if library.total_count == 1 else 's' }}.
       Filter by category, tag, or keyword.
@@ -262,7 +262,7 @@
       {% endif %}
       {% if current_user.has_permission(permission_keys.create_scenarios) %}
         | <a href="{{ url_for('scenarios.new_scenario_page') }}">Create Scenario</a>
-        | <a href="{{ url_for('scenarios.scenario_library') }}">Staff Library</a>
+        | <a href="{{ url_for('scenarios.scenario_library') }}">My Library</a>
       {% endif %}
     </p>
   </header>
