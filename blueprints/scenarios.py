@@ -324,6 +324,7 @@ def edit_scenario_page(scenario_id: int):
             for _ in range(4)
         ]
 
+    saved_layout = ScenarioTokenLayout.query.filter_by(scenario_id=scenario.id).first()
     prefill = {
         "title": scenario.title,
         "dispatch": scenario.dispatch_text,
@@ -335,6 +336,7 @@ def edit_scenario_page(scenario_id: int):
         "visibility": visibility,
         "training_category": scenario.training_category or "",
         "question_rows": question_rows,
+        "token_layout": saved_layout.layout_json if saved_layout else "[]",
     }
     return render_create_scenario(prefill=prefill, draft_scenario_id=scenario.id)
 
@@ -539,6 +541,18 @@ def create_scenario():
 
         action_label = "create_scenario"
 
+    import json as _json
+    raw_token_layout = request.form.get("token_layout", "[]").strip() or "[]"
+    try:
+        _json.loads(raw_token_layout)
+    except (ValueError, TypeError):
+        raw_token_layout = "[]"
+    layout_obj = ScenarioTokenLayout.query.filter_by(scenario_id=scenario.id).first()
+    if layout_obj:
+        layout_obj.layout_json = raw_token_layout
+    else:
+        db.session.add(ScenarioTokenLayout(scenario_id=scenario.id, layout_json=raw_token_layout))
+
     append_admin_audit_log(
         actor=current_db_user,
         action=action_label,
@@ -655,6 +669,18 @@ def autosave_scenario():
         valid_pos = [p for p in raw_positions if p in _PCHK]
         for pos in valid_pos:
             db.session.add(ScenarioPosition(scenario_id=scenario.id, position=pos))
+
+    import json as _json2
+    raw_tl = request.form.get("token_layout", "[]").strip() or "[]"
+    try:
+        _json2.loads(raw_tl)
+    except (ValueError, TypeError):
+        raw_tl = "[]"
+    tl_obj = ScenarioTokenLayout.query.filter_by(scenario_id=scenario.id).first()
+    if tl_obj:
+        tl_obj.layout_json = raw_tl
+    else:
+        db.session.add(ScenarioTokenLayout(scenario_id=scenario.id, layout_json=raw_tl))
 
     db.session.commit()
     return (

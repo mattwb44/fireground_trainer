@@ -426,15 +426,16 @@ def ensure_seed_scenarios() -> None:
 
 
 _SEED_TAGS = [
-    ("Commercial Structure", "commercial-structure"),
     ("Apartment Complex", "apartment-complex"),
+    ("Commercial Structure", "commercial-structure"),
     ("Duplex", "duplex"),
     ("Electric Vehicle", "electric-vehicle"),
     ("Extrication", "extrication"),
-    ("Wildland Interface", "wildland-interface"),
     ("High-Rise", "high-rise"),
     ("Pediatric", "pediatric"),
+    ("Residential Structure", "residential-structure"),
     ("Trauma", "trauma"),
+    ("Wildland Interface", "wildland-interface"),
 ]
 
 
@@ -1593,6 +1594,7 @@ def render_create_scenario(
         "training_category": (
             request.form.get("training_category", "") if is_post else pf.get("training_category", "")
         ),
+        "token_layout": pf.get("token_layout", "[]"),
     }
     if is_post:
         prompts = request.form.getlist("question_prompt")
@@ -1631,6 +1633,7 @@ def render_create_scenario(
             position_choices=POSITION_CHOICES,
             position_labels=POSITION_LABELS,
             draft_scenario_id=draft_scenario_id,
+            token_palette=TOKEN_PALETTE_DEFAULT,
         ),
         status_code,
     )
