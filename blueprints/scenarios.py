@@ -328,7 +328,7 @@ def edit_scenario_page(scenario_id: int):
     prefill = {
         "title": scenario.title,
         "dispatch": scenario.dispatch_text,
-        "base_image_path": scenario.base_image_path or "images/house1.jpg",
+        "base_image_path": scenario.base_image_path or "",
         "overlay_image_path": scenario.overlay_image_path or "",
         "is_official": scenario.is_official,
         "selected_tag_ids": tag_ids,
@@ -443,8 +443,6 @@ def create_scenario():
     questions, question_error = parse_create_scenario_questions()
     if question_error and not is_draft_save:
         return render_create_scenario(error=question_error, status_code=400, draft_scenario_id=draft_scenario_id)
-    if question_error:
-        questions = []
 
     visibility = request.form.get("visibility", "private").strip()
     training_category = request.form.get("training_category", "").strip() or None
@@ -457,7 +455,7 @@ def create_scenario():
         if not raw_tag_ids:
             return render_create_scenario(error="Select at least one tag to publish as public.", status_code=400, draft_scenario_id=draft_scenario_id)
 
-    normalized_base = normalize_static_asset_path(base_image_path) if base_image_path else "images/house1.jpg"
+    normalized_base = (normalize_static_asset_path(base_image_path) or "") if base_image_path else ""
     normalized_overlay = normalize_static_asset_path(overlay_image_path, allow_empty=True)
     current_db_user = get_current_db_user()
 
@@ -586,7 +584,7 @@ def autosave_scenario():
 
     title = request.form.get("title", "").strip() or "Untitled Draft"
     dispatch = request.form.get("dispatch", "").strip() or ""
-    base_image_path = request.form.get("base_image_path", "").strip() or "images/house1.jpg"
+    base_image_path = request.form.get("base_image_path", "").strip()
     overlay_image_path = request.form.get("overlay_image_path", "").strip() or None
     is_official = request.form.get("is_official") == "on"
     visibility = request.form.get("visibility", "private").strip()
@@ -595,7 +593,7 @@ def autosave_scenario():
     raw_positions = request.form.getlist("positions")
 
     questions, _ = parse_create_scenario_questions()
-    normalized_base = normalize_static_asset_path(base_image_path)
+    normalized_base = (normalize_static_asset_path(base_image_path) or "") if base_image_path else ""
     normalized_overlay = normalize_static_asset_path(overlay_image_path, allow_empty=True)
     is_public = visibility == "public"
     dept_id = None

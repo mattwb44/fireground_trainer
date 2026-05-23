@@ -1125,7 +1125,7 @@ def parse_create_scenario_questions() -> tuple[list[dict], str | None]:
             continue
         question_type = types[idx].strip() if idx < len(types) else DEFAULT_QUESTION_TYPE
         if question_type not in QUESTION_TYPE_CHOICES and question_type != "true_false":
-            return [], "One or more question types are invalid."
+            return questions, "One or more question types are invalid."
         instructor_answer = (
             instructor_answers[idx].strip() if idx < len(instructor_answers) else ""
         )
@@ -1155,15 +1155,15 @@ def parse_create_scenario_questions() -> tuple[list[dict], str | None]:
             correct_idx_raw = request.form.get(f"correct_choice_{idx}", "").strip()
             choice_texts = [c.strip() for c in choice_texts_raw if c.strip()]
             if len(choice_texts) < 2:
-                return [], f"Multiple choice question {idx + 1} needs at least 2 choices."
+                return questions, f"Multiple choice question {idx + 1} needs at least 2 choices."
             if len(choice_texts) > 6:
-                return [], f"Multiple choice question {idx + 1} can have at most 6 choices."
+                return questions, f"Multiple choice question {idx + 1} can have at most 6 choices."
             try:
                 correct_idx = int(correct_idx_raw)
                 if correct_idx < 0 or correct_idx >= len(choice_texts):
                     raise ValueError
             except (ValueError, TypeError):
-                return [], f"Multiple choice question {idx + 1} must have one correct choice marked."
+                return questions, f"Multiple choice question {idx + 1} must have one correct choice marked."
             question_data["choices"] = [
                 {"choice_text": text, "is_correct": (i == correct_idx), "sort_order": i}
                 for i, text in enumerate(choice_texts)
@@ -1568,7 +1568,7 @@ def render_create_scenario(
         "base_image_path": (
             request.form.get("base_image_path", "").strip()
             if is_post
-            else pf.get("base_image_path", "images/house1.jpg")
+            else pf.get("base_image_path", "")
         ),
         "overlay_image_path": (
             request.form.get("overlay_image_path", "").strip()

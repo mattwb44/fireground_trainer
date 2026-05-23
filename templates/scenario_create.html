@@ -129,19 +129,27 @@
       {# Load Scene Image #}
       <div>
         <div style="font-weight:700; margin-bottom:6px;">Load Scene Image</div>
-        <div id="imageDropZone" style="border:2px dashed rgba(255,180,195,0.2); border-radius:10px; padding:24px; text-align:center; cursor:pointer; transition:border-color 0.2s; position:relative; background:rgba(255,255,255,0.012);">
-          <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.webp"
-                 style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;">
-          <div id="dropZonePrompt" style="color:rgba(255,210,218,0.42); pointer-events:none;">
-            <div style="font-size:2.2rem; margin-bottom:8px;">📷</div>
-            <div style="font-size:0.95rem;">Drag &amp; drop an image, or click to browse</div>
-            <div style="font-size:0.76rem; margin-top:5px; color:rgba(255,210,218,0.28);">JPG, PNG, GIF, WebP · max 8 MB</div>
+        <div id="imageDropZone" style="border:2px dashed rgba(255,180,195,0.2); border-radius:10px; padding:28px 24px; text-align:center; transition:border-color 0.2s; background:rgba(255,255,255,0.012);">
+          <div id="dropZonePrompt">
+            <div style="font-size:2.2rem; margin-bottom:10px; pointer-events:none;">📷</div>
+            <div style="font-size:0.95rem; color:rgba(255,210,218,0.52); margin-bottom:12px; pointer-events:none;">Drag a File Here or</div>
+            <label id="browseLabel" style="display:inline-block; padding:8px 20px; border-radius:8px; border:1px solid rgba(255,180,195,0.25); background:rgba(255,255,255,0.06); color:rgba(255,210,218,0.75); font-weight:700; font-size:0.9rem; cursor:pointer;">
+              Browse For File
+              <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
+            </label>
+            <div style="font-size:0.76rem; margin-top:8px; color:rgba(255,210,218,0.28); pointer-events:none;">JPG, PNG, GIF, WebP · max 8 MB</div>
           </div>
-          <div id="imagePreview" style="display:none; pointer-events:none;">
+          <div id="imagePreview" style="display:none;">
             <img id="previewImg" src="" alt="Preview"
                  style="max-width:100%; max-height:210px; border-radius:6px; object-fit:contain;">
+            <div style="margin-top:8px;">
+              <label id="changeImageLabel" style="display:inline-block; padding:5px 14px; border-radius:6px; border:1px solid rgba(255,180,195,0.2); background:rgba(255,255,255,0.06); color:rgba(255,210,218,0.65); font-size:0.8rem; font-weight:700; cursor:pointer;">
+                Change Image
+                <input type="file" id="imageFileInputChange" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
+              </label>
+            </div>
           </div>
-          <div id="uploadProgress" style="display:none; pointer-events:none; color:rgba(255,210,218,0.5); font-size:0.88rem; padding:14px 0;">Uploading…</div>
+          <div id="uploadProgress" style="display:none; color:rgba(255,210,218,0.5); font-size:0.88rem; padding:14px 0;">Uploading…</div>
         </div>
         <input type="hidden" name="base_image_path" id="baseImagePath" value="{{ form_data.base_image_path }}">
         <div id="uploadError" style="display:none; color:#f87171; font-size:0.82rem; margin-top:5px;"></div>
@@ -353,6 +361,9 @@
 {% endblock %}
 
 {% block page_scripts %}
+{% if not draft_scenario_id %}
+<script>localStorage.removeItem("draft-new");</script>
+{% endif %}
 <script src="{{ url_for('static', filename='js/board.js') }}"></script>
 <script>
   (() => {
@@ -432,6 +443,11 @@
         mcBuilder.querySelector("button.add-choice").style.display = "none";
       } else {
         mcBuilder.querySelector("button.add-choice").style.display = "";
+        const choiceContainer = mcBuilder.querySelector(".mc-choices");
+        if (choiceContainer.querySelector(".tf-choices")) {
+          choiceContainer.innerHTML = "";
+          for (let i = 0; i < 2; i++) choiceContainer.appendChild(buildChoiceRow(qIdx, i));
+        }
         renumberChoices(mcBuilder, qIdx);
       }
     }
@@ -598,6 +614,7 @@
   (() => {
     const dropZone = document.getElementById("imageDropZone");
     const fileInput = document.getElementById("imageFileInput");
+    const fileInputChange = document.getElementById("imageFileInputChange");
     const prompt = document.getElementById("dropZonePrompt");
     const preview = document.getElementById("imagePreview");
     const previewImg = document.getElementById("previewImg");
@@ -625,6 +642,10 @@
       const file = fileInput.files?.[0];
       if (file) uploadFile(file);
     });
+    fileInputChange?.addEventListener("change", () => {
+      const file = fileInputChange.files?.[0];
+      if (file) uploadFile(file);
+    });
 
     async function uploadFile(file) {
       errorEl.style.display = "none";
@@ -644,7 +665,6 @@
           pathInput.value = data.path;
           previewImg.src = "/static/" + data.path;
           preview.style.display = "";
-          // Show board section and update board image
           if (boardSection) boardSection.style.display = "block";
           if (boardBaseImg) {
             boardBaseImg.src = "/static/" + data.path;
@@ -669,6 +689,17 @@
       preview.style.display = "";
       prompt.style.display = "none";
     }
+  })();
+
+  // ── Prevent Enter key from submitting the form from single-line inputs ──
+  (() => {
+    const form = document.getElementById("createScenarioForm");
+    if (!form) return;
+    form.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target.tagName === "INPUT") {
+        e.preventDefault();
+      }
+    });
   })();
 
   // ── Capture token layout before submit ──
