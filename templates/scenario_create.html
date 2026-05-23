@@ -18,8 +18,10 @@
     </section>
   {% endif %}
 
-  <form method="post" action="{{ url_for('scenarios.create_scenario') }}" style="display:grid; gap:12px;">
+  <form id="createScenarioForm" method="post" action="{{ url_for('scenarios.create_scenario') }}" style="display:grid; gap:12px;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="draft_scenario_id" id="draftScenarioId" value="{{ draft_scenario_id or '' }}">
+    <input type="hidden" name="save_mode" id="saveMode" value="finish">
 
     <section class="theme-panel" style="display:grid; gap:10px;">
       <label>
@@ -32,11 +34,29 @@
         <textarea name="dispatch" required rows="4" class="theme-textarea">{{ form_data.dispatch }}</textarea>
       </label>
 
+      <div>
+        <div style="font-weight:700; margin-bottom:4px;">Scene Image</div>
+        <div id="imageDropZone" style="border:2px dashed rgba(255,180,195,0.25); border-radius:10px; padding:20px; text-align:center; cursor:pointer; transition:border-color 0.2s; position:relative;">
+          <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.webp" style="position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;">
+          <div id="dropZonePrompt" style="color:rgba(255,210,218,0.5); pointer-events:none;">
+            <div style="font-size:1.5rem; margin-bottom:4px;">📷</div>
+            <div>Drag &amp; drop an image, or click to browse</div>
+            <div style="font-size:0.8rem; margin-top:4px;">JPG, PNG, GIF, WebP · max 8 MB</div>
+          </div>
+          <div id="imagePreview" style="display:none; pointer-events:none;">
+            <img id="previewImg" src="" alt="Preview" style="max-width:100%; max-height:180px; border-radius:6px; object-fit:contain;">
+            <div id="previewName" style="margin-top:6px; font-size:0.82rem; color:rgba(255,210,218,0.6);"></div>
+          </div>
+          <div id="uploadProgress" style="display:none; pointer-events:none; color:rgba(255,210,218,0.6); font-size:0.85rem;">Uploading…</div>
+        </div>
+        {% if form_data.base_image_path %}
+          <div style="margin-top:6px; font-size:0.8rem; color:rgba(255,210,218,0.45);">Current: {{ form_data.base_image_path }}</div>
+        {% endif %}
+        <input type="hidden" name="base_image_path" id="baseImagePath" value="{{ form_data.base_image_path }}">
+        <div id="uploadError" style="display:none; color:#f87171; font-size:0.82rem; margin-top:4px;"></div>
+      </div>
+
       <div style="display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-        <label>
-          <div style="font-weight:700; margin-bottom:4px;">Base Image Path</div>
-          <input name="base_image_path" required value="{{ form_data.base_image_path }}" placeholder="images/house1.jpg" class="theme-input">
-        </label>
         <label>
           <div style="font-weight:700; margin-bottom:4px;">Overlay Image Path (optional)</div>
           <input name="overlay_image_path" value="{{ form_data.overlay_image_path }}" placeholder="images/overlay.png" class="theme-input">
@@ -176,8 +196,14 @@
       </div>
     </section>
 
-    <div>
-      <button type="submit" class="theme-button-blue">Create Draft Scenario</button>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button type="submit" class="theme-button-blue" onclick="document.getElementById('saveMode').value='finish'">
+        Finish Scenario
+      </button>
+      <button type="submit" class="btn-muted" style="padding:8px 18px;" onclick="document.getElementById('saveMode').value='draft'">
+        Save as Draft
+      </button>
+      <span id="autosaveStatus" style="font-size:0.8rem; color:rgba(255,210,218,0.4);"></span>
     </div>
   </form>
 </main>
@@ -224,6 +250,22 @@
       });
     }
 
+    function buildTrueFalseChoices(qIdx) {
+      const wrap = document.createElement("div");
+      wrap.className = "tf-choices";
+      wrap.style.cssText = "display:grid; gap:6px;";
+      ["True", "False"].forEach((label, i) => {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex; align-items:center; gap:8px;";
+        row.innerHTML = `
+          <input type="radio" name="correct_choice_${qIdx}" value="${i}" ${i === 0 ? "checked" : ""} style="accent-color:var(--site-blue);">
+          <input type="text" name="choice_text_${qIdx}" value="${label}" readonly class="theme-input" style="flex:1; opacity:0.7; cursor:default;">
+        `;
+        wrap.appendChild(row);
+      });
+      return wrap;
+    }
+
     function updateMcSection(questionRow) {
       const qIdx = getRowIndex(questionRow);
       const select = questionRow.querySelector(".question-type-select");
@@ -231,18 +273,22 @@
       const nonMcAnswer = questionRow.querySelector(".non-mc-answer");
       const hiddenAnswerTA = questionRow.querySelector("textarea[name=instructor_answer][style*='display:none']");
       if (!select || !mcBuilder || !nonMcAnswer) return;
-      const isMC = select.value === "multiple_choice";
-      mcBuilder.style.display = isMC ? "" : "none";
-      nonMcAnswer.style.display = isMC ? "none" : "";
-      if (hiddenAnswerTA) hiddenAnswerTA.style.display = isMC ? "none" : "";
-      renumberChoices(mcBuilder, qIdx);
-      // Ensure mc names use current row index
-      mcBuilder.querySelector("button.add-choice")?.addEventListener("click", () => {
+      const type = select.value;
+      const isMC = type === "multiple_choice";
+      const isTF = type === "true_false";
+      mcBuilder.style.display = (isMC || isTF) ? "" : "none";
+      nonMcAnswer.style.display = (isMC || isTF) ? "none" : "";
+      if (hiddenAnswerTA) hiddenAnswerTA.style.display = "none";
+
+      if (isTF) {
         const choiceContainer = mcBuilder.querySelector(".mc-choices");
-        const cIdx = choiceContainer.querySelectorAll(".mc-choice-row").length;
-        choiceContainer.appendChild(buildChoiceRow(qIdx, cIdx));
+        choiceContainer.innerHTML = "";
+        choiceContainer.appendChild(buildTrueFalseChoices(qIdx));
+        mcBuilder.querySelector("button.add-choice").style.display = "none";
+      } else {
+        mcBuilder.querySelector("button.add-choice").style.display = "";
         renumberChoices(mcBuilder, qIdx);
-      });
+      }
     }
 
     function renumberRows() {
@@ -325,7 +371,6 @@
       `;
       rows.appendChild(row);
       wireRow(row);
-      // Add 2 default choices for MC if selected
       const mcBuilder = row.querySelector(".mc-builder");
       const choiceContainer = mcBuilder?.querySelector(".mc-choices");
       if (mcBuilder && choiceContainer) {
@@ -361,6 +406,123 @@
     }
     radios.forEach(r => r.addEventListener("change", update));
     update();
+  })();
+
+  // Image upload / drag-drop
+  (() => {
+    const dropZone = document.getElementById("imageDropZone");
+    const fileInput = document.getElementById("imageFileInput");
+    const prompt = document.getElementById("dropZonePrompt");
+    const preview = document.getElementById("imagePreview");
+    const previewImg = document.getElementById("previewImg");
+    const previewName = document.getElementById("previewName");
+    const progress = document.getElementById("uploadProgress");
+    const errorEl = document.getElementById("uploadError");
+    const pathInput = document.getElementById("baseImagePath");
+    if (!dropZone || !fileInput) return;
+
+    // Highlight on drag-over
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = "rgba(255,180,195,0.6)";
+    });
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.style.borderColor = "rgba(255,180,195,0.25)";
+    });
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = "rgba(255,180,195,0.25)";
+      const file = e.dataTransfer?.files[0];
+      if (file) uploadFile(file);
+    });
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files?.[0];
+      if (file) uploadFile(file);
+    });
+
+    async function uploadFile(file) {
+      errorEl.style.display = "none";
+      prompt.style.display = "none";
+      preview.style.display = "none";
+      progress.style.display = "";
+      const fd = new FormData();
+      fd.append("image", file);
+      fd.append("csrf_token", document.querySelector('meta[name="csrf-token"]').content);
+      try {
+        const res = await fetch("{{ url_for('scenarios.upload_scenario_image') }}", {
+          method: "POST",
+          body: fd,
+        });
+        const data = await res.json();
+        progress.style.display = "none";
+        if (res.ok && data.path) {
+          pathInput.value = data.path;
+          previewImg.src = "/static/" + data.path;
+          previewName.textContent = file.name;
+          preview.style.display = "";
+        } else {
+          errorEl.textContent = data.error || "Upload failed";
+          errorEl.style.display = "";
+          prompt.style.display = "";
+        }
+      } catch {
+        progress.style.display = "none";
+        errorEl.textContent = "Upload failed. Check your connection.";
+        errorEl.style.display = "";
+        prompt.style.display = "";
+      }
+    }
+
+    // If there's already a value, show the existing image
+    if (pathInput.value) {
+      previewImg.src = "/static/" + pathInput.value;
+      previewName.textContent = pathInput.value;
+      preview.style.display = "";
+      prompt.style.display = "none";
+    }
+  })();
+
+  // Debounced auto-save
+  (() => {
+    const form = document.getElementById("createScenarioForm");
+    const statusEl = document.getElementById("autosaveStatus");
+    const draftIdInput = document.getElementById("draftScenarioId");
+    if (!form || !statusEl) return;
+
+    let timer = null;
+    const DELAY = 15000; // 15 seconds of idle
+
+    function scheduleAutosave() {
+      clearTimeout(timer);
+      timer = setTimeout(doAutosave, DELAY);
+    }
+
+    async function doAutosave() {
+      statusEl.textContent = "Saving…";
+      const fd = new FormData(form);
+      fd.set("csrf_token", document.querySelector('meta[name="csrf-token"]').content);
+      try {
+        const res = await fetch("{{ url_for('scenarios.autosave_scenario') }}", {
+          method: "POST",
+          body: fd,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.scenario_id && !draftIdInput.value) {
+            draftIdInput.value = data.scenario_id;
+          }
+          const now = new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+          statusEl.textContent = `Auto-saved ${now}`;
+        } else {
+          statusEl.textContent = "Auto-save failed";
+        }
+      } catch {
+        statusEl.textContent = "Auto-save failed";
+      }
+    }
+
+    form.addEventListener("input", scheduleAutosave);
+    form.addEventListener("change", scheduleAutosave);
   })();
 </script>
 {% endblock %}

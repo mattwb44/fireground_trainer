@@ -56,12 +56,14 @@ from constants import (  # noqa: F401 — re-exported for backward-compat
     LIBRARY_TAB_SUBMITTED,
     PERMISSION_KEYS,
     POST_ONLY_PATHS,
+    CREATE_QUESTION_TYPE_LABELS,
     QUESTION_TYPE_AUTO_CHECKLIST,
     QUESTION_TYPE_CHOICES,
     QUESTION_TYPE_DISCUSSION_ONLY,
     QUESTION_TYPE_KEY_POINT_AUTO,
     QUESTION_TYPE_LABELS,
     QUESTION_TYPE_MULTIPLE_CHOICE,
+    QUESTION_TYPE_TRUE_FALSE,
     ROLE_LABELS,
     SCENARIO_ACTIVE_STATUSES,
     SCENARIO_STATUS_APPROVED,
@@ -83,6 +85,8 @@ from constants import (  # noqa: F401 — re-exported for backward-compat
     POSITION_BATTALION,
     POSITION_LABELS,
     POSITION_CHOICES,
+    CATEGORY_TOKEN_PALETTES,
+    TOKEN_PALETTE_DEFAULT,
 )
 from extensions import db
 from models import (
@@ -610,7 +614,15 @@ def resolve_library_tab(raw_tab: str | None, current_user: CurrentUser) -> str:
     return allowed_tabs[0]
 
 
-def load_library_scenarios(tab: str, current_user: CurrentUser, db_user: User | None) -> list[Scenario]:
+MINE_STATUS_FILTERS = frozenset({"draft", "submitted", "approved"})
+
+
+def load_library_scenarios(
+    tab: str,
+    current_user: CurrentUser,
+    db_user: User | None,
+    status_filter: str | None = None,
+) -> list[Scenario]:
     query = Scenario.query.filter(Scenario.is_active.is_(True)).order_by(Scenario.updated_at.desc(), Scenario.id.desc())
     if tab == LIBRARY_TAB_OFFICIAL:
         return (
@@ -629,12 +641,13 @@ def load_library_scenarios(tab: str, current_user: CurrentUser, db_user: User | 
     if tab == LIBRARY_TAB_MINE:
         if db_user is None:
             return []
-        return (
-            query.filter(
-                Scenario.created_by_user_id == db_user.id,
-                Scenario.status != SCENARIO_STATUS_ARCHIVED,
-            ).all()
+        mine_query = query.filter(
+            Scenario.created_by_user_id == db_user.id,
+            Scenario.status != SCENARIO_STATUS_ARCHIVED,
         )
+        if status_filter in MINE_STATUS_FILTERS:
+            mine_query = mine_query.filter(Scenario.status == status_filter)
+        return mine_query.all()
     if tab == LIBRARY_TAB_SUBMITTED:
         return query.filter(Scenario.status == SCENARIO_STATUS_SUBMITTED).all()
     return []
@@ -1110,11 +1123,25 @@ def parse_create_scenario_questions() -> tuple[list[dict], str | None]:
         if not prompt:
             continue
         question_type = types[idx].strip() if idx < len(types) else DEFAULT_QUESTION_TYPE
-        if question_type not in QUESTION_TYPE_CHOICES:
+        if question_type not in QUESTION_TYPE_CHOICES and question_type != "true_false":
             return [], "One or more question types are invalid."
         instructor_answer = (
             instructor_answers[idx].strip() if idx < len(instructor_answers) else ""
         )
+        if question_type == "true_false":
+            question_type = QUESTION_TYPE_MULTIPLE_CHOICE
+            correct_raw = request.form.get(f"correct_choice_{idx}", "0").strip()
+            correct_idx = 0 if correct_raw == "0" else 1
+            questions.append({
+                "prompt": prompt,
+                "question_type": QUESTION_TYPE_MULTIPLE_CHOICE,
+                "instructor_answer": instructor_answer,
+                "choices": [
+                    {"choice_text": "True", "is_correct": correct_idx == 0, "sort_order": 0},
+                    {"choice_text": "False", "is_correct": correct_idx == 1, "sort_order": 1},
+                ],
+            })
+            continue
         question_data: dict = {
             "prompt": prompt,
             "question_type": question_type,
@@ -1525,26 +1552,49 @@ def update_submission_review_state(
     abort(400)
 
 
-def render_create_scenario(error: str | None = None, status_code: int = 200):
+def render_create_scenario(
+    error: str | None = None,
+    status_code: int = 200,
+    prefill: dict | None = None,
+    draft_scenario_id: int | None = None,
+):
     from models import Tag
+    is_post = request.method == "POST"
+    pf = prefill or {}
     form_data = {
-        "title": request.form.get("title", "").strip() if request.method == "POST" else "",
-        "dispatch": request.form.get("dispatch", "").strip() if request.method == "POST" else "",
-        "base_image_path": request.form.get("base_image_path", "").strip()
-        if request.method == "POST"
-        else "images/house1.jpg",
-        "overlay_image_path": request.form.get("overlay_image_path", "").strip()
-        if request.method == "POST"
-        else "",
-        "is_official": request.form.get("is_official") == "on"
-        if request.method == "POST"
-        else False,
-        "selected_tag_ids": [
-            int(v) for v in request.form.getlist("tag_ids") if v.isdigit()
-        ] if request.method == "POST" else [],
-        "selected_positions": request.form.getlist("positions") if request.method == "POST" else [],
+        "title": request.form.get("title", "").strip() if is_post else pf.get("title", ""),
+        "dispatch": request.form.get("dispatch", "").strip() if is_post else pf.get("dispatch", ""),
+        "base_image_path": (
+            request.form.get("base_image_path", "").strip()
+            if is_post
+            else pf.get("base_image_path", "images/house1.jpg")
+        ),
+        "overlay_image_path": (
+            request.form.get("overlay_image_path", "").strip()
+            if is_post
+            else pf.get("overlay_image_path", "")
+        ),
+        "is_official": (
+            request.form.get("is_official") == "on"
+            if is_post
+            else pf.get("is_official", False)
+        ),
+        "selected_tag_ids": (
+            [int(v) for v in request.form.getlist("tag_ids") if v.isdigit()]
+            if is_post
+            else pf.get("selected_tag_ids", [])
+        ),
+        "selected_positions": (
+            request.form.getlist("positions") if is_post else pf.get("selected_positions", [])
+        ),
+        "visibility": (
+            request.form.get("visibility", "private") if is_post else pf.get("visibility", "private")
+        ),
+        "training_category": (
+            request.form.get("training_category", "") if is_post else pf.get("training_category", "")
+        ),
     }
-    if request.method == "POST":
+    if is_post:
         prompts = request.form.getlist("question_prompt")
         types = request.form.getlist("question_type")
         instructor_answers = request.form.getlist("instructor_answer")
@@ -1560,26 +1610,27 @@ def render_create_scenario(error: str | None = None, status_code: int = 200):
                     else "",
                 }
             )
+    elif pf.get("question_rows"):
+        question_rows = pf["question_rows"]
     else:
         question_rows = [
             {"prompt": "", "question_type": DEFAULT_QUESTION_TYPE, "instructor_answer": ""}
             for _ in range(4)
         ]
     available_tags = Tag.query.filter_by(is_active=True).order_by(Tag.name).all()
-    form_data["visibility"] = request.form.get("visibility", "private") if request.method == "POST" else "private"
-    form_data["training_category"] = request.form.get("training_category", "") if request.method == "POST" else ""
     return (
         render_template(
             "scenario_create.html",
             error=error,
             form_data=form_data,
             question_rows=question_rows,
-            question_type_labels=QUESTION_TYPE_LABELS,
+            question_type_labels=CREATE_QUESTION_TYPE_LABELS,
             default_question_type=DEFAULT_QUESTION_TYPE,
             available_tags=available_tags,
             category_labels=CATEGORY_LABELS,
             position_choices=POSITION_CHOICES,
             position_labels=POSITION_LABELS,
+            draft_scenario_id=draft_scenario_id,
         ),
         status_code,
     )

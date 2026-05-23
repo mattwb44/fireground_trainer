@@ -52,10 +52,54 @@
     localStorage.setItem(storageKey, JSON.stringify(payload));
   }
 
+  function normalizeTokenList(loadedTokens) {
+    return loadedTokens
+      .filter((token) => token && token.id && token.type)
+      .map((token) => {
+        const rawSize = Number.isFinite(Number(token.size)) ? Number(token.size) : 52;
+        const rawScale = Number.isFinite(Number(token.scale)) ? Number(token.scale) : 1;
+        return {
+          id: String(token.id),
+          type: String(token.type),
+          x: Number.isFinite(Number(token.x)) ? Number(token.x) : 50,
+          y: Number.isFinite(Number(token.y)) ? Number(token.y) : 50,
+          rotation: Number.isFinite(Number(token.rotation)) ? Number(token.rotation) : 0,
+          size: clamp(rawSize * rawScale, 24, 600),
+          layer: Number.isFinite(Number(token.layer)) ? Number(token.layer) : 1,
+          notes: typeof token.notes === "string" ? token.notes : "",
+          status: typeof token.status === "string" ? token.status : "active",
+        };
+      });
+  }
+
   function loadState() {
     try {
       const raw = localStorage.getItem(storageKey);
       if (!raw) {
+        // Seed from server-saved layout if no local state exists
+        const seedJson = board.dataset.initialTokens || "[]";
+        try {
+          const seedTokens = JSON.parse(seedJson);
+          if (Array.isArray(seedTokens) && seedTokens.length > 0) {
+            const toolMap = getToolMap();
+            state.tokens = normalizeTokenList(
+              seedTokens.map((t, i) => ({
+                id: t.id || String(i + 1),
+                type: t.type,
+                src: t.src || toolMap[t.type] || "",
+                x: t.x,
+                y: t.y,
+                rotation: t.rotation,
+                size: t.size,
+                layer: t.layer,
+                notes: t.notes || "",
+                status: t.status || "active",
+              }))
+            );
+            state.nextId = computeNextId(state.tokens);
+            return;
+          }
+        } catch (_) {}
         state.nextId = 1;
         return;
       }
@@ -63,23 +107,7 @@
       const parsed = JSON.parse(raw);
       const loadedTokens = Array.isArray(parsed.tokens) ? parsed.tokens : [];
 
-      state.tokens = loadedTokens
-        .filter((token) => token && token.id && token.type)
-        .map((token) => {
-          const rawSize = Number.isFinite(Number(token.size)) ? Number(token.size) : 52;
-          const rawScale = Number.isFinite(Number(token.scale)) ? Number(token.scale) : 1;
-          return {
-            id: String(token.id),
-            type: String(token.type),
-            x: Number.isFinite(Number(token.x)) ? Number(token.x) : 50,
-            y: Number.isFinite(Number(token.y)) ? Number(token.y) : 50,
-            rotation: Number.isFinite(Number(token.rotation)) ? Number(token.rotation) : 0,
-            size: clamp(rawSize * rawScale, 24, 600),
-            layer: Number.isFinite(Number(token.layer)) ? Number(token.layer) : 1,
-            notes: typeof token.notes === "string" ? token.notes : "",
-            status: typeof token.status === "string" ? token.status : "active",
-          };
-        });
+      state.tokens = normalizeTokenList(loadedTokens);
 
       const loadedDefault = Number(parsed.defaultTokenPx);
       state.defaultTokenPx = Number.isFinite(loadedDefault) ? clamp(loadedDefault, 24, 600) : 52;
@@ -487,7 +515,64 @@
     window.addEventListener("pointercancel", clearInteractionStates);
   }
 
+  // Expose current token state for the "Save Starting Layout" button
+  window.getBoardTokenState = () => state.tokens.map((t) => ({
+    id: t.id,
+    type: t.type,
+    x: t.x,
+    y: t.y,
+    rotation: t.rotation,
+    size: t.size,
+    layer: t.layer,
+    notes: t.notes,
+    status: t.status,
+  }));
+
+  // Live session board sync
+  function startLiveSync() {
+    const hostSyncUrl = board.dataset.hostSyncUrl;
+    const hostCsrf = board.dataset.hostSyncCsrf;
+    const participantSyncUrl = board.dataset.participantSyncUrl;
+
+    if (hostSyncUrl && hostCsrf) {
+      // HOST: push token state to server every 3 seconds
+      let lastPushed = null;
+      window.setInterval(async () => {
+        const current = JSON.stringify(window.getBoardTokenState());
+        if (current === lastPushed) return;
+        lastPushed = current;
+        const fd = new FormData();
+        fd.append("csrf_token", hostCsrf);
+        fd.append("state_json", current);
+        try {
+          await fetch(hostSyncUrl, { method: "POST", body: fd });
+        } catch (_) {}
+      }, 3000);
+    } else if (participantSyncUrl) {
+      // PARTICIPANT: pull host token state every 3 seconds
+      let lastUpdatedAt = null;
+      window.setInterval(async () => {
+        try {
+          const res = await fetch(participantSyncUrl, { cache: "no-store" });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.updated_at === lastUpdatedAt) return;
+          lastUpdatedAt = data.updated_at;
+          if (!Array.isArray(data.tokens) || data.tokens.length === 0) return;
+          // Replace local token state with host state
+          state.tokens = normalizeTokenList(data.tokens.map((t, i) => ({
+            ...t,
+            id: t.id || String(i + 1),
+          })));
+          state.nextId = computeNextId(state.tokens);
+          hydrateBoardFromState();
+        } catch (_) {}
+      }, 3000);
+    }
+  }
+
   loadState();
   hydrateBoardFromState();
   bindUiEvents();
+  startLiveSync();
 })();

@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
 
+{% block body_attrs %}{% if active_training_session and active_training_session.status == 'active' %}data-active-session="1"{% endif %}{% endblock %}
+
 {% block title %}Board | {{ site_name }}{% endblock %}
 
 {% block head_extra %}
@@ -544,6 +546,31 @@
         </form>
       {% endif %}
 
+      {# Report / flag button — signed-in users only #}
+      {% if current_user.user_id != 'guest' %}
+        {% if user_has_flagged %}
+          <span style="font-size:0.8rem; color:rgba(255,180,80,0.7);">⚑ Reported</span>
+        {% else %}
+          <details style="display:inline; position:relative;">
+            <summary style="font-size:0.8rem; color:rgba(255,210,218,0.45); cursor:pointer; list-style:none; padding:4px 8px; border-radius:6px; border:1px solid rgba(255,180,195,0.12);">⚐ Report</summary>
+            <div style="position:absolute; top:100%; left:0; z-index:10; background:#1a1a2e; border:1px solid rgba(255,180,195,0.2); border-radius:8px; padding:12px; min-width:220px; margin-top:4px;">
+              <form method="post" action="{{ url_for('scenarios.flag_scenario') }}" style="margin:0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <div style="margin-bottom:8px; font-size:0.82rem; color:rgba(255,210,218,0.7);">Why are you reporting this?</div>
+                <select name="reason" style="width:100%; margin-bottom:8px; background:#111; color:#eee; border:1px solid rgba(255,180,195,0.2); border-radius:6px; padding:4px 8px; font-size:0.82rem;">
+                  <option value="incorrect">Incorrect information</option>
+                  <option value="inappropriate">Inappropriate content</option>
+                  <option value="other">Other</option>
+                </select>
+                <button type="submit" class="btn-red" style="width:100%; padding:5px; font-size:0.82rem; margin:0;">Submit Report</button>
+              </form>
+            </div>
+          </details>
+        {% endif %}
+      {% endif %}
+
       {# Workflow controls — right-aligned #}
       <div class="switcher" style="margin-left:auto;">
         {% if current_user.has_permission(permission_keys.create_scenarios) and scenario.workflow_status == 'draft' %}
@@ -609,11 +636,26 @@
             <button type="submit" class="btn-muted" style="margin:0; padding:5px 12px; font-size:0.82rem;">Adopt for My Department</button>
           </form>
         {% endif %}
+        {% if current_user.has_permission(permission_keys.create_scenarios) and scenario.workflow_status == 'approved' %}
+          <form method="post" action="{{ url_for('scenarios.clone_scenario') }}" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+            <button type="submit" class="btn-muted" style="margin:0; padding:5px 12px; font-size:0.82rem;">Clone</button>
+          </form>
+        {% endif %}
       </div>
     </div>
 
     {# Scenario image #}
-    <div class="imgwrap" id="board" data-scenario-key="{{ scenario.title | e }}">
+    <div class="imgwrap" id="board" data-scenario-key="{{ scenario.title | e }}"
+         data-initial-tokens="{{ initial_token_layout | default('[]') | e }}"
+         {% if host_workspace and active_training_session and active_training_session.status == 'active' %}
+           data-host-sync-url="{{ url_for('sessions.save_board_state', session_id=host_workspace.session_id) }}"
+           data-host-sync-csrf="{{ csrf_token() }}"
+         {% elif active_training_session and active_participant and active_training_session.status == 'active' %}
+           data-participant-sync-url="{{ url_for('sessions.get_board_state', session_id=active_training_session.id) }}"
+         {% endif %}
+    >
       <img class="base-img" src="{{ url_for('static', filename=scenario.image.base) }}" alt="{{ scenario.title }}" />
       <div class="token-layer" id="tokenLayer"></div>
     </div>
@@ -628,13 +670,28 @@
   {# ── Token tools panel ── #}
   <aside class="card tools-panel">
     <div style="font-size:0.72rem; font-weight:900; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,210,218,0.5); margin-bottom:10px;">Tools</div>
-    <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/fire.png') }}" data-type="fire">Fire</button>
-    <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/smoke.png') }}" data-type="smoke">Smoke</button>
-    <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/wind_arrow.png') }}" data-type="wind">Wind</button>
-    <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/ladder.png') }}" data-type="ladder">Ladder</button>
-    <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/fireman.png') }}" data-type="attack">Attack</button>
-    <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/RIT.png') }}" data-type="rit">RIT</button>
+    {% set palette = token_palette if token_palette is defined else [] %}
+    {% for token in palette %}
+      <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename=token.src) }}" data-type="{{ token.type }}">{{ token.label }}</button>
+    {% else %}
+      <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/fire.png') }}" data-type="fire">Fire</button>
+      <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/smoke.png') }}" data-type="smoke">Smoke</button>
+      <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/wind_arrow.png') }}" data-type="wind">Wind</button>
+      <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/ladder.png') }}" data-type="ladder">Ladder</button>
+      <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/fireman.png') }}" data-type="attack">Attack</button>
+      <button type="button" class="toolbtn tokenbtn" data-src="{{ url_for('static', filename='tokens/RIT.png') }}" data-type="rit">RIT</button>
+    {% endfor %}
     <button type="button" class="toolbtn" id="clearTokens" style="color:rgba(255,120,140,0.8); margin-top:4px;">Clear</button>
+    {% if current_user.has_permission(permission_keys.create_scenarios) and scenario.workflow_status in ('draft', 'approved') %}
+      <hr style="border:none; border-top:1px solid rgba(255,180,195,0.1); margin:8px 0;">
+      <form id="saveLayoutForm" method="post" action="{{ url_for('scenarios.save_scenario_token_layout') }}" style="margin:0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <input type="hidden" name="layout_json" id="layoutJsonInput" value="[]">
+        <button type="button" class="toolbtn" id="saveLayoutBtn" style="font-size:0.75rem; line-height:1.3; white-space:normal; color:rgba(100,200,140,0.9);">Save Starting Layout</button>
+      </form>
+    {% endif %}
   </aside>
 
   {# ── Questions ── #}
@@ -1167,5 +1224,19 @@
     window.print();
     document.body.classList.remove('print-blank', 'print-answer-key');
   }
+
+  // Save Starting Layout button: capture current board state into the hidden form
+  (() => {
+    const btn = document.getElementById("saveLayoutBtn");
+    const form = document.getElementById("saveLayoutForm");
+    const input = document.getElementById("layoutJsonInput");
+    if (!btn || !form || !input) return;
+    btn.addEventListener("click", () => {
+      // board.js exposes window.getBoardTokenState() — we call it to get current tokens
+      const tokens = typeof window.getBoardTokenState === "function" ? window.getBoardTokenState() : [];
+      input.value = JSON.stringify(tokens);
+      form.submit();
+    });
+  })();
 </script>
 {% endblock %}

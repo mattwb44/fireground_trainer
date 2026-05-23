@@ -79,6 +79,7 @@ QUESTION_TYPE_AUTO_CHECKLIST = "auto_checklist"
 QUESTION_TYPE_KEY_POINT_AUTO = "key_point_auto"
 QUESTION_TYPE_DISCUSSION_ONLY = "discussion_only"
 QUESTION_TYPE_MULTIPLE_CHOICE = "multiple_choice"
+QUESTION_TYPE_TRUE_FALSE = "true_false"  # UI-only; stored as multiple_choice
 QUESTION_TYPE_LABELS = {
     QUESTION_TYPE_AUTO_CHECKLIST: "Auto-scored checklist",
     QUESTION_TYPE_KEY_POINT_AUTO: "Short Answer (Participant's Answers Matched and Scored to Creator's Answer)",
@@ -87,6 +88,13 @@ QUESTION_TYPE_LABELS = {
 }
 QUESTION_TYPE_CHOICES = frozenset(QUESTION_TYPE_LABELS.keys())
 DEFAULT_QUESTION_TYPE = QUESTION_TYPE_DISCUSSION_ONLY
+
+# Simplified labels shown in the scenario create form
+CREATE_QUESTION_TYPE_LABELS = {
+    QUESTION_TYPE_DISCUSSION_ONLY: "Open-Ended",
+    QUESTION_TYPE_MULTIPLE_CHOICE: "Multiple Choice",
+    QUESTION_TYPE_TRUE_FALSE: "True / False",
+}
 
 # ---------------------------------------------------------------------------
 # Submission lifecycle
@@ -156,6 +164,40 @@ CATEGORY_FILTER_LABELS = {
 }
 
 # ---------------------------------------------------------------------------
+# Category-specific token palettes
+# ---------------------------------------------------------------------------
+
+TOKEN_PALETTE_FIREGROUND = [
+    {"type": "fire", "label": "Fire", "src": "tokens/fire.png"},
+    {"type": "smoke", "label": "Smoke", "src": "tokens/smoke.png"},
+    {"type": "wind", "label": "Wind", "src": "tokens/wind_arrow.png"},
+    {"type": "ladder", "label": "Ladder", "src": "tokens/ladder.png"},
+    {"type": "attack", "label": "Attack", "src": "tokens/fireman.png"},
+    {"type": "rit", "label": "RIT", "src": "tokens/RIT.png"},
+]
+
+TOKEN_PALETTE_MVA = [
+    {"type": "fire", "label": "Fire", "src": "tokens/fire.png"},
+    {"type": "smoke", "label": "Smoke", "src": "tokens/smoke.png"},
+    {"type": "wind", "label": "Wind", "src": "tokens/wind_arrow.png"},
+    {"type": "attack", "label": "Crew", "src": "tokens/fireman.png"},
+    {"type": "rit", "label": "RIT", "src": "tokens/RIT.png"},
+]
+
+TOKEN_PALETTE_EMS = [
+    {"type": "attack", "label": "EMS", "src": "tokens/fireman.png"},
+    {"type": "rit", "label": "RIT", "src": "tokens/RIT.png"},
+]
+
+TOKEN_PALETTE_DEFAULT = TOKEN_PALETTE_FIREGROUND
+
+CATEGORY_TOKEN_PALETTES = {
+    CATEGORY_FIREGROUND: TOKEN_PALETTE_FIREGROUND,
+    CATEGORY_MVA: TOKEN_PALETTE_MVA,
+    CATEGORY_EMS: TOKEN_PALETTE_EMS,
+}
+
+# ---------------------------------------------------------------------------
 # GFD position target tags
 # ---------------------------------------------------------------------------
 
@@ -193,8 +235,13 @@ POST_ONLY_PATHS = frozenset(
         "/scenario/official",
         "/scenarios/new",
         "/scenarios/select",
-        "/sessions/new",
         "/scenarios/vote",
+        "/scenarios/flag",
+        "/scenarios/clone",
+        "/scenarios/upload-image",
+        "/scenarios/autosave",
+        "/scenario/save-token-layout",
+        "/sessions/new",
         "/logout",
         "/login",
         "/magic-link/request",

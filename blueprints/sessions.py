@@ -41,7 +41,7 @@ from helpers import (
     update_submission_review_state,
     validate_csrf_or_abort,
 )
-from models import Participant, Question, Submission, SubmissionAnswer, TrainingSession
+from models import Participant, Question, SessionBoardState, Submission, SubmissionAnswer, TrainingSession
 
 sessions_bp = Blueprint("sessions", __name__)
 
@@ -376,6 +376,52 @@ def training_session_revealed_answer_partial(session_id: int):
         "revealed_submission_partial.html",
         training_session=session_row,
         revealed_submission=build_revealed_submission_view_model(session_row),
+    )
+
+
+@sessions_bp.post("/sessions/<int:session_id>/board-state")
+def save_board_state(session_id: int):
+    """HOST: persist the current token arrangement so participants can poll it."""
+    import json as _json
+    validate_csrf_or_abort()
+    session_row = TrainingSession.query.filter_by(id=session_id, status="active").first()
+    if session_row is None:
+        abort(404)
+    db_user = get_current_db_user()
+    if db_user is None or session_row.created_by_user_id != db_user.id:
+        abort(403)
+
+    raw = request.form.get("state_json", "[]")
+    try:
+        parsed = _json.loads(raw)
+        state_json = _json.dumps(parsed if isinstance(parsed, list) else [])
+    except (ValueError, TypeError):
+        state_json = "[]"
+
+    board_state = SessionBoardState.query.filter_by(training_session_id=session_id).first()
+    if board_state is None:
+        board_state = SessionBoardState(training_session_id=session_id, state_json=state_json)
+        db.session.add(board_state)
+    else:
+        board_state.state_json = state_json
+    db.session.commit()
+    return _json.dumps({"saved": True}), 200, {"Content-Type": "application/json"}
+
+
+@sessions_bp.get("/sessions/<int:session_id>/board-state")
+def get_board_state(session_id: int):
+    """PARTICIPANT: fetch latest host token arrangement."""
+    import json as _json
+    session_row = TrainingSession.query.filter_by(id=session_id).first()
+    if session_row is None:
+        abort(404)
+    board_state = SessionBoardState.query.filter_by(training_session_id=session_id).first()
+    state_json = board_state.state_json if board_state else "[]"
+    updated_at = board_state.updated_at.isoformat() if board_state and board_state.updated_at else None
+    return (
+        _json.dumps({"tokens": _json.loads(state_json), "updated_at": updated_at}),
+        200,
+        {"Content-Type": "application/json"},
     )
 
 

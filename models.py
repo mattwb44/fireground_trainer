@@ -81,6 +81,9 @@ class User(TimestampMixin, db.Model):
     scenario_likes = db.relationship(
         "ScenarioLike", back_populates="user", cascade="all, delete-orphan"
     )
+    scenario_flags = db.relationship(
+        "ScenarioFlag", back_populates="user", cascade="all, delete-orphan"
+    )
     scenario_lists = db.relationship(
         "UserList", back_populates="user", cascade="all, delete-orphan"
     )
@@ -156,6 +159,13 @@ class Scenario(TimestampMixin, db.Model):
     )
     position_links = db.relationship(
         "ScenarioPosition", back_populates="scenario", cascade="all, delete-orphan"
+    )
+    flags = db.relationship(
+        "ScenarioFlag", back_populates="scenario", cascade="all, delete-orphan"
+    )
+    token_layout = db.relationship(
+        "ScenarioTokenLayout", back_populates="scenario",
+        cascade="all, delete-orphan", uselist=False
     )
 
 
@@ -254,6 +264,40 @@ class ScenarioLike(TimestampMixin, db.Model):
     user = db.relationship("User", back_populates="scenario_likes")
 
 
+class ScenarioTokenLayout(TimestampMixin, db.Model):
+    """Stores the creator's initial token placement for a scenario."""
+    __tablename__ = "scenario_token_layouts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    scenario_id = db.Column(
+        db.Integer, db.ForeignKey("scenarios.id", ondelete="CASCADE"),
+        nullable=False, unique=True, index=True
+    )
+    layout_json = db.Column(db.Text, nullable=False, default="[]")
+
+    scenario = db.relationship("Scenario", back_populates="token_layout")
+
+
+class ScenarioFlag(TimestampMixin, db.Model):
+    __tablename__ = "scenario_flags"
+    __table_args__ = (
+        db.UniqueConstraint("scenario_id", "user_id", name="uq_scenario_flags_scenario_user"),
+        db.Index("ix_scenario_flags_scenario", "scenario_id"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    scenario_id = db.Column(
+        db.Integer, db.ForeignKey("scenarios.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    reason = db.Column(db.String(50), nullable=True)
+
+    scenario = db.relationship("Scenario", back_populates="flags")
+    user = db.relationship("User", back_populates="scenario_flags")
+
+
 class Question(TimestampMixin, db.Model):
     __tablename__ = "questions"
     __table_args__ = (
@@ -336,6 +380,27 @@ class TrainingSession(TimestampMixin, db.Model):
         back_populates="training_session",
         cascade="all, delete-orphan",
     )
+    board_state = db.relationship(
+        "SessionBoardState", back_populates="training_session",
+        cascade="all, delete-orphan", uselist=False,
+    )
+
+
+class SessionBoardState(db.Model):
+    """Persists the host's token layout so participants can poll it."""
+    __tablename__ = "session_board_states"
+
+    id = db.Column(db.Integer, primary_key=True)
+    training_session_id = db.Column(
+        db.Integer, db.ForeignKey("training_sessions.id", ondelete="CASCADE"),
+        nullable=False, unique=True, index=True,
+    )
+    state_json = db.Column(db.Text, nullable=False, default="[]")
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow,
+    )
+
+    training_session = db.relationship("TrainingSession", back_populates="board_state")
 
 
 class Participant(db.Model):

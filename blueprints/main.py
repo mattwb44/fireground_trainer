@@ -1,6 +1,8 @@
 from flask import Blueprint, Response, g, render_template, session, url_for
 
 from authz import PERM_VIEW_SCENARIOS, requires_permission
+from models import ScenarioFlag, ScenarioTokenLayout
+from constants import CATEGORY_TOKEN_PALETTES, TOKEN_PALETTE_DEFAULT
 from helpers import (
     PERMISSION_KEYS,
     QUESTION_TYPE_LABELS,
@@ -101,6 +103,16 @@ def board():
         if g.active_training_session is not None
         else None
     )
+    user_has_flagged = (
+        db_user is not None and ScenarioFlag.query.filter_by(
+            scenario_id=_scenario_row.id, user_id=db_user.id
+        ).first() is not None
+    )
+    saved_layout = ScenarioTokenLayout.query.filter_by(scenario_id=_scenario_row.id).first()
+    initial_token_layout = saved_layout.layout_json if saved_layout else "[]"
+    token_palette = CATEGORY_TOKEN_PALETTES.get(
+        _scenario_row.training_category, TOKEN_PALETTE_DEFAULT
+    )
     return render_template(
         "scenario.html",
         scenario=scenario,
@@ -112,6 +124,9 @@ def board():
         saved_submission=None,
         participant_submission_state=build_participant_submission_state(_scenario_row),
         scenario_vote=build_scenario_vote_summary(_scenario_row, db_user),
+        user_has_flagged=user_has_flagged,
+        initial_token_layout=initial_token_layout,
+        token_palette=token_palette,
         host_workspace=(
             build_host_board_workspace_view_model(host_training_session)
             if host_training_session is not None

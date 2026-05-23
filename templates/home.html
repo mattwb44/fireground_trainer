@@ -238,6 +238,9 @@
     </p>
     <div class="hero-actions">
       <a class="hero-btn-primary" href="{{ url_for('scenarios.public_scenario_library') }}">Browse Scenarios</a>
+      {% if current_user.has_permission(permission_keys.create_scenarios) %}
+        <a class="hero-btn-primary" href="{{ url_for('scenarios.new_scenario_page') }}">Create Scenario</a>
+      {% endif %}
 
       <form class="hero-join-form" id="hero-join-form" onsubmit="heroJoin(event)">
         <input
@@ -276,18 +279,18 @@
     <div class="how-grid">
       <div class="how-card">
         <span class="how-step">1</span>
-        <h3>Browse a Scenario</h3>
-        <p>Search the public library by category, tag, or keyword. Filter by rank to find drills that match your crew.</p>
+        <h3>Browse a Scenario...</h3>
+        <p>Search the public library by category, tag, or keyword. Filter by rank to find drills that match your interest or crew.</p>
       </div>
       <div class="how-card">
         <span class="how-step">2</span>
-        <h3>Create Your Own</h3>
-        <p>Build a custom scenario with your own dispatch text, images, and questions. Publish it for your department or the whole library.</p>
+        <h3>... Or Create Your Own</h3>
+        <p>Build a custom scenario with your own dispatch text, images, and questions. Run it with your crew, department, or open it up to the whole community .</p>
       </div>
       <div class="how-card">
         <span class="how-step">3</span>
-        <h3>Start a Session</h3>
-        <p>Generate a join code, share it with your crew, and facilitate a live drill. Participants join on any device.</p>
+        <h3>Then Start a Session</h3>
+        <p>Either Solo, or with a Team: Generate a join code, share it with your crew, and facilitate a live drill. Participants can join on any device.</p>
       </div>
       <div class="how-card">
         <span class="how-step">4</span>

@@ -76,6 +76,20 @@
     {% endfor %}
   </section>
 
+  {% if is_mine_tab %}
+    <section style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; align-items:center;">
+      <span style="font-size:0.85rem; color:var(--site-muted);">Filter:</span>
+      {% set sf_options = [('', 'All'), ('draft', 'Draft'), ('submitted', 'In Review'), ('approved', 'Approved')] %}
+      {% for sf_key, sf_label in sf_options %}
+        <a href="{{ url_for('scenarios.scenario_library', tab='mine', status=sf_key) }}"
+           style="padding:5px 10px; border-radius:999px; text-decoration:none; font-size:0.85rem; border:1px solid var(--site-line);
+             {% if mine_status_filter == sf_key %}background:var(--site-blue); color:#fff; border-color:var(--site-blue);{% else %}background:rgba(255,255,255,0.55); color:var(--site-ink);{% endif %}">
+          {{ sf_label }}
+        </a>
+      {% endfor %}
+    </section>
+  {% endif %}
+
   <section class="library-wrap">
     <table class="library-table">
       <thead>
@@ -131,6 +145,16 @@
                   <input type="hidden" name="next" value="{{ url_for('main.board') }}">
                   <button type="submit" style="padding:6px 10px; border:0; border-radius:999px; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#fff; font-weight:800;">Open</button>
                 </form>
+                {% if is_mine_tab and scenario.status == 'draft' %}
+                  <a href="{{ url_for('scenarios.edit_scenario_page', scenario_id=scenario.id) }}" style="display:inline-block; margin:0 0 6px; padding:6px 10px; border-radius:999px; text-decoration:none; background:rgba(255,255,255,0.12); color:var(--site-ink); font-weight:700; border:1px solid var(--site-line);">Edit Draft</a>
+                {% endif %}
+                {% if is_mine_tab and scenario.status == 'draft' %}
+                  <form method="post" action="{{ url_for('scenarios.submit_scenario_for_review') }}" style="margin:0 0 6px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="scenario_id" value="{{ scenario.id }}">
+                    <button type="submit" style="padding:6px 10px; border:0; border-radius:999px; background:var(--site-fire-soft); color:var(--site-accent); font-weight:700;">Submit for Review</button>
+                  </form>
+                {% endif %}
                 {% if current_user.has_permission(permission_keys.create_sessions) and scenario.status == 'approved' %}
                   <a href="{{ url_for('sessions.new_training_session_page', scenario_id=scenario.id) }}" style="display:inline-block; margin:0 0 6px; padding:6px 10px; border-radius:999px; text-decoration:none; background:var(--site-accent); color:#fff; font-weight:800;">Create Session</a>
                 {% endif %}

@@ -9,6 +9,7 @@
   </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="{{ url_for('static', filename='pwa/manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='pwa/ff-icon-192.png') }}">
@@ -557,7 +558,7 @@
   </style>
   {% block head_extra %}{% endblock %}
 </head>
-<body>
+<body {% block body_attrs %}{% endblock %}>
   <header class="site-header">
     <div class="site-shell">
       <a class="brand-lockup" href="{{ url_for('main.home') }}">
@@ -647,6 +648,38 @@
   {% block body %}{% endblock %}
 
   {% block page_scripts %}{% endblock %}
+  <script>
+    (function () {
+      var IDLE_MS = 25 * 60 * 1000;
+      var timer = null;
+      var suspended = document.body.dataset.activeSession === '1';
+
+      function resetTimer() {
+        if (suspended) return;
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          var form = document.createElement('form');
+          form.method = 'POST';
+          form.action = '{{ url_for("auth.logout") }}';
+          var csrf = document.createElement('input');
+          csrf.type = 'hidden';
+          csrf.name = 'csrf_token';
+          csrf.value = document.querySelector('meta[name="csrf-token"]') ?
+            document.querySelector('meta[name="csrf-token"]').content : '';
+          form.appendChild(csrf);
+          document.body.appendChild(form);
+          form.submit();
+        }, IDLE_MS);
+      }
+
+      {% if current_user.user_id != 'guest' %}
+      ['mousemove', 'keydown', 'touchstart', 'click', 'scroll'].forEach(function (evt) {
+        document.addEventListener(evt, resetTimer, { passive: true });
+      });
+      resetTimer();
+      {% endif %}
+    })();
+  </script>
   <script>
     function navJoin(e) {
       e.preventDefault();
