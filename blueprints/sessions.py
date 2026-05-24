@@ -388,7 +388,21 @@ def save_board_state(session_id: int):
     if session_row is None:
         abort(404)
     db_user = get_current_db_user()
-    if db_user is None or session_row.created_by_user_id != db_user.id:
+    active_participant = getattr(g, 'active_participant', None)
+    is_host = db_user is not None and session_row.created_by_user_id == db_user.id
+    is_cohost = (
+        active_participant is not None
+        and active_participant.training_session_id == session_id
+        and active_participant.is_cohost
+        and active_participant.kicked_at is None
+    )
+    can_move = (
+        active_participant is not None
+        and active_participant.training_session_id == session_id
+        and active_participant.can_move_tokens
+        and active_participant.kicked_at is None
+    )
+    if not (is_host or is_cohost or can_move):
         abort(403)
 
     raw = request.form.get("state_json", "[]")
@@ -418,11 +432,86 @@ def get_board_state(session_id: int):
     board_state = SessionBoardState.query.filter_by(training_session_id=session_id).first()
     state_json = board_state.state_json if board_state else "[]"
     updated_at = board_state.updated_at.isoformat() if board_state and board_state.updated_at else None
+
+    active_participant = getattr(g, 'active_participant', None)
+    you_can_move_tokens = False
+    you_are_kicked = False
+    if active_participant is not None and active_participant.training_session_id == session_id:
+        you_are_kicked = active_participant.kicked_at is not None
+        you_can_move_tokens = active_participant.can_move_tokens or active_participant.is_cohost
+
     return (
-        _json.dumps({"tokens": _json.loads(state_json), "updated_at": updated_at}),
+        _json.dumps({
+            "tokens": _json.loads(state_json),
+            "updated_at": updated_at,
+            "you_can_move_tokens": you_can_move_tokens,
+            "you_are_kicked": you_are_kicked,
+        }),
         200,
         {"Content-Type": "application/json"},
     )
+
+
+@sessions_bp.post("/sessions/<int:session_id>/kick-participant")
+def kick_participant(session_id: int):
+    """HOST: remove a participant from the session."""
+    import json as _json
+    validate_csrf_or_abort()
+    session_row = TrainingSession.query.filter_by(id=session_id, status="active").first_or_404()
+    db_user = get_current_db_user()
+    if db_user is None or session_row.created_by_user_id != db_user.id:
+        abort(403)
+    raw_id = request.form.get("participant_id", "").strip()
+    if not raw_id.isdigit():
+        abort(400)
+    participant = Participant.query.filter_by(id=int(raw_id), training_session_id=session_id).first_or_404()
+    participant.kicked_at = datetime.utcnow()
+    db.session.commit()
+    return _json.dumps({"kicked": True}), 200, {"Content-Type": "application/json"}
+
+
+@sessions_bp.post("/sessions/<int:session_id>/toggle-token-permission")
+def toggle_token_permission(session_id: int):
+    """HOST/COHOST: toggle whether a participant can move tokens."""
+    import json as _json
+    validate_csrf_or_abort()
+    session_row = TrainingSession.query.filter_by(id=session_id, status="active").first_or_404()
+    db_user = get_current_db_user()
+    acting_participant = getattr(g, 'active_participant', None)
+    is_host = db_user is not None and session_row.created_by_user_id == db_user.id
+    is_cohost = (
+        acting_participant is not None
+        and acting_participant.training_session_id == session_id
+        and acting_participant.is_cohost
+        and acting_participant.kicked_at is None
+    )
+    if not (is_host or is_cohost):
+        abort(403)
+    raw_id = request.form.get("participant_id", "").strip()
+    if not raw_id.isdigit():
+        abort(400)
+    participant = Participant.query.filter_by(id=int(raw_id), training_session_id=session_id).first_or_404()
+    participant.can_move_tokens = not participant.can_move_tokens
+    db.session.commit()
+    return _json.dumps({"can_move_tokens": participant.can_move_tokens}), 200, {"Content-Type": "application/json"}
+
+
+@sessions_bp.post("/sessions/<int:session_id>/toggle-cohost")
+def toggle_cohost(session_id: int):
+    """HOST: grant or revoke co-host status for a participant."""
+    import json as _json
+    validate_csrf_or_abort()
+    session_row = TrainingSession.query.filter_by(id=session_id, status="active").first_or_404()
+    db_user = get_current_db_user()
+    if db_user is None or session_row.created_by_user_id != db_user.id:
+        abort(403)
+    raw_id = request.form.get("participant_id", "").strip()
+    if not raw_id.isdigit():
+        abort(400)
+    participant = Participant.query.filter_by(id=int(raw_id), training_session_id=session_id).first_or_404()
+    participant.is_cohost = not participant.is_cohost
+    db.session.commit()
+    return _json.dumps({"is_cohost": participant.is_cohost}), 200, {"Content-Type": "application/json"}
 
 
 @sessions_bp.route("/join/<join_code>", methods=["GET", "POST"])

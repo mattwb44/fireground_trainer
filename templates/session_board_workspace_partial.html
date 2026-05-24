@@ -61,6 +61,41 @@
     </div>
   </article>
 
+  {% if workspace.participants %}
+  <article style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:14px; padding:14px; background:linear-gradient(180deg, rgba(40, 15, 21, 0.96), rgba(21, 9, 12, 0.96)); color:#fdf7f7;">
+    <h2 style="margin:0 0 12px; font-size:1.05rem; color:#fdf7f7;">Participants</h2>
+    <div style="display:grid; gap:8px;">
+      {% for p in workspace.participants %}
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; border:1px solid rgba(255,226,231,{% if p.is_kicked %}0.05{% else %}0.1{% endif %}); border-radius:10px; padding:10px 14px; background:rgba(78,22,31,0.18); {% if p.is_kicked %}opacity:0.5;{% endif %}">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0;">
+            <span style="font-weight:700; color:#f8fafc;">{{ p.label }}</span>
+            <span style="font-size:0.82rem; color:#e6c7ce;">Shift {{ p.shift }}</span>
+            {% if p.is_kicked %}
+              <span style="padding:2px 8px; border-radius:999px; background:#3a1717; color:#fca5a5; font-size:0.75rem; font-weight:700;">Kicked</span>
+            {% endif %}
+            {% if p.is_cohost %}
+              <span style="padding:2px 8px; border-radius:999px; background:#183756; color:#cfe0ff; font-size:0.75rem; font-weight:700;">Co-Host</span>
+            {% endif %}
+            {% if p.can_move_tokens and not p.is_kicked %}
+              <span style="padding:2px 8px; border-radius:999px; background:#0f2f2f; color:#99f6e4; font-size:0.75rem; font-weight:700;">Can Move Tokens</span>
+            {% endif %}
+          </div>
+          {% if not p.is_kicked %}
+            <button type="button" class="participant-actions-btn"
+                    data-participant-id="{{ p.id }}"
+                    data-participant-label="{{ p.label | e }}"
+                    data-is-cohost="{{ 'true' if p.is_cohost else 'false' }}"
+                    data-can-move-tokens="{{ 'true' if p.can_move_tokens else 'false' }}"
+                    style="flex-shrink:0; padding:6px 14px; border:1px solid rgba(255,180,195,0.2); border-radius:8px; background:rgba(255,255,255,0.06); color:#f0d8dd; font-weight:700; font-size:0.85rem; cursor:pointer;">
+              Actions
+            </button>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </article>
+  {% endif %}
+
   <article style="border:1px solid rgba(255, 226, 231, 0.1); border-radius:14px; padding:14px; background:linear-gradient(180deg, rgba(40, 15, 21, 0.96), rgba(21, 9, 12, 0.96)); color:#fdf7f7;">
     <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
       <div>

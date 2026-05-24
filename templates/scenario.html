@@ -1058,6 +1058,87 @@
     const hostPanel = document.getElementById("hostWorkspacePanel");
     installHostWorkspaceControls(hostPanel);
     installAutoRefresh(hostPanel);
+
+    // ── Participant actions popup (one-time setup) ──
+    (function () {
+      if (!hostPanel) return;
+
+      const popup = document.createElement("div");
+      popup.style.cssText = "display:none; position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,0.65); align-items:center; justify-content:center; padding:20px;";
+      popup.innerHTML = `
+        <div style="background:#1a0808; border:1px solid rgba(255,180,195,0.15); border-radius:20px; padding:24px; max-width:380px; width:100%; box-shadow:0 24px 64px rgba(0,0,0,0.55);">
+          <div id="pPopupTitle" style="font-weight:800; font-size:1.05rem; color:#fdf7f7; margin-bottom:16px;"></div>
+          <div style="display:grid; gap:8px;">
+            <button type="button" id="pTokenBtn" style="padding:10px 16px; border:1px solid rgba(20,184,166,0.3); border-radius:10px; background:rgba(15,47,47,0.5); color:#99f6e4; font-weight:700; cursor:pointer; text-align:left;"></button>
+            <button type="button" id="pKickBtn" style="padding:10px 16px; border:1px solid rgba(239,68,68,0.3); border-radius:10px; background:rgba(100,20,20,0.4); color:#fca5a5; font-weight:700; cursor:pointer; text-align:left;">Kick from Session</button>
+            <button type="button" id="pCohostBtn" style="padding:10px 16px; border:1px solid rgba(96,153,220,0.3); border-radius:10px; background:rgba(33,78,133,0.3); color:#cfe0ff; font-weight:700; cursor:pointer; text-align:left;"></button>
+          </div>
+          <div style="margin-top:16px; text-align:right;">
+            <button type="button" id="pCloseBtn" style="background:none; border:none; color:rgba(255,210,218,0.5); cursor:pointer; font-size:0.88rem; padding:4px 8px;">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(popup);
+
+      const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || "";
+      let curPid = null;
+      let curSid = null;
+
+      popup.addEventListener("click", (e) => { if (e.target === popup) popup.style.display = "none"; });
+      document.getElementById("pCloseBtn").addEventListener("click", () => { popup.style.display = "none"; });
+
+      async function doAction(url) {
+        const fd = new FormData();
+        fd.append("csrf_token", csrfToken());
+        fd.append("participant_id", curPid);
+        popup.style.display = "none";
+        try {
+          const res = await fetch(url, { method: "POST", body: fd });
+          if (res.ok) window.location.reload();
+        } catch (_) { window.location.reload(); }
+      }
+
+      document.getElementById("pTokenBtn").addEventListener("click", () => {
+        doAction(`/sessions/${curSid}/toggle-token-permission`);
+      });
+
+      document.getElementById("pKickBtn").addEventListener("click", () => {
+        if (!confirm("Kick this participant from the session?")) return;
+        doAction(`/sessions/${curSid}/kick-participant`);
+      });
+
+      document.getElementById("pCohostBtn").addEventListener("click", function () {
+        const isCohost = this.dataset.curIsCohost === "true";
+        const msg = isCohost
+          ? "Remove co-host status from this participant?"
+          : "Make this participant a Co-Host?";
+        if (!confirm(msg)) return;
+        doAction(`/sessions/${curSid}/toggle-cohost`);
+      });
+
+      // Delegate from document — survives panel innerHTML replacement
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".participant-actions-btn");
+        if (!btn) return;
+        curPid = btn.dataset.participantId;
+        curSid = btn.closest("[data-session-id]")?.dataset.sessionId || hostPanel.dataset.sessionId;
+
+        const label = btn.dataset.participantLabel;
+        const isCohost = btn.dataset.isCohost === "true";
+        const canMove = btn.dataset.canMoveTokens === "true";
+
+        document.getElementById("pPopupTitle").textContent = label;
+
+        const tokenBtn = document.getElementById("pTokenBtn");
+        tokenBtn.textContent = canMove ? "Revoke Token Movement" : `Allow ${label} to Move Tokens`;
+
+        const cohostBtn = document.getElementById("pCohostBtn");
+        cohostBtn.textContent = isCohost ? "Remove Co-Host" : "Make Co-Host";
+        cohostBtn.dataset.curIsCohost = isCohost ? "true" : "false";
+
+        popup.style.display = "flex";
+      });
+    })();
   })();
 
   (function () {

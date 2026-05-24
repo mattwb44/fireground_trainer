@@ -7,6 +7,9 @@
     return;
   }
 
+  const isHost = !!board.dataset.hostSyncUrl;
+  let canInteract = isHost; // participants start read-only until server grants permission
+
   const STORAGE_PREFIX = "fg.board.state.v1.";
   const storageKey = STORAGE_PREFIX + (board.dataset.scenarioKey || "default");
   const DRAG_START_THRESHOLD_PX = 6;
@@ -245,6 +248,7 @@
 
   function attachTokenHandlers(tokenEl) {
     tokenEl.addEventListener("pointerdown", (e) => {
+      if (!canInteract) return;
       const tokenId = tokenEl.dataset.id;
       const token = findTokenById(tokenId);
       if (!token) return;
@@ -286,6 +290,7 @@
     const delBtn = tokenEl.querySelector(".token-del");
     delBtn.addEventListener("click", (e) => {
       e.stopPropagation();
+      if (!canInteract) return;
       const tokenId = tokenEl.dataset.id;
       state.tokens = state.tokens.filter((token) => token.id !== tokenId);
       if (state.activeId === tokenId) state.activeId = null;
@@ -356,7 +361,7 @@
   }
 
   function beginPlacing(e) {
-    if (!state.selectedTool) return;
+    if (!state.selectedTool || !canInteract) return;
     const coords = toPercentCoords(e.clientX, e.clientY, null);
     const token = addToken(state.selectedTool.type, coords.x, coords.y);
     if (!token) return;
@@ -476,6 +481,7 @@
   function bindUiEvents() {
     document.querySelectorAll(".tokenbtn").forEach((btn) => {
       btn.addEventListener("pointerdown", (e) => {
+        if (!canInteract) return;
         state.selectedTool = { src: btn.dataset.src, type: btn.dataset.type };
         beginPlacing(e);
       });
@@ -483,6 +489,7 @@
 
     if (clearBtn) {
       clearBtn.addEventListener("click", () => {
+        if (!canInteract) return;
         state.tokens = [];
         state.activeId = null;
         state.placingId = null;
@@ -549,23 +556,60 @@
         } catch (_) {}
       }, 3000);
     } else if (participantSyncUrl) {
-      // PARTICIPANT: pull host token state every 3 seconds
+      // PARTICIPANT: poll server every 3 seconds for board state and permission updates
       let lastUpdatedAt = null;
+      let kickedOut = false;
+      let pushMode = false;
+      let lastPushed = null;
+      const getCsrf = () => document.querySelector('meta[name="csrf-token"]')?.content || "";
+
       window.setInterval(async () => {
+        if (kickedOut) return;
         try {
           const res = await fetch(participantSyncUrl, { cache: "no-store" });
           if (!res.ok) return;
           const data = await res.json();
-          if (data.updated_at === lastUpdatedAt) return;
-          lastUpdatedAt = data.updated_at;
-          if (!Array.isArray(data.tokens) || data.tokens.length === 0) return;
-          // Replace local token state with host state
-          state.tokens = normalizeTokenList(data.tokens.map((t, i) => ({
-            ...t,
-            id: t.id || String(i + 1),
-          })));
-          state.nextId = computeNextId(state.tokens);
-          hydrateBoardFromState();
+
+          if (data.you_are_kicked) {
+            kickedOut = true;
+            canInteract = false;
+            pushMode = false;
+            const overlay = document.createElement("div");
+            overlay.style.cssText = "position:absolute; inset:0; z-index:100; background:rgba(0,0,0,0.78); display:flex; align-items:center; justify-content:center; border-radius:8px; pointer-events:none;";
+            overlay.innerHTML = '<div style="color:#fca5a5; font-weight:700; text-align:center; padding:20px; font-size:1rem;">You have been removed from this session.</div>';
+            board.appendChild(overlay);
+            return;
+          }
+
+          const newCanInteract = !!data.you_can_move_tokens;
+          if (newCanInteract !== canInteract) {
+            canInteract = newCanInteract;
+            pushMode = newCanInteract;
+            if (!newCanInteract) lastUpdatedAt = null; // force re-sync on permission revoke
+          }
+
+          if (pushMode) {
+            // Push our token state to the server so all participants see our changes
+            const current = JSON.stringify(window.getBoardTokenState());
+            if (current !== lastPushed) {
+              lastPushed = current;
+              const fd = new FormData();
+              fd.append("csrf_token", getCsrf());
+              fd.append("state_json", current);
+              try { await fetch(participantSyncUrl, { method: "POST", body: fd }); } catch (_) {}
+            }
+          } else {
+            // Pull host state
+            if (data.updated_at === lastUpdatedAt) return;
+            lastUpdatedAt = data.updated_at;
+            if (!Array.isArray(data.tokens) || data.tokens.length === 0) return;
+            state.tokens = normalizeTokenList(data.tokens.map((t, i) => ({
+              ...t,
+              id: t.id || String(i + 1),
+            })));
+            state.nextId = computeNextId(state.tokens);
+            hydrateBoardFromState();
+          }
         } catch (_) {}
       }, 3000);
     }

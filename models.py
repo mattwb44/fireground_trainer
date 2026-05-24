@@ -420,6 +420,9 @@ class Participant(db.Model):
     shift_label = db.Column(db.String(50), nullable=True)
     is_anonymous = db.Column(db.Boolean, nullable=False, default=False)
     joined_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    kicked_at = db.Column(db.DateTime, nullable=True)
+    is_cohost = db.Column(db.Boolean, nullable=False, default=False)
+    can_move_tokens = db.Column(db.Boolean, nullable=False, default=False)
 
     training_session = db.relationship("TrainingSession", back_populates="participants")
     user = db.relationship("User", back_populates="participant_profiles")

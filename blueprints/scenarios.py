@@ -430,13 +430,7 @@ def create_scenario():
     overlay_image_path = request.form.get("overlay_image_path", "").strip() or None
     is_official = request.form.get("is_official") == "on"
 
-    if not is_draft_save:
-        if not title:
-            return render_create_scenario(error="Scenario title is required.", status_code=400, draft_scenario_id=draft_scenario_id)
-        if not dispatch:
-            return render_create_scenario(error="Dispatch text is required.", status_code=400, draft_scenario_id=draft_scenario_id)
-        if not base_image_path:
-            return render_create_scenario(error="Base image path is required.", status_code=400, draft_scenario_id=draft_scenario_id)
+    if not is_draft_save and base_image_path:
         asset_error = scenario_asset_validation_error(base_image_path, overlay_image_path)
         if asset_error:
             return render_create_scenario(error=asset_error, status_code=400, draft_scenario_id=draft_scenario_id)

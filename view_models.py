@@ -1035,6 +1035,18 @@ def build_host_board_workspace_view_model(training_session: TrainingSession) -> 
     join_url, join_url_warning = build_join_url_for_session(training_session)
     dashboard = build_session_dashboard_view_model(training_session)
     question_rows = build_session_question_review_view_model(training_session)
+    participants = [
+        {
+            "id": p.id,
+            "label": p.display_name or "Anonymous",
+            "shift": p.shift_label or "—",
+            "is_anonymous": p.is_anonymous,
+            "is_cohost": p.is_cohost,
+            "can_move_tokens": p.can_move_tokens,
+            "is_kicked": p.kicked_at is not None,
+        }
+        for p in sorted(training_session.participants, key=lambda x: x.joined_at)
+    ]
     return {
         "session_id": training_session.id,
         "title": training_session.title or f"Session #{training_session.id}",
@@ -1048,6 +1060,7 @@ def build_host_board_workspace_view_model(training_session: TrainingSession) -> 
         "question_rows": question_rows,
         "review_summary": build_host_review_summary(question_rows),
         "revealed_answers": build_revealed_submission_view_model(training_session),
+        "participants": participants,
     }
 
 

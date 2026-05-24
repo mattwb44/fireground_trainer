@@ -101,8 +101,7 @@
         <span id="autosaveStatusTop" style="font-size:0.78rem; color:rgba(255,210,218,0.38);"></span>
         <button type="submit" formnovalidate class="btn-muted" style="padding:8px 20px;"
                 onclick="document.getElementById('saveMode').value='draft'">Save as Draft</button>
-        <button type="submit" class="theme-button-blue"
-                onclick="document.getElementById('saveMode').value='finish'">Finish Scenario</button>
+        <button type="button" class="theme-button-blue btn-finish-scenario">Finish Scenario</button>
       </div>
     </div>
 
@@ -116,13 +115,13 @@
 
       <label>
         <div style="font-weight:700; margin-bottom:5px;">Title</div>
-        <input name="title" value="{{ form_data.title }}" class="theme-input"
+        <input name="title" id="titleInput" value="{{ form_data.title }}" class="theme-input"
                placeholder="e.g. Commercial Structure — Alpha Side Fire">
       </label>
 
       <label>
         <div style="font-weight:700; margin-bottom:5px;">Dispatch Text</div>
-        <textarea name="dispatch" rows="4" class="theme-textarea"
+        <textarea name="dispatch" id="dispatchTextarea" rows="4" class="theme-textarea"
                   placeholder="Describe the incoming call or situation…">{{ form_data.dispatch }}</textarea>
       </label>
 
@@ -168,7 +167,7 @@
     <section id="boardSection" class="theme-panel"{% if not form_data.base_image_path %} style="display:none;"{% endif %}>
       <p class="section-eyebrow">Token Placement</p>
       <p style="margin:-8px 0 14px; color:var(--site-muted); font-size:0.87rem;">
-        Set the starting token layout for this scenario. Participants can move tokens during a live session.
+        Set the starting token layout for this scenario.
       </p>
       <div style="display:grid; grid-template-columns:116px 1fr; gap:14px; align-items:start;">
         <div style="display:grid; gap:5px;">
@@ -352,11 +351,35 @@
       <div class="action-bar-btns">
         <button type="submit" formnovalidate class="btn-muted" style="padding:8px 20px;"
                 onclick="document.getElementById('saveMode').value='draft'">Save as Draft</button>
-        <button type="submit" class="theme-button-blue"
-                onclick="document.getElementById('saveMode').value='finish'">Finish Scenario</button>
+        <button type="button" class="theme-button-blue btn-finish-scenario">Finish Scenario</button>
       </div>
     </div>
   </form>
+
+  {# ── Finish Scenario modal ── #}
+  <div id="finishModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.62); align-items:center; justify-content:center; padding:20px;">
+    <div style="background:var(--site-panel); border:1px solid var(--site-line); border-radius:22px; padding:26px; max-width:460px; width:100%; box-shadow:0 24px 64px rgba(0,0,0,0.5);">
+      <h2 style="margin:0 0 8px; font-size:1.15rem;">Finish without completing these?</h2>
+      <p style="margin:0 0 14px; color:var(--site-muted); font-size:0.92rem; line-height:1.55;">The following fields are not filled in. Click any field to go there, or finish anyway.</p>
+      <ul id="finishModalList" style="margin:0 0 18px; padding:0 0 0 2px; list-style:none; display:grid; gap:8px;"></ul>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button type="button" id="finishAnyway" style="padding:10px 20px; border:0; border-radius:999px; font-weight:800; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#f8fbff; cursor:pointer;">Finish Anyway</button>
+        <button type="button" id="finishGoBack" style="padding:10px 20px; border:1px solid var(--site-line); border-radius:999px; font-weight:700; background:transparent; color:var(--site-ink); cursor:pointer;">Go Back</button>
+      </div>
+    </div>
+  </div>
+
+  {# ── Unsaved changes modal ── #}
+  <div id="unsavedModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.62); align-items:center; justify-content:center; padding:20px;">
+    <div style="background:var(--site-panel); border:1px solid var(--site-line); border-radius:22px; padding:26px; max-width:420px; width:100%; box-shadow:0 24px 64px rgba(0,0,0,0.5);">
+      <h2 style="margin:0 0 8px; font-size:1.15rem;">Save current scenario as a draft?</h2>
+      <p style="margin:0 0 18px; color:var(--site-muted); font-size:0.92rem; line-height:1.55;">You have unsaved changes. Save as a draft before leaving?</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button type="button" id="unsavedSaveYes" style="padding:10px 20px; border:0; border-radius:999px; font-weight:800; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#f8fbff; cursor:pointer;">Yes, Save Draft</button>
+        <button type="button" id="unsavedSaveNo" style="padding:10px 20px; border:1px solid var(--site-line); border-radius:999px; font-weight:700; background:transparent; color:var(--site-ink); cursor:pointer;">No, Leave Anyway</button>
+      </div>
+    </div>
+  </div>
 </main>
 {% endblock %}
 
@@ -366,6 +389,8 @@
 {% endif %}
 <script src="{{ url_for('static', filename='js/board.js') }}"></script>
 <script>
+  window.__scenarioCreate = { isDirty: false, doAutosave: null };
+
   (() => {
     // ── Question rows ──
     const rows = document.getElementById("questionRows");
@@ -763,6 +788,7 @@
     }
 
     function scheduleAutosave() {
+      window.__scenarioCreate.isDirty = true;
       clearTimeout(timer);
       timer = setTimeout(doAutosave, DELAY);
     }
@@ -793,8 +819,117 @@
       }
     }
 
+    window.__scenarioCreate.doAutosave = doAutosave;
+    form.addEventListener("submit", () => { window.__scenarioCreate.isDirty = false; });
     form.addEventListener("input", scheduleAutosave);
     form.addEventListener("change", scheduleAutosave);
+  })();
+
+  // ── Finish Scenario modal ──
+  (() => {
+    const modal = document.getElementById("finishModal");
+    const modalList = document.getElementById("finishModalList");
+    const form = document.getElementById("createScenarioForm");
+    const saveModeInput = document.getElementById("saveMode");
+    const layoutInput = document.getElementById("tokenLayoutInput");
+    if (!modal || !form) return;
+
+    function getMissingFields() {
+      const missing = [];
+      const title = document.getElementById("titleInput");
+      const dispatch = document.getElementById("dispatchTextarea");
+      const image = document.getElementById("baseImagePath");
+      if (!title?.value?.trim()) missing.push({ label: "Title", targetId: "titleInput" });
+      if (!dispatch?.value?.trim()) missing.push({ label: "Dispatch Text", targetId: "dispatchTextarea" });
+      if (!image?.value?.trim()) missing.push({ label: "Scene Image", targetId: "imageDropZone" });
+      return missing;
+    }
+
+    function doFinish() {
+      saveModeInput.value = "finish";
+      if (layoutInput && window.getBoardTokenState) {
+        layoutInput.value = JSON.stringify(window.getBoardTokenState());
+      }
+      window.__scenarioCreate.isDirty = false;
+      form.submit();
+    }
+
+    document.querySelectorAll(".btn-finish-scenario").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const missing = getMissingFields();
+        if (missing.length === 0) { doFinish(); return; }
+        modalList.innerHTML = "";
+        missing.forEach(({ label, targetId }) => {
+          const li = document.createElement("li");
+          li.style.cssText = "padding:6px 10px; border:1px solid var(--site-line); border-radius:8px;";
+          const a = document.createElement("a");
+          a.href = "#";
+          a.textContent = label;
+          a.style.cssText = "font-weight:700; color:var(--site-blue); text-decoration:none;";
+          a.addEventListener("click", (e) => {
+            e.preventDefault();
+            modal.style.display = "none";
+            document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+          });
+          li.appendChild(a);
+          modalList.appendChild(li);
+        });
+        modal.style.display = "flex";
+      });
+    });
+
+    document.getElementById("finishAnyway")?.addEventListener("click", () => {
+      modal.style.display = "none";
+      doFinish();
+    });
+    document.getElementById("finishGoBack")?.addEventListener("click", () => { modal.style.display = "none"; });
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
+  })();
+
+  // ── Unsaved changes warning ──
+  (() => {
+    const form = document.getElementById("createScenarioForm");
+    const modal = document.getElementById("unsavedModal");
+    if (!form || !modal) return;
+
+    // Mark dirty for non-input interactions (visibility, tags, positions)
+    document.querySelectorAll(".vis-btn, .tag-pill, .pos-item").forEach((el) => {
+      el.addEventListener("click", () => { window.__scenarioCreate.isDirty = true; });
+    });
+
+    window.addEventListener("beforeunload", (e) => {
+      if (!window.__scenarioCreate.isDirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    });
+
+    let pendingHref = null;
+
+    // Intercept outgoing link clicks (capture phase so we run before default)
+    document.addEventListener("click", (e) => {
+      if (!window.__scenarioCreate.isDirty) return;
+      const anchor = e.target.closest("a[href]");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#") || anchor.hasAttribute("download")) return;
+      if (form.contains(anchor)) return;
+      e.preventDefault();
+      pendingHref = href;
+      modal.style.display = "flex";
+    }, true);
+
+    document.getElementById("unsavedSaveYes")?.addEventListener("click", async () => {
+      modal.style.display = "none";
+      window.__scenarioCreate.isDirty = false;
+      if (window.__scenarioCreate.doAutosave) await window.__scenarioCreate.doAutosave();
+      if (pendingHref) window.location.href = pendingHref;
+    });
+    document.getElementById("unsavedSaveNo")?.addEventListener("click", () => {
+      modal.style.display = "none";
+      window.__scenarioCreate.isDirty = false;
+      if (pendingHref) window.location.href = pendingHref;
+    });
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
   })();
 </script>
 {% endblock %}
