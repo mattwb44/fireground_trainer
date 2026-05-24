@@ -585,6 +585,14 @@
             My Library
           </a>
         {% endif %}
+        {% if current_user.has_permission(permission_keys.create_scenarios) %}
+          <a
+            class="site-nav-link{% if request.endpoint == 'scenarios.new_scenario_page' %} is-active{% endif %}"
+            href="{{ url_for('scenarios.new_scenario_page') }}"
+          >
+            Create Scenario
+          </a>
+        {% endif %}
         {% if current_user.has_permission(permission_keys.view_reports) %}
           <a
             class="site-nav-link{% if request.endpoint in ['reports.reports', 'reports.session_report'] %} is-active{% endif %}"

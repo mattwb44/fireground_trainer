@@ -5,9 +5,9 @@
 {% block body %}
 <main style="max-width: 620px; margin: 40px auto; padding: 0 16px;">
   <section style="border:1px solid rgba(24,33,47,0.12); border-radius:20px; padding:22px; background:var(--site-panel); box-shadow:0 18px 36px rgba(24,33,47,0.08);">
-    <p style="margin:0; color:#5d6b7d; font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">Account Access</p>
+    <p style="margin:0; color:var(--site-muted); font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">Account Access</p>
     <h1 style="margin:10px 0 8px;">Sign In</h1>
-    <p style="margin:0; color:#4b5563; line-height:1.6;">
+    <p style="margin:0; color:var(--site-muted); line-height:1.6;">
       Staff accounts unlock hosting, review, reporting, and admin tools. Participant accounts can sign in to keep scenario completion tied to their account, then still choose anonymous or named session entry when joining a live drill.
     </p>
 
@@ -21,12 +21,12 @@
 
       <label>
         <div style="display:block; margin:0 0 4px; font-weight:800;">Email</div>
-        <input id="email" name="email" type="email" autocomplete="username" required style="width:100%; padding:12px; border-radius:12px; border:1px solid #b9bfca;">
+        <input id="email" name="email" type="email" autocomplete="username" required class="theme-input">
       </label>
 
       <label>
         <div style="display:block; margin:0 0 4px; font-weight:800;">Password</div>
-        <input id="password" name="password" type="password" autocomplete="current-password" required style="width:100%; padding:12px; border-radius:12px; border:1px solid #b9bfca;">
+        <input id="password" name="password" type="password" autocomplete="current-password" required class="theme-input">
       </label>
 
       <button type="submit" style="margin-top:4px; padding:12px 14px; border-radius:999px; border:0; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#fff; font-weight:800; cursor:pointer;">Sign In</button>

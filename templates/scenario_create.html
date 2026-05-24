@@ -541,10 +541,35 @@
     rows.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLButtonElement)) return;
-      if (!target.classList.contains("remove-question")) return;
-      if (rows.querySelectorAll(".question-row").length <= 1) return;
-      target.closest(".question-row")?.remove();
-      renumberRows();
+
+      if (target.classList.contains("remove-question")) {
+        if (rows.querySelectorAll(".question-row").length <= 1) return;
+        const confirmSpan = document.createElement("span");
+        confirmSpan.className = "confirm-remove-prompt";
+        confirmSpan.style.cssText = "display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; margin-left:4px;";
+        confirmSpan.innerHTML =
+          `<span style="color:var(--site-muted);">Delete?</span>` +
+          `<button type="button" class="confirm-yes" style="padding:3px 10px; border:0; border-radius:999px; background:var(--site-accent); color:#fff; font-size:0.8rem; font-weight:700; cursor:pointer;">Yes</button>` +
+          `<button type="button" class="confirm-no" style="padding:3px 10px; border:1px solid var(--site-line); border-radius:999px; background:transparent; color:var(--site-ink); font-size:0.8rem; font-weight:700; cursor:pointer;">No</button>`;
+        target.style.display = "none";
+        target.after(confirmSpan);
+        return;
+      }
+
+      if (target.classList.contains("confirm-yes")) {
+        if (rows.querySelectorAll(".question-row").length <= 1) return;
+        target.closest(".question-row")?.remove();
+        renumberRows();
+        return;
+      }
+
+      if (target.classList.contains("confirm-no")) {
+        const confirmSpan = target.closest(".confirm-remove-prompt");
+        const removeBtn = confirmSpan?.previousElementSibling;
+        if (removeBtn?.classList?.contains("remove-question")) removeBtn.style.display = "";
+        confirmSpan?.remove();
+        return;
+      }
     });
 
     rows.querySelectorAll(".question-row").forEach(wireRow);
@@ -700,6 +725,12 @@
         e.preventDefault();
       }
     });
+  })();
+
+  // ── Scroll to first validation error on page load ──
+  (() => {
+    const err = document.querySelector(".theme-alert-error");
+    if (err) err.scrollIntoView({ behavior: "smooth", block: "center" });
   })();
 
   // ── Capture token layout before submit ──

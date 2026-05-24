@@ -1603,13 +1603,27 @@ def render_create_scenario(
         row_count = max(len(prompts), len(types), len(instructor_answers), 4)
         question_rows = []
         for idx in range(row_count):
+            q_type = types[idx].strip() if idx < len(types) else DEFAULT_QUESTION_TYPE
+            choices: list[dict] = []
+            if q_type in (QUESTION_TYPE_MULTIPLE_CHOICE, "true_false"):
+                choice_texts_raw = request.form.getlist(f"choice_text_{idx}")
+                correct_raw = request.form.get(f"correct_choice_{idx}", "0")
+                try:
+                    correct_idx = int(correct_raw)
+                except (ValueError, TypeError):
+                    correct_idx = 0
+                choices = [
+                    {"choice_text": ct, "is_correct": i == correct_idx}
+                    for i, ct in enumerate(choice_texts_raw)
+                ]
             question_rows.append(
                 {
                     "prompt": prompts[idx] if idx < len(prompts) else "",
-                    "question_type": types[idx] if idx < len(types) else DEFAULT_QUESTION_TYPE,
+                    "question_type": q_type,
                     "instructor_answer": instructor_answers[idx]
                     if idx < len(instructor_answers)
                     else "",
+                    "choices": choices,
                 }
             )
     elif pf.get("question_rows"):

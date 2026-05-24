@@ -24,6 +24,7 @@ from helpers import (
     LIBRARY_TAB_SUBMITTED,
     SCENARIO_STATUS_ARCHIVED,
     SCENARIO_STATUS_DRAFT,
+    SCENARIO_STATUS_SUBMITTED,
     allowed_library_tabs_for_user,
     append_admin_audit_log,
     ScenarioAction,
@@ -551,13 +552,18 @@ def create_scenario():
     else:
         db.session.add(ScenarioTokenLayout(scenario_id=scenario.id, layout_json=raw_token_layout))
 
+    if not is_draft_save:
+        from datetime import datetime as _dt
+        scenario.status = SCENARIO_STATUS_SUBMITTED
+        scenario.submitted_at = _dt.utcnow()
+
     append_admin_audit_log(
         actor=current_db_user,
         action=action_label,
         target_type="scenario",
         target_id=scenario.id,
         target_label=scenario.title,
-        details=f"{'Draft saved' if is_draft_save else 'Created/updated'} with {len(questions)} question(s).",
+        details=f"{'Draft saved' if is_draft_save else 'Submitted for review'} with {len(questions)} question(s).",
     )
     db.session.commit()
 
@@ -565,6 +571,7 @@ def create_scenario():
         flash(f"Draft saved: '{scenario.title}'.", "success")
         return redirect(url_for("scenarios.edit_scenario_page", scenario_id=scenario.id))
 
+    flash(f"'{scenario.title}' submitted for review.", "success")
     session["scenario_id"] = scenario.id
     return redirect(url_for("main.board"))
 

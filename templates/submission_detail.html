@@ -28,8 +28,8 @@
         border-radius:999px;
         font-size:0.86rem;
         font-weight:700;
-        background:{% if submission.status_tone == 'approved' %}#dcfce7{% elif submission.status_tone == 'flagged' %}#fef3c7{% elif submission.status_tone == 'excluded' %}#fee2e2{% else %}#e5e7eb{% endif %};
-        color:{% if submission.status_tone == 'approved' %}#166534{% elif submission.status_tone == 'flagged' %}#92400e{% elif submission.status_tone == 'excluded' %}#991b1b{% else %}#374151{% endif %};
+        background:{% if submission.status_tone == 'approved' %}var(--site-success-soft){% elif submission.status_tone == 'flagged' %}var(--site-warning-soft){% elif submission.status_tone == 'excluded' %}var(--site-fire-soft){% else %}var(--site-panel){% endif %};
+        color:{% if submission.status_tone == 'approved' %}var(--site-success){% elif submission.status_tone == 'flagged' %}var(--site-warning){% elif submission.status_tone == 'excluded' %}var(--site-accent){% else %}var(--site-muted){% endif %};
       ">{{ submission.status_label }}</span>
     </p>
     {% if submission.approved_by_label %}
