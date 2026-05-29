@@ -280,7 +280,6 @@ def upload_scenario_image():
 
 
 @scenarios_bp.get("/scenarios/new")
-@requires_permission(PERM_CREATE_SCENARIOS)
 def new_scenario_page():
     return render_create_scenario()
 
@@ -577,14 +576,13 @@ def create_scenario():
 
 
 @scenarios_bp.post("/scenarios/autosave")
-@requires_permission(PERM_CREATE_SCENARIOS)
 def autosave_scenario():
     """AJAX endpoint for debounced auto-save during scenario creation."""
     import json
     validate_csrf_or_abort()
     current_db_user = get_current_db_user()
     if current_db_user is None:
-        return json.dumps({"error": "not authenticated"}), 403, {"Content-Type": "application/json"}
+        return json.dumps({"needs_account": True}), 200, {"Content-Type": "application/json"}
 
     raw_draft_id = request.form.get("draft_scenario_id", "").strip()
     draft_scenario_id = int(raw_draft_id) if raw_draft_id.isdigit() else None
