@@ -96,9 +96,10 @@ def requires_permission(permission: str):
     def decorator(view_func):
         @wraps(view_func)
         def wrapped(*args, **kwargs):
+            from flask import redirect, request, url_for
             current_user = getattr(g, "current_user", None)
-            if current_user is None:
-                abort(401)
+            if current_user is None or current_user.user_id == "guest":
+                return redirect(url_for("auth.login_page", next=request.full_path.rstrip("?")))
             if not current_user.has_permission(permission):
                 abort(403)
             return view_func(*args, **kwargs)
