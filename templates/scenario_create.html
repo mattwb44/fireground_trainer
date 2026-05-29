@@ -359,11 +359,11 @@
   {# ── Finish Scenario modal ── #}
   <div id="finishModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.62); align-items:center; justify-content:center; padding:20px;">
     <div style="background:var(--site-panel); border:1px solid var(--site-line); border-radius:22px; padding:26px; max-width:460px; width:100%; box-shadow:0 24px 64px rgba(0,0,0,0.5);">
-      <h2 style="margin:0 0 8px; font-size:1.15rem;">Finish without completing these?</h2>
-      <p style="margin:0 0 14px; color:var(--site-muted); font-size:0.92rem; line-height:1.55;">The following fields are not filled in. Click any field to go there, or finish anyway.</p>
+      <h2 style="margin:0 0 8px; font-size:1.15rem;">Required fields are missing</h2>
+      <p style="margin:0 0 14px; color:var(--site-muted); font-size:0.92rem; line-height:1.55;">These fields must be filled in to finish. Click any to go there, or save as a draft to come back later.</p>
       <ul id="finishModalList" style="margin:0 0 18px; padding:0 0 0 2px; list-style:none; display:grid; gap:8px;"></ul>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button type="button" id="finishAnyway" style="padding:10px 20px; border:0; border-radius:999px; font-weight:800; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#f8fbff; cursor:pointer;">Finish Anyway</button>
+        <button type="button" id="finishSaveDraft" style="padding:10px 20px; border:0; border-radius:999px; font-weight:800; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#f8fbff; cursor:pointer;">Save as Draft</button>
         <button type="button" id="finishGoBack" style="padding:10px 20px; border:1px solid var(--site-line); border-radius:999px; font-weight:700; background:transparent; color:var(--site-ink); cursor:pointer;">Go Back</button>
       </div>
     </div>
@@ -845,8 +845,8 @@
       return missing;
     }
 
-    function doFinish() {
-      saveModeInput.value = "finish";
+    function doSubmit(mode) {
+      saveModeInput.value = mode;
       if (layoutInput && window.getBoardTokenState) {
         layoutInput.value = JSON.stringify(window.getBoardTokenState());
       }
@@ -857,7 +857,7 @@
     document.querySelectorAll(".btn-finish-scenario").forEach((btn) => {
       btn.addEventListener("click", () => {
         const missing = getMissingFields();
-        if (missing.length === 0) { doFinish(); return; }
+        if (missing.length === 0) { doSubmit("finish"); return; }
         modalList.innerHTML = "";
         missing.forEach(({ label, targetId }) => {
           const li = document.createElement("li");
@@ -878,9 +878,9 @@
       });
     });
 
-    document.getElementById("finishAnyway")?.addEventListener("click", () => {
+    document.getElementById("finishSaveDraft")?.addEventListener("click", () => {
       modal.style.display = "none";
-      doFinish();
+      doSubmit("draft");
     });
     document.getElementById("finishGoBack")?.addEventListener("click", () => { modal.style.display = "none"; });
     modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
