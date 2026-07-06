@@ -1,0 +1,223 @@
+{# ============================================================================
+   scenario_participant.html — redesigned participant answering view.
+   Rendered by GET /board (main.board) and POST /submit (scenarios.submit)
+   for users WITHOUT host permissions (guests + participant accounts).
+   Staff/hosts keep the full scenario.html board.
+   Field names unchanged: q_<question.id>, qc_<question.id>, csrf_token.
+   The flow reads like a dispatch: context strip → call → scene → questions
+   → one sticky Submit. Reveal is a native <details>; the only JS is the
+   pre-existing live-session polling that shows host-revealed answers.
+   ========================================================================== #}
+{% extends "layout_participant.html" %}
+
+{% block title %}{{ scenario.title }} | {{ site_name }}{% endblock %}
+
+{% block body %}
+<main class="page">
+
+  {# ── Context strip: whose board is this ── #}
+  {% if active_training_session and active_participant %}
+    <div class="session-strip">
+      <span class="session-badge">Session {{ active_training_session.join_code }}</span>
+      <span class="session-badge">{{ active_participant.shift_label or 'Unspecified shift' }}</span>
+      <span class="session-badge">
+        {% if active_participant.is_anonymous %}Anonymous{% else %}{{ active_participant.display_name }}{% endif %}
+      </span>
+      {# Attempt guidance: where do I stand in this session #}
+      {% if participant_submission_state.can_submit %}
+        <span class="session-badge">
+          {% if participant_submission_state.latest_attempt_number %}
+            Last saved: Attempt #{{ participant_submission_state.latest_attempt_number }} ·
+          {% endif %}
+          Submitting as #{{ participant_submission_state.next_attempt_number }}
+        </span>
+      {% endif %}
+    </div>
+  {% elif current_user.user_id != 'guest' %}
+    <div class="session-strip">
+      <span class="session-badge">Solo drill</span>
+      <span class="session-badge">{{ current_user.display_name }}</span>
+    </div>
+  {% else %}
+    <div class="session-strip">
+      <span class="session-badge">Practice — not saved</span>
+    </div>
+  {% endif %}
+
+  {# ── The call ── #}
+  <section class="card">
+    <h1 class="scenario-title">{{ scenario.title }}</h1>
+    <p class="dispatch-text">{{ scenario.dispatch }}</p>
+  </section>
+
+  {# ── The scene ── #}
+  <img class="scene-image"
+       src="{{ url_for('static', filename=scenario.image.base) }}"
+       alt="Scene photo for {{ scenario.title }}">
+
+  {# ── Status messages ── #}
+  {% if active_training_session and active_training_session.status != 'active' %}
+    <div class="msg msg-warning">This session has ended. New submissions are disabled.</div>
+  {% endif %}
+  {% if submission_error %}
+    <div class="msg msg-error" role="alert">{{ submission_error }}</div>
+  {% endif %}
+  {% if submission_message %}
+    <div class="msg msg-{{ submission_message_level | default('success') }}">{{ submission_message }}</div>
+  {% endif %}
+
+  {# Guest expectations, before and after submit #}
+  {% if not submitted and current_user.user_id == 'guest' and not active_training_session %}
+    <div class="msg msg-info">
+      You can answer and see the instructor answers right away.
+      <a href="{{ url_for('auth.login_page', next=request.path) }}">Sign in</a> first if you want this attempt saved.
+    </div>
+  {% endif %}
+  {% if submitted and current_user.user_id == 'guest' and not active_training_session %}
+    <div class="msg msg-info">
+      <strong>This attempt wasn’t saved.</strong>
+      <a href="{{ url_for('auth.create_account_page') }}">Create a free account</a> to keep your answers next time.
+    </div>
+  {% endif %}
+
+  {# Hidden refresh container — the poll script distributes its content to the
+     per-question placeholders below (live sessions only). #}
+  {% if active_training_session %}
+    <div
+      id="revealedSubmissionPanel"
+      data-refresh-url="{{ url_for('sessions.training_session_revealed_answer_partial', session_id=active_training_session.id) }}"
+      data-refresh-enabled="{{ 'true' if active_training_session.status == 'active' else 'false' }}"
+      hidden
+      aria-hidden="true"
+    >
+      {% include "revealed_submission_partial.html" %}
+    </div>
+  {% endif %}
+
+  {# ── Questions ── #}
+  <form class="card questions-card" method="post" action="{{ url_for('scenarios.submit') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% for q in scenario.questions %}
+      <div class="question" id="participant-question-{{ q.id }}">
+        <label class="question-prompt" for="q-{{ q.id }}">
+          <span class="question-number" aria-hidden="true">{{ loop.index }}</span>
+          <span>{{ q.prompt }}</span>
+        </label>
+        <span class="question-type">{{ q.question_type_label }}</span>
+
+        {% if q.question_type == 'multiple_choice' and q.choices %}
+          {% for choice in q.choices %}
+            {% set was_selected = answers.get(q.id|string, "") == choice.choice_text %}
+            <label class="choice-row {% if submitted and choice.is_correct %}is-correct{% endif %}">
+              <input type="radio" name="qc_{{ q.id }}" value="{{ choice.id }}"
+                     {% if was_selected %}checked{% endif %}
+                     {% if submitted %}disabled{% endif %}>
+              <span>
+                {{ choice.choice_text }}
+                {% if submitted and choice.is_correct %}
+                  <span class="choice-correct-mark">✓ Correct</span>
+                {% endif %}
+              </span>
+            </label>
+          {% endfor %}
+        {% else %}
+          <textarea class="textarea" id="q-{{ q.id }}" name="q_{{ q.id }}" rows="5"
+                    placeholder="Type your answer…">{{ answers.get(q.id|string, "") }}</textarea>
+        {% endif %}
+
+        {# Host-revealed answers land here during a live session #}
+        {% if active_training_session %}
+          <div data-revealed-placeholder="{{ q.id }}"></div>
+        {% endif %}
+
+        {# Auto-score feedback (short-answer types) #}
+        {% if submitted and q.question_type != 'multiple_choice' %}
+          {% set feedback = question_feedback.get(q.id|string) %}
+          {% if feedback %}
+            <div class="feedback">
+              <strong>{{ feedback.summary }}</strong>
+              {% if feedback.matched_items %}
+                <span class="feedback-hit">✓ {{ feedback.matched_items | join(' · ') }}</span>
+              {% endif %}
+              {% if feedback.missing_items %}
+                <span class="feedback-miss">✗ {{ feedback.missing_items | join(' · ') }}</span>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endif %}
+
+        {# The payoff: instructor answer, revealed after submit #}
+        {% if submitted and q.instructor_answer and q.question_type != 'multiple_choice'
+              and (show_instructor_answers or current_user.has_permission(permission_keys.reveal_instructor_answers)) %}
+          <details class="instructor-reveal" {% if show_instructor_answers %}open{% endif %}>
+            <summary>Instructor Answer</summary>
+            <div class="answer-body">{{ q.instructor_answer }}</div>
+          </details>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    {# ── One sticky primary action ── #}
+    <div class="submit-bar">
+      {% if not active_training_session or participant_submission_state.can_submit %}
+        <button type="submit" class="btn-primary">
+          {% if active_training_session and participant_submission_state.can_submit %}
+            Submit Answers
+            {% if participant_submission_state.next_attempt_number > 1 %}
+              (Attempt #{{ participant_submission_state.next_attempt_number }})
+            {% endif %}
+          {% elif current_user.user_id == 'guest' %}
+            Check My Answers
+          {% else %}
+            Submit Drill
+          {% endif %}
+        </button>
+      {% else %}
+        <button type="submit" class="btn-primary" disabled>Submissions Closed</button>
+        <p class="guest-note">{{ participant_submission_state.message or 'Submissions are locked for this session.' }}</p>
+      {% endif %}
+    </div>
+  </form>
+
+</main>
+{% endblock %}
+
+{% block page_scripts %}
+{% if active_training_session %}
+<script>
+  // Pre-existing live-reveal behavior, trimmed to the participant case:
+  // poll the revealed-answer partial and distribute it into the per-question
+  // placeholders. Purely an enhancement — the page works without it.
+  (function () {
+    const panel = document.getElementById("revealedSubmissionPanel");
+    if (!panel) return;
+
+    function distribute() {
+      document.querySelectorAll("[data-revealed-placeholder]").forEach(el => { el.innerHTML = ""; });
+      panel.querySelectorAll("[data-question-id]").forEach(source => {
+        const target = document.querySelector(`[data-revealed-placeholder="${source.dataset.questionId}"]`);
+        if (target) target.innerHTML = source.innerHTML;
+      });
+    }
+
+    distribute();
+    if (panel.dataset.refreshEnabled === "false") return;
+    let busy = false;
+    window.setInterval(async function () {
+      if (busy) return;
+      if (document.querySelector("textarea:focus")) return;
+      busy = true;
+      try {
+        const res = await fetch(panel.dataset.refreshUrl, {
+          headers: { "X-Requested-With": "XMLHttpRequest" }, cache: "no-store",
+        });
+        if (!res.ok) return;
+        panel.innerHTML = await res.text();
+        distribute();
+      } finally { busy = false; }
+    }, 10000);
+  })();
+</script>
+{% endif %}
+{% endblock %}

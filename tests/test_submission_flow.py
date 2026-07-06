@@ -928,7 +928,9 @@ class SubmissionFlowTestCase(unittest.TestCase):
         response = self.client.post("/submit", data=payload)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Practice Submit", response.data)
+        # Redesigned participant view labels the guest practice submit
+        # "Check My Answers" (was "Practice Submit")
+        self.assertIn(b"Check My Answers", response.data)
         with app.app_context():
             self.assertEqual(Submission.query.count(), 0)
             self.assertEqual(SubmissionAnswer.query.count(), 0)
@@ -1987,8 +1989,11 @@ class SubmissionFlowTestCase(unittest.TestCase):
 
         response = self.client.post("/submit", data=payload)
         self.assertEqual(response.status_code, 200)
-        # Guests see the save banner instead of a sign-in prompt (Issue #7)
-        self.assertIn(b"Save this attempt", response.data)
+        # Redesign: guests get the instructor answers plus a clear "not saved"
+        # banner pointing at account creation (replaces the Issue #7 JS
+        # localStorage save banner)
+        self.assertIn("This attempt wasn’t saved.".encode(), response.data)
+        self.assertIn(b"Create a free account", response.data)
 
 
     # ── Issue #7: Solo drill for guests with localStorage preservation ─────────

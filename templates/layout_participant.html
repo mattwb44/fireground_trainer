@@ -1,0 +1,63 @@
+{# ============================================================================
+   layout_participant.html — shared shell for the redesigned participant
+   critical path (join → answer → reveal). Staff/host pages keep layout.html.
+   All styling lives in static/css/main.css; this file is markup only.
+   Header is deliberately minimal: brand + one auth element. Guests get a
+   quiet "Sign in" link, never a login wall.
+   ========================================================================== #}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="manifest" href="{{ url_for('static', filename='pwa/manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='pwa/ff-icon-192.png') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <title>{% block title %}{{ site_name }}{% endblock %}</title>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="site-shell">
+      <a class="brand-lockup" href="{{ url_for('main.home') }}">
+        <span class="brand-mark">BF</span>
+        <span>
+          <span class="brand-name">{{ site_name }}</span>
+          <span class="brand-subtitle">Company drills, facilitation, and review</span>
+        </span>
+      </a>
+
+      <div class="header-actions">
+        {% if current_user.user_id == 'guest' %}
+          <a class="header-link" href="{{ url_for('auth.login_page', next=request.path) }}">Sign in</a>
+        {% else %}
+          <span class="header-user">{{ current_user.display_name }}</span>
+          <form method="post" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="header-link">Logout</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  {# Flash messages (e.g. "Account activated", "Rejoined your existing
+     session entry") — rendered site-wide, above the page body. #}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="page" style="padding-bottom: 0;">
+        {% for category, message in messages %}
+          <div class="msg msg-{{ category if category in ['success', 'error', 'info', 'warning'] else 'info' }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block body %}{% endblock %}
+
+  {% block page_scripts %}{% endblock %}
+
+</body>
+</html>

@@ -19,6 +19,7 @@ from helpers import (
     issue_csrf_token,
     load_active_participant_session,
     load_host_training_session,
+    participant_board_template,
     role_label,
 )
 
@@ -91,7 +92,7 @@ def home():
 
 
 @main_bp.get("/board")
-@requires_permission(PERM_VIEW_SCENARIOS)
+@requires_permission(PERM_VIEW_SCENARIOS, allow_guest=True)
 def board():
     host_training_session = load_host_training_session()
     if host_training_session is not None:
@@ -114,7 +115,7 @@ def board():
         _scenario_row.training_category, TOKEN_PALETTE_DEFAULT
     )
     return render_template(
-        "scenario.html",
+        participant_board_template(),
         scenario=scenario,
         answers={},
         question_feedback={},

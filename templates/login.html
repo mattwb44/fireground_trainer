@@ -1,47 +1,59 @@
-{% extends "layout.html" %}
+{# ============================================================================
+   login.html — redesigned sign-in.
+   Route: GET /login (auth.login_page) · POST /login (auth.login_submit).
+   Fields unchanged: csrf_token, next, email, password.
+   With the guest gate removed, login serves two people: instructors, and a
+   guest who wants their solo drills saved. A guest arriving mid-flow
+   (?next= present) gets a one-line "why am I here" banner plus the way back.
+   ========================================================================== #}
+{% extends "layout_participant.html" %}
 
 {% block title %}Sign In | {{ site_name }}{% endblock %}
 
 {% block body %}
-<main style="max-width: 620px; margin: 40px auto; padding: 0 16px;">
-  <section style="border:1px solid rgba(24,33,47,0.12); border-radius:20px; padding:22px; background:var(--site-panel); box-shadow:0 18px 36px rgba(24,33,47,0.08);">
-    <p style="margin:0; color:var(--site-muted); font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">Account Access</p>
-    <h1 style="margin:10px 0 8px;">Sign In</h1>
-    <p style="margin:0; color:var(--site-muted); line-height:1.6;">
-      Staff accounts unlock hosting, review, reporting, and admin tools. Participant accounts can sign in to keep scenario completion tied to their account, then still choose anonymous or named session entry when joining a live drill.
-    </p>
+<main class="page">
 
-    {% if error %}
-      <p class="theme-alert-error" style="margin:16px 0 0;">{{ error }}</p>
-    {% endif %}
+  <div>
+    <h1 class="page-title">Sign In</h1>
+    <p class="page-subtitle">For instructors, and for saving your solo drills.</p>
+  </div>
 
-    <form method="post" action="{{ url_for('auth.login_submit') }}" style="display:grid; gap:12px; margin-top:18px;">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="next" value="{{ next_target }}">
+  {% if next_target and next_target != '/' %}
+    <div class="msg msg-info">
+      Signing in lets you <strong>save your drill attempts</strong> and see your history.
+      Just here for a live session? <a href="{{ next_target }}">Go back — no account needed.</a>
+    </div>
+  {% endif %}
 
-      <label>
-        <div style="display:block; margin:0 0 4px; font-weight:800;">Email</div>
-        <input id="email" name="email" type="email" autocomplete="username" required class="theme-input">
-      </label>
+  {% if error %}
+    <div class="msg msg-error" role="alert">{{ error }}</div>
+  {% endif %}
 
-      <label>
-        <div style="display:block; margin:0 0 4px; font-weight:800;">Password</div>
-        <input id="password" name="password" type="password" autocomplete="current-password" required class="theme-input">
-      </label>
+  <form class="card" method="post" action="{{ url_for('auth.login_submit') }}"
+        style="display: grid; gap: var(--sp-5);">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ next_target }}">
 
-      <button type="submit" style="margin-top:4px; padding:12px 14px; border-radius:999px; border:0; background:linear-gradient(135deg, var(--site-blue), var(--site-blue-dark)); color:#fff; font-weight:800; cursor:pointer;">Sign In</button>
-    </form>
-
-    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:16px;">
-      <a href="{{ url_for('auth.request_magic_link_page') }}">Use staff magic link instead</a>
-      <a href="{{ url_for('auth.create_account_page') }}">Create participant account</a>
+    <div class="field">
+      <label class="field-label" for="email">Email</label>
+      <input class="input" id="email" name="email" type="email"
+             autocomplete="username" required>
     </div>
 
-    <div style="margin-top:18px; padding:14px 16px; border-radius:16px; background:var(--site-fire-soft); color:var(--site-accent);">
-      <div style="font-weight:800; margin-bottom:6px;">Need the simplest path?</div>
-      <div style="line-height:1.6;">Participants can still join a live session directly from the QR code or join link without signing in.</div>
-      <div style="margin-top:8px; font-size:0.92rem;">Local bootstrap staff users: instructor@demo.local, chief@demo.local, admin@demo.local</div>
+    <div class="field">
+      <label class="field-label" for="password">Password</label>
+      <input class="input" id="password" name="password" type="password"
+             autocomplete="current-password" required>
     </div>
-  </section>
+
+    <button type="submit" class="btn-primary">Sign In</button>
+  </form>
+
+  <p class="guest-note">
+    <a href="{{ url_for('auth.request_magic_link_page') }}">Use a staff magic link instead</a>
+    &nbsp;·&nbsp;
+    <a href="{{ url_for('auth.create_account_page') }}">Create an account</a>
+  </p>
+
 </main>
 {% endblock %}

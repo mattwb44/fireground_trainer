@@ -711,7 +711,7 @@ def new_scenario():
 
 
 @scenarios_bp.post("/submit")
-@requires_permission(PERM_SUBMIT_ANSWERS)
+@requires_permission(PERM_SUBMIT_ANSWERS, allow_guest=True)
 def submit():
     from helpers import QUESTION_TYPE_MULTIPLE_CHOICE
     validate_csrf_or_abort()
@@ -780,8 +780,9 @@ def submit():
     saved_layout = ScenarioTokenLayout.query.filter_by(scenario_id=scenario_row.id).first()
     from constants import CATEGORY_TOKEN_PALETTES, TOKEN_PALETTE_DEFAULT
     token_palette = CATEGORY_TOKEN_PALETTES.get(scenario_row.training_category, TOKEN_PALETTE_DEFAULT)
+    from helpers import participant_board_template
     return render_template(
-        "scenario.html",
+        participant_board_template(),
         scenario=scenario,
         answers=answers,
         question_feedback=question_feedback,

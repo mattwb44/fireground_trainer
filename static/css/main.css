@@ -1,0 +1,515 @@
+/* ============================================================================
+   FIREGROUND TRAINER — participant critical path (join → answer → reveal)
+   ----------------------------------------------------------------------------
+   Replaces the inline <style> blocks in layout.html / scenario.html /
+   session_join_landing.html for the participant surface.
+
+   Design intent:
+   - Mobile-first: base styles target a 390px phone held by a gloved hand at
+     a kitchen table; desktop is the enhancement, not the default.
+   - Radical simplicity: one accent for "do the thing" (blue), one for brand
+     (red), one for "answer key" (amber). Everything else is quiet.
+   - No animation beyond hover/focus. No JS-dependent styling except one
+     progressive :has() nicety that degrades to "field always visible".
+   - Big tap targets: every interactive element is ≥ 48px tall.
+   ========================================================================== */
+
+/* ---- 1. Design tokens ---------------------------------------------------
+   Kept the existing --site-* palette (dark maroon + blue action color) so
+   the redesign drops into the current brand, but added spacing/typography
+   scales the old CSS never had. All new rules consume tokens only — no more
+   ad-hoc hex values scattered through templates. */
+:root {
+  /* color — carried over from the current design system */
+  --site-bg: #1c1214;
+  --site-panel: rgba(32, 16, 20, 0.94);
+  --site-surface: rgba(38, 22, 27, 0.88);
+  --site-ink: #f0e8ea;
+  --site-muted: #cbb2b9;            /* lightened from #be9ea6 for WCAG AA on dark bg */
+  --site-line: rgba(255, 200, 210, 0.14);
+  --site-brand: #c42438;
+  --site-brand-dark: #8f1624;
+  --site-accent: #e86878;
+  --site-blue: #6099dc;
+  --site-blue-dark: #4878be;
+  --site-blue-soft: rgba(33, 78, 133, 0.3);
+  --site-success: #56b878;
+  --site-success-soft: rgba(31, 106, 59, 0.28);
+  --site-warning: #d48a20;
+  --site-warning-soft: rgba(138, 75, 15, 0.3);
+  --site-error-soft: rgba(176, 28, 46, 0.22);
+
+  /* spacing — 4px base scale; replaces the old per-element magic numbers */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  /* type — one modular-ish scale; body text never below 1rem on mobile */
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.375rem;
+  --fs-2xl: 1.75rem;
+
+  /* shape */
+  --radius: 12px;
+  --radius-pill: 999px;
+
+  /* the single most important number on this sheet: minimum touch size */
+  --tap: 48px;
+}
+
+/* ---- 2. Reset / base ---------------------------------------------------- */
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--site-bg);
+  color: var(--site-ink);
+  /* Same system stack as before — zero web-font latency on station wifi */
+  font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+  font-size: var(--fs-base);
+  line-height: 1.5;
+}
+
+a { color: var(--site-accent); }
+
+/* Visible focus for keyboard users; box-shadow so radius is respected */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--site-blue);
+  border-radius: var(--radius);
+}
+
+/* ---- 3. Header ------------------------------------------------------------
+   Deliberately minimal on mobile: brand + one contextual action. The old
+   header stacked 3 nav links, a join-code input, theme toggle, and two auth
+   buttons before the content — a participant on a phone never needs those. */
+.site-header {
+  background: rgba(26, 12, 15, 0.97);
+  border-bottom: 1px solid var(--site-line);
+}
+
+.site-shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  text-decoration: none;
+  color: var(--site-ink);
+  min-height: var(--tap);
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(135deg, var(--site-brand), var(--site-brand-dark));
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  font-size: var(--fs-base);
+}
+
+/* subtitle hidden on phones — brand recognition doesn't need a tagline */
+.brand-subtitle { display: none; color: var(--site-muted); font-size: var(--fs-sm); }
+@media (min-width: 700px) {
+  .brand-subtitle { display: block; }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Guest state: a single quiet "Sign in" link, never a wall of buttons */
+.header-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 var(--sp-4);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--site-line);
+  color: var(--site-ink);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  background: transparent;
+  cursor: pointer;
+}
+.header-link:hover { border-color: var(--site-accent); }
+
+.header-user {
+  color: var(--site-muted);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+/* ---- 4. Page scaffolding -------------------------------------------------- */
+.page {
+  max-width: 720px;              /* single reading column — even on desktop the
+                                    answer flow reads better narrow */
+  margin: 0 auto;
+  padding: var(--sp-4);
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.card {
+  background: var(--site-panel);
+  border: 1px solid var(--site-line);
+  border-radius: var(--radius);
+  padding: var(--sp-4);
+}
+
+.page-title {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  margin: var(--sp-1) 0 0;
+  color: var(--site-muted);
+  font-size: var(--fs-base);
+}
+
+/* ---- 5. Forms -------------------------------------------------------------
+   Everything a firefighter touches is at least var(--tap) tall, labeled in
+   plain language above the control, with 1rem+ text (prevents iOS zoom). */
+.field { display: grid; gap: var(--sp-2); }
+
+.field-label {
+  font-weight: 800;
+  font-size: var(--fs-base);
+}
+
+.field-hint {
+  color: var(--site-muted);
+  font-size: var(--fs-sm);
+}
+
+.field-error {
+  color: var(--site-accent);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius);
+  border: 1px solid var(--site-line);
+  background: var(--site-surface);
+  color: var(--site-ink);
+  font: inherit;
+}
+
+.input.has-error,
+.select.has-error { border-color: var(--site-brand); }
+
+.textarea { resize: vertical; line-height: 1.6; }
+
+.select {
+  appearance: none;
+  /* chevron drawn in CSS so the native select still works with no JS */
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--site-muted) 50%),
+    linear-gradient(135deg, var(--site-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 22px) calc(50% - 3px),
+    calc(100% - 16px) calc(50% - 3px);
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: var(--sp-7);
+}
+
+/* Radio choices rendered as full-width tappable rows, not bare 16px dots */
+.choice-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: var(--tap);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--site-line);
+  border-radius: var(--radius);
+  background: var(--site-surface);
+  cursor: pointer;
+  font-weight: 600;
+}
+.choice-row:hover { border-color: var(--site-blue); }
+.choice-row input[type="radio"] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--site-blue);
+  flex-shrink: 0;
+}
+
+/* correct-answer state after a multiple-choice submit */
+.choice-row.is-correct {
+  border-color: var(--site-success);
+  background: var(--site-success-soft);
+}
+.choice-correct-mark { color: var(--site-success); font-weight: 800; }
+
+/* ---- 6. Buttons ------------------------------------------------------------
+   Exactly two weights. Primary = the one thing to do on this screen (Join /
+   Submit) — full-width on mobile so it cannot be missed. Secondary = quiet. */
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;                    /* primary actions get extra height */
+  padding: var(--sp-3) var(--sp-5);
+  border-radius: var(--radius);
+  border: 0;
+  font: inherit;
+  font-weight: 800;
+  font-size: var(--fs-lg);
+  cursor: pointer;
+  width: 100%;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--site-blue), var(--site-blue-dark));
+  color: #fff;
+}
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--site-line);
+  color: var(--site-ink);
+  min-height: var(--tap);
+  font-size: var(--fs-base);
+}
+.btn-secondary:hover { border-color: var(--site-accent); }
+
+@media (min-width: 700px) {
+  .btn-primary, .btn-secondary { width: auto; }
+}
+
+/* ---- 7. Messages / banners ------------------------------------------------ */
+.msg {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius);
+  border: 1px solid var(--site-line);
+  font-weight: 600;
+}
+.msg-success { background: var(--site-success-soft); border-color: var(--site-success); }
+.msg-error   { background: var(--site-error-soft);   border-color: var(--site-brand); }
+.msg-info    { background: var(--site-blue-soft);    border-color: var(--site-blue); }
+.msg-warning { background: var(--site-warning-soft); border-color: var(--site-warning); }
+
+/* ---- 8. Join screen -------------------------------------------------------- */
+.join-summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-2) var(--sp-4);
+  align-items: baseline;
+}
+.join-summary dt {
+  margin: 0;
+  color: var(--site-muted);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.join-summary dd { margin: 0; font-weight: 700; }
+
+.join-code-big {
+  font-size: var(--fs-xl);
+  letter-spacing: 0.15em;
+  font-weight: 900;
+}
+
+/* "Host sees: X" preview — the honesty box that makes anonymity trustworthy */
+.identity-preview {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius);
+  background: var(--site-blue-soft);
+  border: 1px solid var(--site-blue);
+  color: var(--site-ink);
+  font-size: var(--fs-base);
+}
+
+/* Progressive enhancement, CSS-only (no JS per the brief): when the browser
+   supports :has(), hide the name field while "anonymous" is selected. Older
+   browsers simply always show the field — harmless. */
+form:has(input[name="identity_mode"][value="anonymous"]:checked) .named-only {
+  display: none;
+}
+
+/* ---- 9. Scenario / answer screen ------------------------------------------ */
+
+/* Sticky context strip: who am I, which session — always one glance away */
+.session-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--site-line);
+  background: var(--site-surface);
+  color: var(--site-muted);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.scenario-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-xl);
+  line-height: 1.25;
+}
+
+.dispatch-text {
+  margin: 0;
+  color: var(--site-ink);
+  line-height: 1.6;
+}
+
+/* Scene image: full-bleed inside the card, capped height so questions stay
+   within one thumb-scroll on a phone */
+.scene-image {
+  width: 100%;
+  max-height: 60vh;
+  object-fit: cover;
+  border-radius: var(--radius);
+  display: block;
+}
+
+/* Question blocks: number is oversized so "which question am I on" survives
+   a glance from arm's length */
+.question {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4) 0;
+  border-top: 1px solid var(--site-line);
+}
+.question:first-of-type { border-top: 0; padding-top: 0; }
+
+.question-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: var(--site-brand);
+  color: #fff;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.question-prompt {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  line-height: 1.4;
+}
+
+/* discussion / short-answer / multiple-choice tag — quiet, informational */
+.question-type {
+  color: var(--site-muted);
+  font-size: var(--fs-sm);
+}
+
+/* Auto-score feedback after submit */
+.feedback {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius);
+  background: var(--site-surface);
+  border: 1px solid var(--site-line);
+  font-size: var(--fs-sm);
+  display: grid;
+  gap: var(--sp-1);
+}
+.feedback-hit  { color: var(--site-success); font-weight: 700; }
+.feedback-miss { color: var(--site-warning); font-weight: 700; }
+
+/* Instructor answer reveal — native <details>, zero JS. Amber = "answer key",
+   the one warm accent on the page so it reads as the payoff moment. */
+.instructor-reveal {
+  border: 1px solid var(--site-warning);
+  border-radius: var(--radius);
+  background: var(--site-warning-soft);
+  overflow: hidden;
+}
+.instructor-reveal summary {
+  cursor: pointer;
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  padding: var(--sp-3) var(--sp-4);
+  font-weight: 800;
+  color: var(--site-warning);
+  list-style-position: inside;
+}
+.instructor-reveal .answer-body {
+  padding: 0 var(--sp-4) var(--sp-4);
+  line-height: 1.6;
+}
+
+/* Submit bar: flows after the last question. (A sticky bar was tried and
+   dropped — it floated over the answer boxes; participants answer top to
+   bottom, so the button belongs at the end of the list.) */
+.submit-bar {
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--site-line);
+}
+
+/* ---- 10. Footer note (guest state) ----------------------------------------- */
+.guest-note {
+  color: var(--site-muted);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+.guest-note a { color: var(--site-accent); font-weight: 700; }
+
+/* ---- 11. Print: answer review on paper for the tailboard ------------------- */
+@media print {
+  .site-header, .submit-bar, .btn-primary, .btn-secondary { display: none !important; }
+  body { background: #fff; color: #111; }
+  .card { border-color: #ccc; background: #fff; }
+}

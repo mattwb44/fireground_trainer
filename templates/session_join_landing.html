@@ -1,244 +1,122 @@
-{% extends "layout.html" %}
+{# ============================================================================
+   session_join_landing.html — redesigned join screen (mobile-first).
+   Route: GET/POST /join/<join_code> (sessions.join_by_code) — unchanged.
+   Fields unchanged: csrf_token, shift_label, custom_shift_label,
+                     identity_mode, display_name.
+   The old JS show/hide of the name field is now a pure CSS :has()
+   enhancement (.named-only in main.css); without :has() the field simply
+   stays visible. Errors render inline via error_field.
+   ========================================================================== #}
+{% extends "layout_participant.html" %}
 
-{% block title %}Join Session | Fireground Trainer{% endblock %}
-
-{% block head_extra %}
-<style>
-  .join-shell {
-    max-width: 520px;
-    margin: 28px auto 52px;
-    padding: 0 16px;
-  }
-
-  .join-info-grid {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 6px 14px;
-    align-items: baseline;
-  }
-
-  .join-info-label {
-    font-weight: 800;
-    color: var(--site-muted);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
-
-  .join-info-value {
-    font-weight: 700;
-    color: var(--site-ink);
-  }
-
-  .join-fieldset {
-    border: 1px solid var(--site-line);
-    border-radius: 12px;
-    padding: 12px 14px;
-    background: var(--site-panel);
-    margin: 0;
-  }
-
-  .join-fieldset legend {
-    font-weight: 800;
-    padding: 0 6px;
-    color: var(--site-ink);
-    font-size: 0.92rem;
-  }
-
-  .join-radio-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 0;
-    cursor: pointer;
-    color: var(--site-ink);
-    font-weight: 600;
-  }
-
-  .join-radio-label + .join-radio-label {
-    border-top: 1px solid var(--site-line);
-  }
-
-  .join-helper {
-    font-size: 0.85rem;
-    color: var(--site-muted);
-    margin-top: 5px;
-    line-height: 1.4;
-  }
-
-  .join-preview {
-    padding: 10px 14px;
-    border: 1px solid var(--site-line);
-    border-radius: 10px;
-    background: var(--site-blue-soft);
-    color: var(--site-blue-dark);
-    font-size: 0.9rem;
-    line-height: 1.5;
-  }
-
-  .join-submit {
-    width: 100%;
-    padding: 13px;
-    border: 0;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--site-blue), var(--site-blue-dark));
-    color: #fff;
-    font-weight: 800;
-    font-size: 1rem;
-    cursor: pointer;
-  }
-
-  @media (max-width: 480px) {
-    .join-shell {
-      margin-top: 16px;
-    }
-  }
-</style>
-{% endblock %}
+{% block title %}Join Session | {{ site_name }}{% endblock %}
 
 {% block body %}
-<main class="join-shell">
+<main class="page">
 
-  {# ── Session summary ── #}
-  <section class="theme-panel" style="margin-bottom:12px;">
-    <h1 style="margin:0 0 14px; font-size:1.4rem;">Join Session</h1>
-    <div class="join-info-grid">
-      <span class="join-info-label">Code</span>
-      <span class="join-info-value">{{ training_session.join_code }}</span>
-      <span class="join-info-label">Session</span>
-      <span class="join-info-value">{{ training_session.title or ("Session #" ~ training_session.id) }}</span>
-      <span class="join-info-label">Status</span>
-      <span class="join-info-value">{{ training_session.status | title }}</span>
-      <span class="join-info-label">Scenario</span>
-      <span class="join-info-value">{{ training_session.scenario.title }}</span>
-    </div>
+  <div>
+    <h1 class="page-title">Join Session</h1>
+    <p class="page-subtitle">No account needed — pick your shift and you're in.</p>
+  </div>
+
+  {# ── What am I joining? ── #}
+  <section class="card">
+    <dl class="join-summary">
+      <dt>Code</dt>
+      <dd class="join-code-big">{{ training_session.join_code }}</dd>
+      <dt>Session</dt>
+      <dd>{{ training_session.title or 'Session #' ~ training_session.id }}</dd>
+      <dt>Status</dt>
+      <dd>{{ training_session.status | title }}</dd>
+      <dt>Scenario</dt>
+      <dd>{{ training_session.scenario.title }}</dd>
+    </dl>
   </section>
 
-  {# ── Error ── #}
   {% if error %}
-    <section class="theme-alert-error" style="margin-bottom:12px;">
-      {{ error }}
-    </section>
+    <div class="msg msg-error" role="alert">{{ error }}</div>
   {% endif %}
 
-  {# ── Form ── #}
-  <section class="theme-panel">
-    <h2 style="margin:0 0 14px; font-size:1.1rem;">Participant Details</h2>
+  {# ── The three decisions: shift → identity → (name) ── #}
+  <form class="card" method="post"
+        action="{{ url_for('sessions.join_by_code', join_code=training_session.join_code) }}"
+        style="display: grid; gap: var(--sp-5);">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     {% if joining_user %}
-      <div style="margin-bottom:14px; padding:10px 12px; border-radius:10px; background:var(--site-fire-soft); color:var(--site-accent); font-weight:700; font-size:0.92rem;">
-        Signed in as {{ joining_user.full_name or joining_user.email }}
-      </div>
+      <div class="msg msg-info">Signed in as {{ joining_user.full_name or joining_user.email }}</div>
     {% endif %}
 
-    <form method="post" action="{{ url_for('sessions.join_by_code', join_code=training_session.join_code) }}" style="display:grid; gap:14px;">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label class="field-label" for="shift_label">Your shift</label>
+      <select id="shift_label" name="shift_label"
+              class="select {% if error_field == 'shift_label' %}has-error{% endif %}">
+        <option value="">Choose your shift…</option>
+        {% for shift in shift_options %}
+          <option value="{{ shift }}" {% if form_values.shift_label == shift %}selected{% endif %}>{{ shift }}</option>
+        {% endfor %}
+      </select>
+      {% if error_field == 'shift_label' %}
+        <span class="field-error">Choose a shift before joining.</span>
+      {% endif %}
+    </div>
 
-      {# Shift #}
-      <label style="display:grid; gap:5px;">
-        <span style="font-weight:800; color:var(--site-ink);">Shift</span>
-        <select id="shift_label" name="shift_label" required
-          class="theme-select"
-          style="{% if error_field == 'shift_label' %}border-color:var(--site-brand);{% endif %}">
-          <option value="">Select shift…</option>
-          {% for shift in shift_options %}
-            <option value="{{ shift }}" {% if form_values.shift_label == shift %}selected{% endif %}>{{ shift }}</option>
-          {% endfor %}
-        </select>
-        {% if error_field == 'shift_label' %}
-          <span class="join-helper" style="color:var(--site-brand);">Please choose a shift before joining.</span>
-        {% endif %}
+    <div class="field">
+      <label class="field-label" for="custom_shift_label">Custom shift label</label>
+      <span class="field-hint">Only needed if you picked “Other” above.</span>
+      <input id="custom_shift_label" name="custom_shift_label" maxlength="50"
+             value="{{ form_values.custom_shift_label }}"
+             placeholder="e.g. Recruit Academy"
+             class="input {% if error_field == 'custom_shift_label' %}has-error{% endif %}">
+      {% if error_field == 'custom_shift_label' %}
+        <span class="field-error">Enter your shift label when selecting Other.</span>
+      {% endif %}
+    </div>
+
+    <div class="field" role="radiogroup" aria-label="Identity">
+      <span class="field-label">How should the host see you?</span>
+      <label class="choice-row">
+        <input type="radio" name="identity_mode" value="anonymous"
+               {% if form_values.identity_mode != 'named' %}checked{% endif %}>
+        Join anonymously
       </label>
-
-      {# Custom shift #}
-      <label id="customShiftWrap" style="display:grid; gap:5px; {% if form_values.shift_label != 'Other' %}display:none;{% endif %}">
-        <span style="font-weight:800; color:var(--site-ink);">Custom Shift Label</span>
-        <input name="custom_shift_label" value="{{ form_values.custom_shift_label }}" maxlength="50"
-          placeholder="e.g. Recruit Academy"
-          class="theme-input"
-          style="{% if error_field == 'custom_shift_label' %}border-color:var(--site-brand);{% endif %}">
-        {% if error_field == 'custom_shift_label' %}
-          <span class="join-helper" style="color:var(--site-brand);">Enter a custom shift label before joining.</span>
-        {% endif %}
+      <label class="choice-row">
+        <input type="radio" name="identity_mode" value="named"
+               {% if form_values.identity_mode == 'named' %}checked{% endif %}>
+        Join with my name
       </label>
+      {% if error_field == 'identity_mode' %}
+        <span class="field-error">Choose anonymous or named.</span>
+      {% endif %}
+    </div>
 
-      {# Identity #}
-      <fieldset class="join-fieldset" style="{% if error_field == 'identity_mode' %}border-color:var(--site-brand);{% endif %}">
-        <legend>Identity</legend>
-        <label class="join-radio-label">
-          <input type="radio" name="identity_mode" value="anonymous" {% if form_values.identity_mode != 'named' %}checked{% endif %}>
-          Join anonymously
-        </label>
-        <label class="join-radio-label">
-          <input type="radio" name="identity_mode" value="named" {% if form_values.identity_mode == 'named' %}checked{% endif %}>
-          Join with name
-        </label>
-      </fieldset>
+    <div class="field named-only">
+      <label class="field-label" for="display_name">Your name</label>
+      <input id="display_name" name="display_name" maxlength="120"
+             value="{{ form_values.display_name }}"
+             placeholder="e.g. Chris — Engine 2"
+             class="input {% if error_field == 'display_name' %}has-error{% endif %}">
+      {% if error_field == 'display_name' %}
+        <span class="field-error">Enter the name the host should see.</span>
+      {% endif %}
+    </div>
 
-      {# Display name #}
-      <label id="displayNameWrap" style="display:grid; gap:5px; {% if form_values.identity_mode != 'named' %}display:none;{% endif %}">
-        <span style="font-weight:800; color:var(--site-ink);">Display Name</span>
-        <input id="display_name" name="display_name" value="{{ form_values.display_name }}" maxlength="120"
-          placeholder="e.g. Chris – Engine 2"
-          class="theme-input"
-          style="{% if error_field == 'display_name' %}border-color:var(--site-brand);{% endif %}">
-        {% if error_field == 'display_name' %}
-          <span class="join-helper" style="color:var(--site-brand);">Enter the name the host should see.</span>
-        {% endif %}
-      </label>
+    {# The honesty box: exactly what the host will see. Server-rendered — it
+       reflects the submitted values on error re-render; no live JS update. #}
+    <div class="identity-preview">
+      {% if form_values.identity_mode == 'named' %}
+        Host sees: <strong>{{ form_values.display_name or 'Your display name' }}</strong>
+      {% else %}
+        Host sees: <strong>Anonymous Person</strong>
+      {% endif %}
+    </div>
 
-      {# Live preview #}
-      <div id="identityPreview" class="join-preview">
-        {% if form_values.identity_mode == 'named' %}
-          Host sees: <strong>{{ form_values.display_name or 'Your display name' }}</strong>
-        {% else %}
-          Host sees: <strong>Anonymous Person</strong>
-        {% endif %}
-      </div>
+    <button type="submit" class="btn-primary">Join Session</button>
+  </form>
 
-      <button type="submit" class="join-submit">Join Session</button>
-    </form>
-  </section>
+  <p class="guest-note">
+    Running this drill? <a href="{{ url_for('auth.login_page') }}">Instructor sign in</a>
+  </p>
 
 </main>
-{% endblock %}
-
-{% block page_scripts %}
-<script>
-  (() => {
-    const shiftSelect = document.getElementById("shift_label");
-    const customShiftWrap = document.getElementById("customShiftWrap");
-    const customShiftInput = customShiftWrap?.querySelector("input[name='custom_shift_label']");
-    const nameWrap = document.getElementById("displayNameWrap");
-    const nameInput = document.getElementById("display_name");
-    const identityPreview = document.getElementById("identityPreview");
-    const identityRadios = Array.from(document.querySelectorAll("input[name='identity_mode']"));
-
-    function updateShiftVisibility() {
-      if (!shiftSelect || !customShiftWrap) return;
-      const isOther = shiftSelect.value === "Other";
-      customShiftWrap.style.display = isOther ? "grid" : "none";
-      if (customShiftInput) customShiftInput.required = isOther;
-    }
-
-    function updateIdentityVisibility() {
-      if (!nameWrap || !nameInput) return;
-      const isNamed = identityRadios.find((r) => r.checked)?.value === "named";
-      nameWrap.style.display = isNamed ? "grid" : "none";
-      nameInput.required = isNamed;
-      if (identityPreview) {
-        identityPreview.innerHTML = isNamed
-          ? `Host sees: <strong>${nameInput.value.trim() || "Your display name"}</strong>`
-          : `Host sees: <strong>Anonymous Person</strong>`;
-      }
-    }
-
-    shiftSelect?.addEventListener("change", updateShiftVisibility);
-    identityRadios.forEach((r) => r.addEventListener("change", updateIdentityVisibility));
-    nameInput?.addEventListener("input", updateIdentityVisibility);
-    updateShiftVisibility();
-    updateIdentityVisibility();
-  })();
-</script>
 {% endblock %}

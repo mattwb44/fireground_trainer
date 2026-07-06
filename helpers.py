@@ -860,6 +860,20 @@ def render_create_session(
     )
 
 
+def participant_board_template() -> str:
+    """Pick the board template for GET /board and POST /submit.
+
+    Guests and participant-role accounts get the redesigned, participant-only
+    view (scenario_participant.html). Staff — anyone who can view session
+    submissions — keep the full scenario.html board with host tooling
+    (token board, reveal workspace, scenario workflow controls).
+    """
+    from authz import PERM_VIEW_SESSION_SUBMISSIONS
+    if g.current_user.has_permission(PERM_VIEW_SESSION_SUBMISSIONS):
+        return "scenario.html"
+    return "scenario_participant.html"
+
+
 def render_join_page(
     training_session: "TrainingSession",
     error: str | None = None,
