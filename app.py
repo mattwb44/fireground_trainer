@@ -1,7 +1,8 @@
 from pathlib import Path
 
 from flask import Flask
-from flask_migrate import upgrade as db_upgrade
+from flask_migrate import stamp as db_stamp, upgrade as db_upgrade
+from sqlalchemy import inspect as sqla_inspect
 
 from blueprints.admin import admin_bp
 from blueprints.auth import auth_bp
@@ -89,8 +90,15 @@ app.register_blueprint(sessions_bp)
 
 with app.app_context():
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    # On an empty database, create_all() builds the full current schema, so
+    # replaying migrations would fail on ALTER TABLE for columns that already
+    # exist — stamp head instead. Existing databases upgrade as before.
+    _is_fresh_db = not sqla_inspect(db.engine).get_table_names()
     db.create_all()
-    db_upgrade()
+    if _is_fresh_db:
+        db_stamp()
+    else:
+        db_upgrade()
     ensure_seed_data()
     ensure_seed_scenarios()
     ensure_seed_tags()
